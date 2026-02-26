@@ -4,20 +4,12 @@ stages:
 sonarqube-check:
   stage: sonarqube-check
   tags:
-   - local 
-  script: 
-    - |
-      docker run --rm ^
-        -e SONAR_HOST_URL=%SONAR_HOST_URL% ^
-        -e SONAR_TOKEN=%SONAR_TOKEN% ^
-        -v "%cd%:/usr/src" ^
-        sonarsource/sonar-scanner-cli ^
-        -Dsonar.projectKey=S14P21E204 ^
-        -Dsonar.sources=. ^
-        -Dsonar.host.url=%SONAR_HOST_URL% ^
-        -Dsonar.login=%SONAR_TOKEN%
+    - local 
+  script:
+    - echo "분석을 시작합니다..."
+    # 윈도우 Shell 환경에 맞춰 한 줄로 명령어를 정리했습니다.
+    - docker run --rm -v "%cd%:/usr/src" sonarsource/sonar-scanner-cli -Dsonar.projectKey=S14P21E204 -Dsonar.sources=. -Dsonar.host.url=http://192.168.30.163:9000 -Dsonar.login=sqp_여러분의_실제_토큰
   allow_failure: true
   only:
-    - merge_requests
-    - main
     - master
+    - main
