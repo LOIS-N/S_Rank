@@ -3,22 +3,19 @@ stages:
 
 sonarqube-check:
   stage: sonarqube-check
-  image: 
-    name: sonarsource/sonar-scanner-cli:latest
-    entrypoint: [""]
-  variables:
-    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  
-    GIT_DEPTH: "0"  
-  cache:
-    key: "${CI_JOB_NAME}"
-    paths:
-      - .sonar/cache
+  tags:
+   - local 
   script: 
-    - sonar-scanner \
-        -Dsonar.projectKey=S14P21E204 \
-        -Dsonar.sources=. \
-        -Dsonar.host.url=$SONAR_HOST_URL \
-        -Dsonar.login=$SONAR_TOKEN
+    - |
+      docker run --rm ^
+        -e SONAR_HOST_URL=%SONAR_HOST_URL% ^
+        -e SONAR_TOKEN=%SONAR_TOKEN% ^
+        -v "%cd%:/usr/src" ^
+        sonarsource/sonar-scanner-cli ^
+        -Dsonar.projectKey=S14P21E204 ^
+        -Dsonar.sources=. ^
+        -Dsonar.host.url=%SONAR_HOST_URL% ^
+        -Dsonar.login=%SONAR_TOKEN%
   allow_failure: true
   only:
     - merge_requests

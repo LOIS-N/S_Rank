@@ -1,0 +1,21 @@
+concurrent = 1
+check_interval = 0
+shutdown_timeout = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "admin"
+  url = "https://lab.ssafy.com"
+  id = 1683
+  token = "glrt-L3ggUMcJx2R8qe4w6Jg7cG86MQpwOnJhdjgKdDozCnU6bTU3FA.01.1e1nrbiad"
+  token_obtained_at = 2026-02-26T07:41:59Z
+  token_expires_at = 0001-01-01T00:00:00Z
+  executor = "shell"
+  shell = "pwsh"
+  [runners.cache]
+    MaxUploadedArchiveSize = 0
+    [runners.cache.s3]
+    [runners.cache.gcs]
+    [runners.cache.azure]
