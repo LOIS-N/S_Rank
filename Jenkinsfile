@@ -14,7 +14,10 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh "docker compose -f ${COMPOSE_PATH}/docker-compose.yml build"
+                sh """
+                    cd ${COMPOSE_PATH}
+                    docker compose build
+                """
             }
         }
 
