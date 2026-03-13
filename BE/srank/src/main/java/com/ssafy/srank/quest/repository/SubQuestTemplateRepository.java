@@ -21,14 +21,16 @@ public interface SubQuestTemplateRepository extends JpaRepository<SubQuestTempla
 
     // 난이도별 당일 퀘스트 조회 (난이도별 5개 제한)
     @Query(value = """
-            SELECT * FROM sub_quest_template
-            WHERE is_active = true
-              AND CAST(quest_date AS DATE) = :today
-            ORDER BY difficulty ASC, RANDOM()
-            LIMIT :limit
+            SELECT * FROM (
+                SELECT *, ROW_NUMBER() OVER (PARTITION BY difficulty ORDER BY RANDOM()) AS rn
+                FROM sub_quest_template
+                WHERE is_active = true
+                  AND CAST(quest_date AS DATE) = :today
+            ) ranked
+            WHERE rn <= 1
+            ORDER BY difficulty ASC
             """, nativeQuery = true)
     List<SubQuestTemplate> findTodaySubQuestsByDifficulty(
-            @Param("today") LocalDate today,
-            @Param("limit") int limit
+            @Param("today") LocalDate today
     );
 }

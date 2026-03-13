@@ -3,8 +3,8 @@ package com.ssafy.srank.quest.presentation.controller;
 import com.ssafy.srank.common.response.ApiResponse;
 import com.ssafy.srank.quest.application.dto.response.MainQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.SubQuestResponse;
-import com.ssafy.srank.quest.application.service.MainQuestService;
-import com.ssafy.srank.quest.application.service.SubQuestService;
+import com.ssafy.srank.quest.application.service.MainQuestServiceImpl;
+import com.ssafy.srank.quest.application.service.SubQuestServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,8 +26,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class QuestController {
 
-    private final MainQuestService mainQuestService;
-    private final SubQuestService subQuestService;
+    private final MainQuestServiceImpl mainQuestServiceImpl;
+    private final SubQuestServiceImpl subQuestServiceImpl;
 
     @Operation(
             summary = "현재 챕터 메인 퀘스트 목록 조회",
@@ -52,7 +52,7 @@ public class QuestController {
             @Parameter(description = "유저 ID (임시)", example = "1")
             @RequestHeader("X-User-Id") Long userId
     ) {
-        return ResponseEntity.ok(ApiResponse.success(mainQuestService.getMainQuests(userId)));
+        return ResponseEntity.ok(ApiResponse.success(mainQuestServiceImpl.getMainQuests(userId)));
     }
 
     @Operation(
@@ -78,6 +78,6 @@ public class QuestController {
             @Parameter(description = "유저 ID (임시)", example = "1")
             @RequestHeader("X-User-Id") Long userId
     ) {
-        return ResponseEntity.ok(ApiResponse.success(subQuestService.getSubQuests(userId)));
+        return ResponseEntity.ok(ApiResponse.success(subQuestServiceImpl.getSubQuests(userId)));
     }
 }
