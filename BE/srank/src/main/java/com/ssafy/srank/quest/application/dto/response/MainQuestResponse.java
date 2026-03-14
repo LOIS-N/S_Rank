@@ -9,6 +9,7 @@ import lombok.Getter;
 public class MainQuestResponse {
 
     private Long questId;
+    private String questType;
     private int chapterNo;
     private int stepNo;
     private String title;
@@ -26,12 +27,12 @@ public class MainQuestResponse {
     private int cardSlotCount;
     private int rewardGold;
 
-    private boolean isCompleted;    // CLAIMED 상태
-    private boolean isInProgress;   // IN_PROGRESS 상태
+    private String status;
 
-    public static MainQuestResponse from(MainQuestTemplate template, boolean isCompleted, boolean isInProgress) {
+    public static MainQuestResponse from(MainQuestTemplate template, String status) {
         return MainQuestResponse.builder()
                 .questId(template.getId())
+                .questType("MAIN")
                 .chapterNo(template.getChapterNo())
                 .stepNo(template.getStepNo())
                 .title(template.getTitle())
@@ -46,8 +47,7 @@ public class MainQuestResponse {
                 .durationMinutes(template.getDurationMinutes())
                 .cardSlotCount(template.getCardSlotCount())
                 .rewardGold(template.getRewardGold())
-                .isCompleted(isCompleted)
-                .isInProgress(isInProgress)
+                .status(status)
                 .build();
     }
 }

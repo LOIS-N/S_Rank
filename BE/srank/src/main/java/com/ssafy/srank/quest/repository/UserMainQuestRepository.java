@@ -7,18 +7,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 
 public interface UserMainQuestRepository extends JpaRepository<UserMainQuest, Long> {
 
-    // 유저의 특정 상태 퀘스트 목록 조회
-    List<UserMainQuest> findByUserIdAndStatus(Long userId, QuestStatus status);
+    // 유저의 특정 템플릿들에 대한 상태 조회
+    @Query("SELECT u FROM UserMainQuest u WHERE u.userId = :userId AND u.mainQuestTemplate.id IN :templateIds")
+    List<UserMainQuest> findByUserIdAndTemplateIds(@Param("userId") Long userId, @Param("templateIds") List<Long> templateIds);
 
-    // 유저가 완료(CLAIMED)한 템플릿 ID 목록 조회
-    @Query("SELECT u.mainQuestTemplate.id FROM UserMainQuest u WHERE u.userId = :userId AND u.status = 'CLAIMED'")
-    Set<Long> findClaimedTemplateIdsByUserId(@Param("userId") Long userId);
-
-    // 유저가 현재 진행 중인 퀘스트의 템플릿 ID 목록 조회
-    @Query("SELECT u.mainQuestTemplate.id FROM UserMainQuest u WHERE u.userId = :userId AND u.status = 'IN_PROGRESS'")
-    Set<Long> findInProgressTemplateIdsByUserId(@Param("userId") Long userId);
+    // 유저의 특정 템플릿 단건 상태 조회
+    @Query("SELECT u FROM UserMainQuest u WHERE u.userId = :userId AND u.mainQuestTemplate.id = :templateId")
+    Optional<UserMainQuest> findByUserIdAndTemplateId(@Param("userId") Long userId, @Param("templateId") Long templateId);
 }

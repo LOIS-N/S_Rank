@@ -10,27 +10,16 @@ import java.util.List;
 
 public interface SubQuestTemplateRepository extends JpaRepository<SubQuestTemplate, Long> {
 
-    // 당일 서브 퀘스트 난이도별 5개 조회
-    @Query("""
-            SELECT s FROM SubQuestTemplate s
-            WHERE s.isActive = true
-            AND CAST(s.questDate AS LocalDate) = :today
-            ORDER BY s.difficulty ASC, RANDOM()
-            """)
-    List<SubQuestTemplate> findTodaySubQuests(@Param("today") LocalDate today);
-
-    // 난이도별 당일 퀘스트 조회 (난이도별 5개 제한)
+    // 당일 서브 퀘스트 난이도별 랜덤 5개 조회
     @Query(value = """
             SELECT * FROM (
                 SELECT *, ROW_NUMBER() OVER (PARTITION BY difficulty ORDER BY RANDOM()) AS rn
                 FROM sub_quest_template
                 WHERE is_active = true
-                  AND CAST(quest_date AS DATE) = :today
+                AND CAST(quest_date AS DATE) = :today
             ) ranked
-            WHERE rn <= 1
+            WHERE rn <= 5
             ORDER BY difficulty ASC
             """, nativeQuery = true)
-    List<SubQuestTemplate> findTodaySubQuestsByDifficulty(
-            @Param("today") LocalDate today
-    );
+    List<SubQuestTemplate> findTodaySubQuests(@Param("today") LocalDate today);
 }

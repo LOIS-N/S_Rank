@@ -65,6 +65,7 @@ public enum ErrorCode {
     QUEST_EXCEED_HARD_CAP(HttpStatus.BAD_REQUEST,       "Q006", "예상 완료 시간이 하드캡을 초과합니다."),
     QUEST_SLOT_NOT_UNLOCKED(HttpStatus.FORBIDDEN,       "Q007", "해당 슬롯이 해금되지 않았습니다."),
     QUEST_NOT_COMPLETED(HttpStatus.BAD_REQUEST,         "Q008", "아직 완료되지 않은 퀘스트입니다."),
+    INVALID_QUEST_TYPE(HttpStatus.BAD_REQUEST,         "Q008", "유효하지 않은 퀘스트 타입입니다."),
 
     // ======================== GA : Gacha ========================
     GACHA_TYPE_NOT_FOUND(HttpStatus.NOT_FOUND,          "GA001", "존재하지 않는 뽑기 종류입니다."),

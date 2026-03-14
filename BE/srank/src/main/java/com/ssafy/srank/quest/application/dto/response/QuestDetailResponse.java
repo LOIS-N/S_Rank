@@ -1,15 +1,18 @@
 package com.ssafy.srank.quest.application.dto.response;
 
+import com.ssafy.srank.quest.domain.entity.MainQuestTemplate;
 import com.ssafy.srank.quest.domain.entity.SubQuestTemplate;
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @Builder
-public class SubQuestResponse {
+public class QuestDetailResponse {
 
     private Long questId;
     private String questType;
+    private Integer chapterNo;
+    private Integer stepNo;
     private String title;
     private String description;
     private int difficulty;
@@ -27,10 +30,34 @@ public class SubQuestResponse {
 
     private String status;
 
-    public static SubQuestResponse from(SubQuestTemplate template, String status) {
-        return SubQuestResponse.builder()
+    public static QuestDetailResponse fromMain(MainQuestTemplate template, String status) {
+        return QuestDetailResponse.builder()
+                .questId(template.getId())
+                .questType("MAIN")
+                .chapterNo(template.getChapterNo())
+                .stepNo(template.getStepNo())
+                .title(template.getTitle())
+                .description(template.getDescription())
+                .difficulty(template.getDifficulty())
+                .requiredSkillType1(template.getRequiredSkillType1())
+                .requiredSkillValue1(template.getRequiredSkillValue1())
+                .requiredSkillType2(template.getRequiredSkillType2())
+                .requiredSkillValue2(template.getRequiredSkillValue2())
+                .requiredSkillType3(template.getRequiredSkillType3())
+                .requiredSkillValue3(template.getRequiredSkillValue3())
+                .durationMinutes(template.getDurationMinutes())
+                .cardSlotCount(template.getCardSlotCount())
+                .rewardGold(template.getRewardGold())
+                .status(status)
+                .build();
+    }
+
+    public static QuestDetailResponse fromSub(SubQuestTemplate template, String status) {
+        return QuestDetailResponse.builder()
                 .questId(template.getId())
                 .questType("SUB")
+                .chapterNo(null)
+                .stepNo(null)
                 .title(template.getTitle())
                 .description(template.getDescription())
                 .difficulty(template.getDifficulty())

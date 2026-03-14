@@ -3,7 +3,9 @@ package com.ssafy.srank.quest.application.service;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.quest.application.dto.response.MainQuestResponse;
+import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.domain.entity.MainQuestTemplate;
+import com.ssafy.srank.quest.domain.entity.UserMainQuest;
 import com.ssafy.srank.quest.repository.MainQuestTemplateRepository;
 import com.ssafy.srank.quest.repository.UserMainQuestRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,29 +24,39 @@ public class MainQuestServiceImpl implements MainQuestService {
     private final MainQuestTemplateRepository mainQuestTemplateRepository;
     private final UserMainQuestRepository userMainQuestRepository;
 
-    /**
-     * 현재 챕터의 메인 퀘스트 목록 조회
-     * - 현재 챕터의 모든 스텝을 완료 여부, 진행중 여부와 함께 반환
-     */
     public List<MainQuestResponse> getMainQuests(Long userId) {
-        //Todo : 하드코딩 변경
-        int chapter = 1; //사용자 정보에서 사용자 현재 챕터 번호 가져옴
-        
-        List<MainQuestTemplate> templates = mainQuestTemplateRepository.findByChapterNoAndIsActiveTrueOrderByStepNoAsc(1);
-        if (templates.isEmpty()) {
-            throw new BusinessException(ErrorCode.QUEST_NOT_FOUND);
-        }
+        // TODO: 하드코딩 변경 - 사용자 현재 챕터 번호 가져오기
+        int chapter = 1;
 
-        Set<Long> claimedIds = userMainQuestRepository.findClaimedTemplateIdsByUserId(userId);
-        Set<Long> inProgressIds = userMainQuestRepository.findInProgressTemplateIdsByUserId(userId);
+        List<MainQuestTemplate> templates = mainQuestTemplateRepository.findByChapterNo(chapter);
+
+        List<Long> templateIds = templates.stream().map(MainQuestTemplate::getId).toList();
+
+        // templateId -> status 맵
+        Map<Long, String> statusMap = userMainQuestRepository
+                .findByUserIdAndTemplateIds(userId, templateIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        uq -> uq.getMainQuestTemplate().getId(),
+                        uq -> uq.getStatus().name(),
+                        (existing, replacement) -> existing
+                ));
 
         return templates.stream()
-                .map(template -> MainQuestResponse.from(
-                        template,
-                        claimedIds.contains(template.getId()),
-                        inProgressIds.contains(template.getId())
-                ))
+                .map(template -> MainQuestResponse.from(template, statusMap.get(template.getId())))
                 .toList();
+    }
 
+    @Override
+    public QuestDetailResponse getMainQuestDetail(Long userId, Long questId) {
+        MainQuestTemplate template = mainQuestTemplateRepository.findById(questId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_FOUND));
+
+        String status = userMainQuestRepository
+                .findByUserIdAndTemplateId(userId, questId)
+                .map(uq -> uq.getStatus().name())
+                .orElse(null);
+
+        return QuestDetailResponse.fromMain(template, status);
     }
 }
