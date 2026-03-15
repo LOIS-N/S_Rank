@@ -123,10 +123,10 @@ interface NineSliceBoxProps {
 }
 
 function NineSliceBox({ src, slice, framePadding, borderScale = 1, children, className, style, onClick }: NineSliceBoxProps) {
-  const t = slice[0] * borderScale;
-  const r = slice[1] * borderScale;
-  const b = slice[2] * borderScale;
-  const l = slice[3] * borderScale;
+  const t = Math.round(slice[0] * borderScale);
+  const r = Math.round(slice[1] * borderScale);
+  const b = Math.round(slice[2] * borderScale);
+  const l = Math.round(slice[3] * borderScale);
 
   return (
     <div 
@@ -146,11 +146,15 @@ function NineSliceBox({ src, slice, framePadding, borderScale = 1, children, cla
           borderImageSource: `url(${src})`,
           borderImageSlice: `${slice[0]} ${slice[1]} ${slice[2]} ${slice[3]} fill`,
           borderColor: 'transparent',
+          imageRendering: 'pixelated',
+          transform: 'translateZ(0) scale(1.0001)', // 미세한 오버슈트로 틈새(seam) 제거
+          backfaceVisibility: 'hidden',
+          outline: 'none',
           zIndex: 0,
           pointerEvents: 'none'
-        }}
+        } as any}
       />
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="nineslice-content" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
         {children}
       </div>
     </div>
@@ -289,14 +293,14 @@ function QuestDetail({ quest, onAccept }: { quest: Quest | null, onAccept: () =>
 }
 
 // --- Phase 2: 카드 배치 콘텐츠 ---
-function Phase2Content({ quest }: { quest: Quest | null }) {
+function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () => void }) {
   const router = useRouter();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
 
   // Dummy card pool
   const CARD_POOL = Array.from({ length: 24 }).map((_, i) => ({
     id: 1000 + i,
-    image: `/assets/003-02/SCardImage_00${i % 3}.png`,
+    image: `/assets/006/SCardImage_${(i % 20).toString().padStart(3, '0')}.png`,
   }));
 
   const handleCardClick = (id: number) => {
@@ -315,10 +319,13 @@ function Phase2Content({ quest }: { quest: Quest | null }) {
   const dragStartP2YRef = useRef(0);
   const dragStartP2RatioRef = useRef(0);
 
-  const ROW_HEIGHT = 160;
-  const VISIBLE_ROWS = 3;
+  // The aspect ratio of a card is 104 / 144.
+  // The grid width is determined by Flex layout. Let's assume a row is roughly 150px height + 12px gap.
+  // To avoid cutting off, we increase ROW_HEIGHT and add a padding bottom to total height.
+  const ROW_HEIGHT = 160 + 12; // Card Height + Row gap
+  const VISIBLE_ROWS = 3.2; // Show 3 rows and a peek of the 4th
   const totalRows = Math.ceil(CARD_POOL.length / 4);
-  const p2TotalContentHeight = totalRows * ROW_HEIGHT;
+  const p2TotalContentHeight = totalRows * ROW_HEIGHT + 32; // 하단 여백 추가 (패딩+마진)
   const p2VisibleHeight = VISIBLE_ROWS * ROW_HEIGHT;
   const p2MaxScroll = Math.max(0, p2TotalContentHeight - p2VisibleHeight);
   const p2ScrollOffset = p2ScrollRatio * p2MaxScroll;
@@ -460,17 +467,30 @@ function Phase2Content({ quest }: { quest: Quest | null }) {
           </NineSliceBox>
         </div>
 
-        {/* 수락하기 버튼 */}
-        <NineSliceBox
+        {/* 수락하기 / 취소하기 버튼 */}
+        <div className="phase2-action-buttons">
+          <NineSliceBox
             src="/assets/003-01/questCard_000.png"
             slice={[200, 208, 200, 208]}
             framePadding={10}
             borderScale={0.35}
-            className="quest-accept-button phase2-accept-button"
-            onClick={() => router.push('/')}
-        >
-            <span style={{position:'relative', zIndex: 2}}>수락하기</span>
-        </NineSliceBox>
+            className="phase2-btn-cancel"
+            onClick={onCancel}
+          >
+            <span style={{ position: 'relative', zIndex: 2 }}>취소하기</span>
+          </NineSliceBox>
+
+          <NineSliceBox
+              src="/assets/003-01/questCard_000.png"
+              slice={[200, 208, 200, 208]}
+              framePadding={10}
+              borderScale={0.35}
+              className="phase2-btn-accept"
+              onClick={() => router.push('/')}
+          >
+              <span style={{ position: 'relative', zIndex: 2 }}>수락하기</span>
+          </NineSliceBox>
+        </div>
 
       </NineSliceBox>
     </div>
@@ -758,7 +778,7 @@ export default function QuestPage() {
 
         {/* === Phase 2: 카드 배치 화면 === */}
         <div className="quest-content phase-2-content">
-          <Phase2Content quest={selectedQuest} />
+          <Phase2Content quest={selectedQuest} onCancel={() => setPhase('select')} />
         </div>
       </div>
 

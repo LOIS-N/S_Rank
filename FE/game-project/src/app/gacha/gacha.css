@@ -1,0 +1,188 @@
+/* gacha.css */
+
+.gacha-layout {
+  display: flex;
+  height: calc(100vh - 80px); /* 헤더 영역 제외 */
+  overflow: hidden;
+}
+
+.gacha-content {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: background-image 0.3s ease;
+}
+
+/* Background Variations */
+.gacha-bg-flyer { background-image: url('/assets/006/lotto_000.png'); }
+.gacha-bg-fair { background-image: url('/assets/006/lotto_001.png'); }
+.gacha-bg-public { background-image: url('/assets/006/lotto_002.png'); }
+
+/* Top Tabs */
+.gacha-tabs-container {
+  display: flex;
+  height: 80px;
+  width: 100%;
+}
+
+.gacha-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #2a2a40;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.gacha-tab:hover {
+  filter: brightness(1.1);
+}
+
+.gacha-tab:active {
+  transform: scale(0.98);
+}
+
+.gacha-tab.active {
+  /* 활성화된 탭에 대한 스타일 - 필터 등으로 강조 */
+  filter: brightness(1.2) drop-shadow(0 0 5px rgba(255,255,255,0.5));
+}
+
+.gacha-tab .nineslice-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Main Area */
+.gacha-main-area {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 40px;
+}
+
+/* Bottom Buttons Area */
+.gacha-bottom-buttons {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.gacha-action-btn {
+  width: 200px; /* 조금 더 넓게 */
+  height: 72px; /* 세로 높이 상향 */
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.1s ease;
+  color: #2a2a40;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 24px; /* 글자 크기 상향 */
+}
+
+.gacha-action-btn.btn-10pull {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.gacha-action-btn:hover {
+  transform: scale(1.03);
+  filter: brightness(1.1);
+}
+
+.gacha-action-btn:active {
+  transform: scale(0.97);
+  filter: brightness(0.9);
+}
+
+.gacha-action-btn .nineslice-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 4px; /* 텍스트가 살짝 위로 치우치는 것을 방지 */
+}
+
+.btn-subtitle {
+  font-size: 14px;
+  font-weight: normal;
+  font-family: 'Stardust', sans-serif;
+}
+
+/* Result Phases */
+.gacha-result-container {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.6); /* 반투명 배경 */
+  z-index: 10;
+  padding-bottom: 20px;
+}
+
+/* 1 Pull Result */
+.gacha-1pull-card {
+  width: 320px;
+  margin-bottom: 40px;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.gacha-1pull-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* 10 Pull Result */
+.gacha-10pull-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+  max-width: 800px;
+}
+
+.gacha-10pull-card {
+  width: 100%;
+  max-width: 140px;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.gacha-10pull-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Stagger animation for 10 pulls */
+.gacha-10pull-card:nth-child(1) { animation-delay: 0.1s; }
+.gacha-10pull-card:nth-child(2) { animation-delay: 0.2s; }
+.gacha-10pull-card:nth-child(3) { animation-delay: 0.3s; }
+.gacha-10pull-card:nth-child(4) { animation-delay: 0.4s; }
+.gacha-10pull-card:nth-child(5) { animation-delay: 0.5s; }
+.gacha-10pull-card:nth-child(6) { animation-delay: 0.6s; }
+.gacha-10pull-card:nth-child(7) { animation-delay: 0.7s; }
+.gacha-10pull-card:nth-child(8) { animation-delay: 0.8s; }
+.gacha-10pull-card:nth-child(9) { animation-delay: 0.9s; }
+.gacha-10pull-card:nth-child(10) { animation-delay: 1.0s; }
+
+@keyframes popIn {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}

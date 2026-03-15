@@ -433,6 +433,7 @@
   right: 0;
   transition: transform 0.2s ease-out;
   padding: 4px; /* 테두리 강조 안쪽 여백 */
+  padding-bottom: 24px; /* 스크롤 최하단 짤림 방지용 여유 공간 */
 }
 
 /* 카드 아이템 효과 */
@@ -568,6 +569,44 @@
 .phase2-accept-button {
   flex-shrink: 0;
   height: 54px;
+}
+
+/* Split Buttons in Phase 2 */
+.phase2-action-buttons {
+  display: flex;
+  gap: 12px;
+  flex: 0 0 54px;
+}
+
+.phase2-btn-cancel,
+.phase2-btn-accept {
+  flex: 1;
+  display: flex;
+  cursor: pointer;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 22px; /* 글자 크기 다시 상향 */
+  color: #2a2a40;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+/* 버튼 내부 텍스트 완전 중앙 정렬 */
+.phase2-btn-cancel .nineslice-content,
+.phase2-btn-accept .nineslice-content {
+  justify-content: center;
+  align-items: center;
+}
+
+.phase2-btn-cancel:hover,
+.phase2-btn-accept:hover {
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+.phase2-btn-cancel:active,
+.phase2-btn-accept:active {
+  transform: scale(0.98);
+  filter: brightness(0.95);
 }
 
 /* Phase 2 Specific Scrollbar Assets */
