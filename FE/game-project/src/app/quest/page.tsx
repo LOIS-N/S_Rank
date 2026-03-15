@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import "./quest.css";
 
 /* ============================================================
@@ -207,7 +208,7 @@ function QuestCard({
 }
 
 // --- 퀘스트 상세 정보 컴포넌트 ---
-function QuestDetail({ quest }: { quest: Quest | null }) {
+function QuestDetail({ quest, onAccept }: { quest: Quest | null, onAccept: () => void }) {
   if (!quest) {
     return (
       <div className="quest-detail-panel">
@@ -279,12 +280,7 @@ function QuestDetail({ quest }: { quest: Quest | null }) {
         framePadding={10}
         borderScale={0.35}
         className="quest-accept-button"
-        onClick={() => {
-          // TODO: 카드 배치 페이지로 이동하는 로직을 여기에 구현
-          // router.push(`/card-placement?questId=${quest.id}`);
-          console.log(`[퀘스트 수락] questId: ${quest.id}, title: ${quest.title}`);
-          alert(`"${quest.title}" 퀘스트를 수락했습니다!\n(카드 배치 페이지 연결 후 이동됩니다)`);
-        }}
+        onClick={onAccept}
       >
         <span style={{position:'relative', zIndex: 2}}>수락하기</span>
       </NineSliceBox>
@@ -292,10 +288,200 @@ function QuestDetail({ quest }: { quest: Quest | null }) {
   );
 }
 
+// --- Phase 2: 카드 배치 콘텐츠 ---
+function Phase2Content({ quest }: { quest: Quest | null }) {
+  const router = useRouter();
+  const [selectedCards, setSelectedCards] = useState<number[]>([]);
+
+  // Dummy card pool
+  const CARD_POOL = Array.from({ length: 24 }).map((_, i) => ({
+    id: 1000 + i,
+    image: `/assets/003-01/SCardImage_00${i % 3}.png`,
+  }));
+
+  const handleCardClick = (id: number) => {
+    setSelectedCards(prev => {
+      if (prev.includes(id)) return prev.filter(c => c !== id);
+      return [...prev, id];
+    });
+  };
+
+  // Phase 2 left scrollbar logic
+  const [p2ScrollRatio, setP2ScrollRatio] = useState(0);
+  const [p2TrackHeight, setP2TrackHeight] = useState(0);
+  const p2GridRef = useRef<HTMLDivElement>(null);
+  const p2TrackRef = useRef<HTMLDivElement>(null);
+  const isDraggingP2Ref = useRef(false);
+  const dragStartP2YRef = useRef(0);
+  const dragStartP2RatioRef = useRef(0);
+
+  const ROW_HEIGHT = 160;
+  const VISIBLE_ROWS = 3;
+  const totalRows = Math.ceil(CARD_POOL.length / 4);
+  const p2TotalContentHeight = totalRows * ROW_HEIGHT;
+  const p2VisibleHeight = VISIBLE_ROWS * ROW_HEIGHT;
+  const p2MaxScroll = Math.max(0, p2TotalContentHeight - p2VisibleHeight);
+  const p2ScrollOffset = p2ScrollRatio * p2MaxScroll;
+
+  const handleP2Wheel = useCallback((e: React.WheelEvent) => {
+    if (p2MaxScroll <= 0) return;
+    const delta = e.deltaY / p2MaxScroll;
+    setP2ScrollRatio(prev => Math.min(1, Math.max(0, prev + delta * 0.3)));
+  }, [p2MaxScroll]);
+
+  const p2ThumbTop = useCallback(() => {
+    if (!p2TrackHeight) return 0;
+    const trackPadding = 14;
+    const thumbSize = 24; 
+    const maxThumbTop = p2TrackHeight - thumbSize - (trackPadding * 2);
+    if (maxThumbTop <= 0) return trackPadding;
+    return trackPadding + (p2ScrollRatio * maxThumbTop);
+  }, [p2ScrollRatio, p2TrackHeight]);
+
+  useEffect(() => {
+    if (p2TrackRef.current) setP2TrackHeight(p2TrackRef.current.clientHeight);
+  }, []);
+
+  const handleP2ThumbMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingP2Ref.current = true;
+    dragStartP2YRef.current = e.clientY;
+    dragStartP2RatioRef.current = p2ScrollRatio;
+  }, [p2ScrollRatio]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingP2Ref.current || !p2TrackRef.current) return;
+      const trackHeightCurrent = p2TrackRef.current.clientHeight;
+      const trackPadding = 14;
+      const thumbSize = 24;
+      const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
+      if (maxThumbTop <= 0) return;
+      const deltaY = e.clientY - dragStartP2YRef.current;
+      const newRatio = Math.min(1, Math.max(0, dragStartP2RatioRef.current + deltaY / maxThumbTop));
+      setP2ScrollRatio(newRatio);
+    };
+    const handleMouseUp = () => { isDraggingP2Ref.current = false; };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  const handleP2TrackClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!p2TrackRef.current) return;
+    const rect = p2TrackRef.current.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const trackHeightCurrent = rect.height;
+    const trackPadding = 14;
+    const thumbSize = 24;
+    const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
+    if (maxThumbTop <= 0) return;
+    const adjustedClickY = clickY - trackPadding;
+    const newRatio = Math.min(1, Math.max(0, (adjustedClickY - thumbSize / 2) / maxThumbTop));
+    setP2ScrollRatio(newRatio);
+  }, []);
+
+  if (!quest) return null;
+
+  return (
+    <div className="phase2-container">
+      {/* ──── 좌측: 카드 목록 ──── */}
+      <NineSliceBox src="/assets/003-01/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
+        <div className="phase2-card-grid-wrapper" onWheel={handleP2Wheel} style={{ height: p2VisibleHeight }}>
+          <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
+            {CARD_POOL.map((card) => {
+              const selected = selectedCards.includes(card.id);
+              return (
+                <div key={card.id} className={`phase2-card-item ${selected ? 'selected' : ''}`} onClick={() => handleCardClick(card.id)}>
+                  <img src={card.image} alt="card" draggable={false} />
+                  {selected && <div className="phase2-card-highlight"></div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </NineSliceBox>
+
+      {/* ──── 중간: 스크롤바 ──── */}
+      <div className="scrollbar-column phase2-scrollbar-column">
+        <div ref={p2TrackRef} className="scrollbar-track" onClick={handleP2TrackClick}>
+           <div className="scrollbar-thumb" style={{ top: p2ThumbTop() }} onMouseDown={handleP2ThumbMouseDown} />
+        </div>
+      </div>
+
+      {/* ──── 우측: 퀘스트 프레임 ──── */}
+      <NineSliceBox src="/assets/003-01/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={20} borderScale={0.5} className="phase2-right-box">
+        {/* Top: 퀘스트 제목 */}
+        <NineSliceBox src="/assets/003-01/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-title-box">
+          <div className="phase2-info-title">{quest.title}</div>
+          <div className="phase2-info-subtitle">(퀘스트 제목)</div>
+        </NineSliceBox>
+
+        {/* Middle: 카드 배치 현황판 */}
+        <NineSliceBox src="/assets/003-01/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-drop-box">
+          <div className="phase2-drop-cards">
+            {selectedCards.map((id, index) => {
+              const card = CARD_POOL.find(c => c.id === id);
+              if (!card) return null;
+              const maxCardsBeforeOverlap = 3;
+              const overlapOffset = selectedCards.length > maxCardsBeforeOverlap ? -40 : 10;
+              return (
+                <img 
+                  key={id} 
+                  src={card.image} 
+                  alt="selected" 
+                  className="phase2-dropped-card"
+                  style={{ zIndex: index, marginLeft: index > 0 ? overlapOffset : 0 }}
+                  onClick={() => handleCardClick(id)}
+                  draggable={false}
+                />
+              );
+            })}
+          </div>
+        </NineSliceBox>
+
+        {/* Bottom variables */}
+        <div className="phase2-right-bottom-row">
+          <NineSliceBox src="/assets/003-01/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
+            <div className="quest-info-box-label">퀘스트 수행 조건</div>
+            <div className="quest-info-box-text">
+              {quest.conditions.map((cond, i) => <div key={i}>{cond}</div>)}
+            </div>
+          </NineSliceBox>
+          <NineSliceBox src="/assets/003-01/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
+             <div className="quest-info-box-label">예상 시간 / 보상</div>
+             <div className="quest-info-box-text">
+               <div>예상 시간 : {quest.estimatedTime}</div>
+               <div>예상 보상 : {quest.reward}</div>
+             </div>
+          </NineSliceBox>
+        </div>
+
+        {/* 수락하기 버튼 */}
+        <NineSliceBox
+            src="/assets/003-01/questCard_000.png"
+            slice={[200, 208, 200, 208]}
+            framePadding={10}
+            borderScale={0.35}
+            className="quest-accept-button phase2-accept-button"
+            onClick={() => router.push('/')}
+        >
+            <span style={{position:'relative', zIndex: 2}}>수락하기</span>
+        </NineSliceBox>
+
+      </NineSliceBox>
+    </div>
+  );
+}
+
 /* ============================================================
    메인 페이지 컴포넌트
    ============================================================ */
 export default function QuestPage() {
+  const [phase, setPhase] = useState<'select' | 'placement'>('select');
   const [selectedQuest, setSelectedQuest] = useState<Quest | null>(MAIN_QUEST_DATA);
   const [subQuests, setSubQuests] = useState<Quest[]>(INITIAL_SUB_QUESTS);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -490,10 +676,12 @@ export default function QuestPage() {
           </NineSliceBox>
         </div>
 
-        {/* 메인 콘텐츠 */}
-      <div className="quest-content">
-        {/* ──── 좌측: 퀘스트 리스트 + 스크롤바 ──── */}
-        <div className="quest-left-area" onWheel={handleWheel}>
+        {/* 메인 콘텐츠 래퍼 (슬라이딩 애니메이션) */}
+      <div className={`quest-content-wrapper phase-${phase}`}>
+        {/* === Phase 1: 퀘스트 목록 화면 === */}
+        <div className="quest-content phase-1-content">
+          {/* ──── 좌측: 퀘스트 리스트 + 스크롤바 ──── */}
+          <div className="quest-left-area" onWheel={handleWheel}>
           {/* 퀘스트 리스트 */}
           <div className="quest-list-column">
             {/* 메인 퀘스트 (고정, 스크롤 영향 안 받음) */}
@@ -565,7 +753,13 @@ export default function QuestPage() {
         </div>
 
         {/* ──── 우측: 퀘스트 상세 정보 ──── */}
-        <QuestDetail quest={selectedQuest} />
+        <QuestDetail quest={selectedQuest} onAccept={() => setPhase('placement')} />
+        </div>
+
+        {/* === Phase 2: 카드 배치 화면 === */}
+        <div className="quest-content phase-2-content">
+          <Phase2Content quest={selectedQuest} />
+        </div>
       </div>
 
       {/* ============================================================
