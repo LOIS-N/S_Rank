@@ -29,6 +29,48 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'Stardust';
+  src: url('/assets/fonts/stardust.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Stardust';
+  src: url('/assets/fonts/stardust_bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Stardust';
+  src: url('/assets/fonts/stardust_extrabold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'StardustS';
+  src: url('/assets/fonts/stardust(s).ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'StardustS';
+  src: url('/assets/fonts/stardust(s)_bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'StardustS';
+  src: url('/assets/fonts/stardust(s)_extrabold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+}
+
 /* 모바일 환경 필수 설정 */
 html, body {
   width: 100%;

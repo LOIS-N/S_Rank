@@ -1,0 +1,396 @@
+/* ============================================================
+   Quest Main Page Styles (퀘스트 메인 화면)
+   - 1280x720 (16:9) 기준 레이아웃
+   - Stardust font 적용
+   - pixel-art 에셋 기반 UI
+   ============================================================ */
+
+/* --- 뷰포트 맞춤 래퍼 --- */
+.quest-page-wrapper {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  /* align-items: center; */ /* Removed to allow quest-page-container to fill height */
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+}
+
+/* --- 게임 컨테이너: 1280x720 고정, Javascript transform scale에 의해 화면에 맞춰짐 --- */
+.quest-page-container {
+  width: 1280px;
+  height: 720px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  transform-origin: center center; /* 중앙 유지하며 스케일링 */
+  /* 배경 이미지용 pseudo-element */
+  position: relative;
+  overflow: hidden;
+}
+
+.quest-page-container::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: url('/assets/003-01/questMain_000.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.4; /* 배경 투명도 조정 */
+  z-index: 0;
+}
+
+/* 내부 요소들이 배경 위로 올라오도록 설정 */
+.quest-page-container > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* --- 페이지 타이틀 --- */
+.quest-page-title {
+  text-align: center;
+  color: #fff;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  flex-shrink: 0;
+  margin: 0;
+  padding: 4px 10px;
+}
+
+/* --- 메인 콘텐츠 영역 (좌: 퀘스트 리스트 + 스크롤바, 우: 상세정보) --- */
+.quest-content {
+  display: flex;
+  flex: 1;
+  padding: 0 24px 80px 24px; /* 하단 네비게이션 바 고정 크기 80px (1280x720 스케일 뷰포트 기준) */
+  gap: 20px;
+  min-height: 0;
+}
+
+/* ============================
+   좌측 영역: 퀘스트 리스트 + 스크롤바
+   ============================ */
+.quest-left-area {
+  display: flex;
+  gap: 12px;
+  width: 480px;
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+/* 퀘스트 리스트 컬럼 */
+.quest-list-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 8px;
+}
+
+/* --- 퀘스트 카드 공통 --- */
+.quest-card {
+  min-height: 54px;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  flex-shrink: 0;
+}
+
+.quest-card:hover {
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+.quest-card.selected {
+  filter: brightness(1.2) drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));
+  transform: scale(1.03);
+}
+
+/* 메인 퀘스트 카드 (강조) */
+.quest-card.main-quest {
+  min-height: 60px;
+}
+
+.quest-card-label {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  margin-right: 6px;
+  white-space: nowrap;
+}
+
+.main-label {
+  color: #ffd700;
+  font-size: 15px;
+  font-weight: 800;
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
+}
+
+.sub-label {
+  color: #a0c0ff;
+  font-size: 13px;
+  font-weight: 800;
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
+}
+
+.quest-card-title {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 난이도 별 */
+.quest-stars {
+  display: flex;
+  gap: 1px;
+  margin-left: 6px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.quest-star {
+  width: 16px;
+  height: 16px;
+  background-image: url('/assets/003-01/levelStar_000.png');
+  background-size: 458.71% 255.37%;
+  background-position: 50% 48.15%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.quest-star.empty {
+  filter: grayscale(100%) brightness(1.5);
+  opacity: 0.4;
+}
+
+/* --- 서브 퀘스트 스크롤 영역 --- */
+.sub-quest-scroll-area {
+  flex: 1;
+  clip-path: inset(-15px -100px); /* 좌우 테두리와 상단 확대 효과(1.03)가 잘리지 않도록 클리핑 영역 완화 */
+  position: relative;
+  min-height: 0;
+}
+
+.sub-quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  transition: transform 0.2s ease-out;
+}
+
+/* ============================
+   커스텀 스크롤바
+   ============================ */
+.scrollbar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+/* 메인 퀘스트 높이만큼의 스페이서 */
+.scrollbar-spacer {
+  height: 68px;
+  flex-shrink: 0;
+}
+
+/* 스크롤바 트랙 추가(기존 유지) */
+.scrollbar-track {
+  width: 18px;
+  flex: 1;
+  background-image: url('/assets/003-01/scrollBar_000.png');
+  background-size: 2298.85% 127.25%;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  min-height: 80px;
+  position: relative;
+}
+
+/* 스크롤바 썸 (움직이는 손잡이) */
+.scrollbar-thumb {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 24px;
+  background-image: url('/assets/003-01/scrollButton_000.png');
+  background-size: 349.65% 201.8%;
+  background-position: 50% 49.19%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  cursor: grab;
+  /* top transition is handled in react style to avoid lag */
+  z-index: 2;
+}
+
+.scrollbar-thumb:active {
+  cursor: grabbing;
+}
+
+/* 새로고침 버튼 (크기 강제 2배 확대) */
+.refresh-button {
+  width: 100px; /* Changed from 104px to 100px */
+  height: 100px; /* Changed from 104px to 100px */
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  margin-top: auto; /* 여백 밀착 */
+  margin-bottom: -15px; 
+  align-self: center; /* 중앙 정렬 */
+  position: relative;
+  z-index: 5;
+}
+
+.refresh-button:hover {
+  transform: scale(1.1);
+}
+
+.refresh-button:active {
+  transform: scale(0.95);
+}
+
+.refresh-button-inner {
+  width: 100%;
+  height: 100%;
+  background-size: 199.2% 110.27%;
+  background-position: 50% 57.69%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.refresh-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated; /* 픽셀 깨짐 방지 */
+}
+
+/* ============================
+   우측 영역: 퀘스트 상세 정보
+   ============================ */
+.quest-detail-panel {
+  flex: 1;
+}
+
+/* 상세 정보 없음 */
+.quest-detail-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a8ab0;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 18px;
+}
+
+/* 퀘스트 제목 (상세) */
+.quest-detail-title {
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #2a2a40;
+  padding: 6px 0;
+  flex-shrink: 0;
+}
+
+/* 내부 패널 (questInf_001.png 배경) */
+.quest-info-box.content-box {
+  flex: 1;
+  min-height: 80px;
+}
+
+.quest-info-box-label {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: #2a2a40;
+  margin-bottom: 6px;
+  text-align: center; /* 전체 중앙 정렬 */
+}
+
+.quest-info-box-text {
+  font-family: 'Stardust', sans-serif;
+  font-size: 15px;
+  color: #111;
+  font-weight: bold;
+  line-height: 1.5;
+  text-align: center; /* 세부 내용들 중앙 정렬 */
+}
+
+/* 조건 + 보상 한 줄 */
+.quest-detail-row {
+  display: flex;
+  gap: 10px;
+  flex: 0 0 160px; /* 텍스트 길이에 따라 상자 크기가 변하지 않도록 높이 고정 */
+}
+
+.quest-detail-row > .quest-info-box {
+  flex: 1;
+}
+
+/* 내부 텍스트들의 세로 중앙 정렬을 위한 하위 div 타겟팅 */
+.quest-detail-row > .quest-info-box > div:last-child {
+  justify-content: center;
+}
+
+/* 수락하기 버튼 */
+.quest-accept-button {
+  cursor: pointer;
+  padding: 6px 0;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: #2a2a40; /* 배경에서 잘 보이는 진한 색으로 교체 */
+  text-shadow: none; /* 가독성을 해치는 그림자 제거 */
+  transition: transform 0.15s ease, filter 0.15s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quest-accept-button:hover {
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+.quest-accept-button:active {
+  transform: scale(0.98);
+  filter: brightness(0.95);
+}
+
+/* ============================
+   하단 네비게이션 바 가이드라인 (주석)
+   
+   [가이드라인] 하단 네비게이션 바 연결
+   ─────────────────────────────
+   부모 페이지(레이아웃)에서 하단 네비게이션 바가 별도로 제공될 예정입니다.
+   이 퀘스트 페이지를 부모 레이아웃에 연결할 때:
+   
+   1. 부모 레이아웃에서 <BottomNavBar /> 컴포넌트를 렌더링
+   2. "퀘스트" 버튼의 onClick에 router.push('/quest')를 연결
+   3. 또는 Next.js의 <Link href="/quest"> 사용
+   4. 현재 활성 탭 표시를 위해 pathname === '/quest' 조건 활용
+   
+   예시:
+   <Link href="/quest" className={pathname === '/quest' ? 'active' : ''}>
+     퀘스트
+   </Link>
+   ============================ */
