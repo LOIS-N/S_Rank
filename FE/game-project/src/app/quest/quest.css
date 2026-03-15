@@ -511,12 +511,16 @@
   font-weight: 800;
   font-size: 20px;
   color: #2a2a40;
+  text-align: center;
+  width: 100%;
 }
 .phase2-info-subtitle {
   font-family: 'Stardust', sans-serif;
   font-weight: bold;
   font-size: 14px;
   color: #444;
+  text-align: center;
+  width: 100%;
 }
 
 /* 카드 배치 현황판 */
@@ -564,4 +568,12 @@
 .phase2-accept-button {
   flex-shrink: 0;
   height: 54px;
+}
+
+/* Phase 2 Specific Scrollbar Assets */
+.phase2-scrollbar-column .scrollbar-track {
+  background-image: url('/assets/003-02/scrollBar_000.png');
+}
+.phase2-scrollbar-column .scrollbar-thumb {
+  background-image: url('/assets/003-02/scrollButton_000.png');
 }

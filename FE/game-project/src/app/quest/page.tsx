@@ -296,7 +296,7 @@ function Phase2Content({ quest }: { quest: Quest | null }) {
   // Dummy card pool
   const CARD_POOL = Array.from({ length: 24 }).map((_, i) => ({
     id: 1000 + i,
-    image: `/assets/003-01/SCardImage_00${i % 3}.png`,
+    image: `/assets/003-02/SCardImage_00${i % 3}.png`,
   }));
 
   const handleCardClick = (id: number) => {
@@ -389,7 +389,7 @@ function Phase2Content({ quest }: { quest: Quest | null }) {
   return (
     <div className="phase2-container">
       {/* ──── 좌측: 카드 목록 ──── */}
-      <NineSliceBox src="/assets/003-01/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
+      <NineSliceBox src="/assets/003-02/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
         <div className="phase2-card-grid-wrapper" onWheel={handleP2Wheel} style={{ height: p2VisibleHeight }}>
           <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
             {CARD_POOL.map((card) => {
@@ -413,15 +413,15 @@ function Phase2Content({ quest }: { quest: Quest | null }) {
       </div>
 
       {/* ──── 우측: 퀘스트 프레임 ──── */}
-      <NineSliceBox src="/assets/003-01/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={20} borderScale={0.5} className="phase2-right-box">
+      <NineSliceBox src="/assets/003-02/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={20} borderScale={0.5} className="phase2-right-box">
         {/* Top: 퀘스트 제목 */}
-        <NineSliceBox src="/assets/003-01/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-title-box">
+        <NineSliceBox src="/assets/003-02/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-title-box">
           <div className="phase2-info-title">{quest.title}</div>
           <div className="phase2-info-subtitle">(퀘스트 제목)</div>
         </NineSliceBox>
 
         {/* Middle: 카드 배치 현황판 */}
-        <NineSliceBox src="/assets/003-01/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-drop-box">
+        <NineSliceBox src="/assets/003-02/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-drop-box">
           <div className="phase2-drop-cards">
             {selectedCards.map((id, index) => {
               const card = CARD_POOL.find(c => c.id === id);
@@ -445,13 +445,13 @@ function Phase2Content({ quest }: { quest: Quest | null }) {
 
         {/* Bottom variables */}
         <div className="phase2-right-bottom-row">
-          <NineSliceBox src="/assets/003-01/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
+          <NineSliceBox src="/assets/003-02/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
             <div className="quest-info-box-label">퀘스트 수행 조건</div>
             <div className="quest-info-box-text">
               {quest.conditions.map((cond, i) => <div key={i}>{cond}</div>)}
             </div>
           </NineSliceBox>
-          <NineSliceBox src="/assets/003-01/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
+          <NineSliceBox src="/assets/003-02/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
              <div className="quest-info-box-label">예상 시간 / 보상</div>
              <div className="quest-info-box-text">
                <div>예상 시간 : {quest.estimatedTime}</div>
