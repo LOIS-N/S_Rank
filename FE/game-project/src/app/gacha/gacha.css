@@ -138,6 +138,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column; /* To stack text */
+  padding-bottom: 20px; /* Moves content up by 10px since it's centered in 80px height */
+  margin-top: -10px; /* Moves the button itself up 10px */
   cursor: pointer;
   transition: transform 0.1s ease, filter 0.1s ease;
   color: #2a2a40; /* 어두운 텍스트가 더 잘 보임 */
@@ -151,8 +154,6 @@
 }
 
 .gacha-action-btn.btn-10pull {
-  display: flex;
-  flex-direction: column;
   line-height: 1.1;
   height: 82px; /* 서브타이틀 때문에 10회 뽑기가 더 큼 설정 */
 }

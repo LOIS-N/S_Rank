@@ -23,6 +23,7 @@ interface GameState {
   selectingDeskId: number | null;
   activeRewardModal: { isOpen: boolean; title: string; text: string } | null;
   activeUnlockConfirm: { isOpen: boolean; deskId: number } | null;
+  comingSoonModal: { isOpen: boolean; text: string } | null;
   setAuth: (token: string | null) => void;
   increaseScore: (by: number) => void;
   increaseGold: (by: number) => void;
@@ -40,6 +41,8 @@ interface GameState {
   unlockQuestSlot: (id: number) => void;
   setUnlockConfirm: (id: number | null) => void;
   closeRewardModal: () => void;
+  openComingSoonModal: (text?: string) => void;
+  closeComingSoonModal: () => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -61,6 +64,7 @@ export const useGameStore = create<GameState>((set) => ({
   selectingDeskId: null,
   activeRewardModal: null,
   activeUnlockConfirm: null,
+  comingSoonModal: null,
   
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
@@ -121,4 +125,8 @@ export const useGameStore = create<GameState>((set) => ({
     activeUnlockConfirm: id !== null ? { isOpen: true, deskId: id } : null 
   }),
   closeRewardModal: () => set({ activeRewardModal: null }),
+  openComingSoonModal: (text) => set({ 
+    comingSoonModal: { isOpen: true, text: text || "[2차 배포 후 이용 가능한 콘텐츠입니다]" } 
+  }),
+  closeComingSoonModal: () => set({ comingSoonModal: null }),
 }));

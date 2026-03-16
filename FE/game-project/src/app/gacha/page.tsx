@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useGameStore } from "@/store/useGameStore";
 import "./gacha.css";
 
 // --- NineSliceBox Component (from quest page) ---
@@ -72,6 +73,7 @@ const CARD_POOL: GachaCard[] = Array.from({ length: 20 }).map((_, i) => ({
 export default function GachaPage() {
   const [currentTab, setCurrentTab] = useState<TabType>('flyer');
   const [phase, setPhase] = useState<PhaseType>('select');
+  const { openComingSoonModal } = useGameStore();
   const [drawnCards, setDrawnCards] = useState<GachaCard[]>([]);
   const [scale, setScale] = useState(1);
 
@@ -134,8 +136,8 @@ export default function GachaPage() {
 
             <div className="gacha-tab-wrapper">
               <div 
-                className={`gacha-tab ${currentTab === 'fair' ? 'active' : ''}`}
-                onClick={() => { setCurrentTab('fair'); setPhase('select'); }}
+                className={`gacha-tab ${currentTab === 'fair' ? 'active' : ''} brightness-75`}
+                onClick={() => { openComingSoonModal(); }}
               >
                 <div className="gacha-tab-inner" />
                 <span>박람회 뽑기</span>
@@ -144,8 +146,8 @@ export default function GachaPage() {
 
             <div className="gacha-tab-wrapper">
               <div 
-                className={`gacha-tab ${currentTab === 'public' ? 'active' : ''}`}
-                onClick={() => { setCurrentTab('public'); setPhase('select'); }}
+                className={`gacha-tab ${currentTab === 'public' ? 'active' : ''} brightness-75`}
+                onClick={() => { openComingSoonModal(); }}
               >
                 <div className="gacha-tab-inner" />
                 <span>공채 뽑기</span>

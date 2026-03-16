@@ -349,24 +349,21 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     });
   };
 
-  // Phase 2 left scrollbar logic
   const [p2ScrollRatio, setP2ScrollRatio] = useState(0);
   const [p2TrackHeight, setP2TrackHeight] = useState(0);
+  const [p2WrapperHeight, setP2WrapperHeight] = useState(0);
   const p2GridRef = useRef<HTMLDivElement>(null);
   const p2TrackRef = useRef<HTMLDivElement>(null);
+  const p2WrapperRef = useRef<HTMLDivElement>(null);
   const isDraggingP2Ref = useRef(false);
   const dragStartP2YRef = useRef(0);
   const dragStartP2RatioRef = useRef(0);
 
   // The aspect ratio of a card is 104 / 144.
-  // The grid width is determined by Flex layout. Let's assume a row is roughly 150px height + 12px gap.
-  // To avoid cutting off, we increase ROW_HEIGHT and add a padding bottom to total height.
   const ROW_HEIGHT = 210 + 12; // Card Height (increased for 3 cols) + Row gap
-  const VISIBLE_ROWS = 3.2; // Show 3 rows and a peek of the 4th
   const totalRows = Math.ceil(CARD_POOL.length / 3);
   const p2TotalContentHeight = totalRows * ROW_HEIGHT + 32; // 하단 여백 추가 (패딩+마진)
-  const p2VisibleHeight = VISIBLE_ROWS * ROW_HEIGHT;
-  const p2MaxScroll = Math.max(0, p2TotalContentHeight - p2VisibleHeight);
+  const p2MaxScroll = Math.max(0, p2TotalContentHeight - p2WrapperHeight);
   const p2ScrollOffset = p2ScrollRatio * p2MaxScroll;
 
   const handleP2Wheel = useCallback((e: React.WheelEvent) => {
@@ -386,6 +383,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
   useEffect(() => {
     if (p2TrackRef.current) setP2TrackHeight(p2TrackRef.current.clientHeight);
+    if (p2WrapperRef.current) setP2WrapperHeight(p2WrapperRef.current.clientHeight);
   }, []);
 
   const handleP2ThumbMouseDown = useCallback((e: React.MouseEvent) => {
@@ -436,7 +434,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     <div className="phase2-container">
       {/* ──── 좌측: 카드 목록 ──── */}
       <NineSliceBox src="/assets/003-02/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
-        <div className="phase2-card-grid-wrapper" onWheel={handleP2Wheel} style={{ height: p2VisibleHeight }}>
+        <div className="phase2-card-grid-wrapper" ref={p2WrapperRef} onWheel={handleP2Wheel} style={{ flex: 1, overflow: 'hidden' }}>
           <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
             {CARD_POOL.map((card) => {
               const selected = selectedCards.includes(card.id);

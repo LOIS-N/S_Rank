@@ -4,6 +4,7 @@ import "./globals.css";
 import Script from "next/script";
 import PrivyProviderWrapper from "@/components/providers/PrivyProviderWrapper";
 import BottomNavBar from "@/components/BottomNavBar";
+import GlobalModals from "@/components/GlobalModals";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -55,6 +56,7 @@ export default function RootLayout({
             <PrivyProviderWrapper>
               {children}
               <BottomNavBar />
+              <GlobalModals />
             </PrivyProviderWrapper>
           </div>
         </div>
