@@ -19,37 +19,37 @@ export default function MainHUD() {
     <div className="absolute inset-0 pointer-events-none font-dot flex flex-col justify-between select-none">
       
       {/* --- 상단 바 (전체 너비 페일 블루 그레이 배경, 반응형 구성) --- */}
-      <div className="w-full bg-[#8ea4b8] border-b-4 border-[#6b859e] pointer-events-auto shadow-md">
-        <div className="w-full max-w-[1280px] mx-auto p-2 flex flex-col md:flex-row justify-between items-center bg-[#b0c4de]/40 gap-2 md:gap-0">
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 md:pl-2">
-            <div className="font-bold text-[20px] sm:text-[22px] drop-shadow-[2px_2px_0px_#000] text-white">
+      <div className="w-full bg-[#8ea4b8] border-b-[6px] border-[#6b859e] pointer-events-auto shadow-md">
+        <div className="w-full mx-auto p-4 flex flex-col md:flex-row justify-between items-center bg-[#b0c4de]/40 gap-4 md:gap-0">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:pl-4">
+            <div className="font-bold text-[30px] sm:text-[34px] drop-shadow-[3px_3px_0px_#000] text-white">
             S급 개발자들이 나를 따르는 이유
           </div>
           
           {/* Gold Container */}
-          <div className="relative flex items-center h-10 sm:h-12 w-32 sm:w-36 md:w-40 ml-2 md:ml-6">
+          <div className="relative flex items-center h-16 sm:h-20 w-48 sm:w-56 md:w-64 ml-4 md:ml-10">
             <div 
-              className="absolute left-6 right-0 top-0 bottom-0 text-white drop-shadow-md text-shadow-sm font-bold flex items-center justify-end pr-3 sm:pr-4 text-[16px] sm:text-[18px] md:text-[22px]"
+              className="absolute left-10 right-0 top-0 bottom-0 text-white drop-shadow-md text-shadow-sm font-bold flex items-center justify-end pr-5 sm:pr-6 text-[24px] sm:text-[28px] md:text-[34px]"
               style={{ backgroundImage: "url('/assets/upperBlank_002.png')", backgroundSize: "100% 100%" }}
             >
-              <span className="tabular-nums">{gold.toLocaleString()}</span> <span className="ml-1 text-[16px] sm:text-[18px] md:text-[20px] text-yellow-300">G</span>
+              <span className="tabular-nums">{gold.toLocaleString()}</span> <span className="ml-2 text-[24px] sm:text-[28px] md:text-[32px] text-yellow-300">G</span>
             </div>
-            <img src="/assets/coin_002.png" alt="gold" className="absolute -left-3 top-0 w-10 sm:w-12 h-10 sm:h-12 pixelated z-10" style={{ imageRendering: 'pixelated' }} />
+            <img src="/assets/coin_002.png" alt="gold" className="absolute -left-6 top-0 w-16 sm:w-20 h-16 sm:h-20 pixelated z-10" style={{ imageRendering: 'pixelated' }} />
           </div>
 
           {/* Coffee Container */}
-          <div className="relative flex items-center h-10 sm:h-12 w-32 sm:w-36 md:w-40 ml-2 md:ml-6">
+          <div className="relative flex items-center h-16 sm:h-20 w-48 sm:w-56 md:w-64 ml-4 md:ml-10">
             <div 
-              className="absolute left-6 right-0 top-0 bottom-0 text-white drop-shadow-md text-shadow-sm font-bold flex items-center justify-end pr-3 sm:pr-4 text-[16px] sm:text-[18px] md:text-[22px]"
+              className="absolute left-10 right-0 top-0 bottom-0 text-white drop-shadow-md text-shadow-sm font-bold flex items-center justify-end pr-5 sm:pr-6 text-[24px] sm:text-[28px] md:text-[34px]"
               style={{ backgroundImage: "url('/assets/upperBlank_002.png')", backgroundSize: "100% 100%" }}
             >
-              <span className="tabular-nums">{coffee.toLocaleString()}</span> <span className="ml-1 text-[16px] sm:text-[18px] md:text-[20px] text-amber-300">잔</span>
+              <span className="tabular-nums">{coffee.toLocaleString()}</span> <span className="ml-2 text-[24px] sm:text-[28px] md:text-[32px] text-amber-300">잔</span>
             </div>
-            <img src="/assets/coffee_002.png" alt="coffee" className="absolute -left-3 top-0 w-10 sm:w-12 h-10 sm:h-12 pixelated z-10" style={{ imageRendering: 'pixelated' }} />
+            <img src="/assets/coffee_002.png" alt="coffee" className="absolute -left-6 top-0 w-16 sm:w-20 h-16 sm:h-20 pixelated z-10" style={{ imageRendering: 'pixelated' }} />
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-3 sm:gap-4 md:gap-5 md:pr-4">
           {/* 우측 상단 5개 모달 버튼들: 마이페이지, 랭킹, 디스코드, 알림, 업적 */}
           {[
             { id: "mypage", icon: "/assets/mypage_002.png", label: "마이페이지" },
@@ -61,13 +61,15 @@ export default function MainHUD() {
              <button 
                key={item.id} 
                onClick={() => setActiveModal(item.id)}
-               className="relative w-12 h-12 flex items-center justify-center shadow-[1px_1px_0px_#000] active:translate-y-0.5"
+               className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-1 transition-all hover:brightness-110"
                style={{ backgroundImage: "url('/assets/upperButton_002.png')", backgroundSize: "100% 100%" }}
                title={item.label}
              >
-               <img src={item.icon} alt={item.label} className="w-8 h-8" style={{ imageRendering: 'pixelated' }} />
+               <img src={item.icon} alt={item.label} className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16" style={{ imageRendering: 'pixelated' }} />
                {item.id === "notification" && unreadNotifications > 0 && (
-                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full border-2 border-white"></div>
+                 <div className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 bg-red-600 rounded-full border-2 border-white flex items-center justify-center">
+                   <span className="text-white text-[10px] sm:text-[12px] md:text-[14px] font-bold">{unreadNotifications}</span>
+                 </div>
                )}
               </button>
             ))}
@@ -86,16 +88,16 @@ export default function MainHUD() {
       <div className="flex-1" />
 
       {/* --- 하단 메뉴바 (항상 고정, 반응형 지원, 사이즈/간격 조절) --- */}
-      <div className="w-full bg-[#8ea4b8] border-t-4 border-[#6b859e] pointer-events-auto pt-2 pb-2">
-        <div className="w-full max-w-[1280px] mx-auto flex justify-center px-2">
-          <div className="flex flex-wrap justify-center gap-1 sm:gap-1 lg:gap-[6px] w-full">
+      <div className="w-full bg-[#8ea4b8] border-t-[6px] border-[#6b859e] pointer-events-auto pt-3 pb-3">
+        <div className="w-full mx-auto flex justify-center px-4">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 lg:gap-[10px] w-full">
           {menuItems.map((item) => (
             <button
               key={item}
               className={`flex items-center justify-center text-black font-bold drop-shadow-md transition-all
                 active:translate-x-0.5 active:translate-y-0.5 hover:brightness-110
-                w-[96px] h-[30px] sm:w-[120px] sm:h-[38px] lg:w-[145px] lg:h-[45px]
-                text-[14px] sm:text-[20px] lg:text-[22px]`}
+                w-[145px] h-[45px] sm:w-[180px] sm:h-[57px] lg:w-[215px] lg:h-[68px]
+                text-[20px] sm:text-[30px] lg:text-[34px]`}
               style={{ 
                 backgroundImage: "url('/assets/lowerButton_001.png')", 
                 backgroundSize: "100% 100%",

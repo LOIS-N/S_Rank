@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
+import PrivyProviderWrapper from "@/components/providers/PrivyProviderWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,7 +23,7 @@ export default function RootLayout({
       <head>
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://auth.privy.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: http://localhost:8080;"
+          content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://auth.privy.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: http://localhost:8080; frame-src 'self' https://auth.privy.io;"
         />
         {/* Google Analytics */}
         {gaId && (
@@ -45,7 +46,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <div className="app-container">
           <div className="game-wrapper">
-            {children}
+            <PrivyProviderWrapper>
+              {children}
+            </PrivyProviderWrapper>
           </div>
         </div>
       </body>

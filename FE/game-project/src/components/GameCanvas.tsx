@@ -21,8 +21,8 @@ export default function GameCanvas() {
         backgroundColor: "#000000",
         scale: {
           mode: Phaser.Scale.FIT, // 16:9 래퍼에 맞게 핏 맞춤
-          width: 1280,
-          height: 720,
+          width: 1920,
+          height: 1080,
           autoCenter: Phaser.Scale.CENTER_BOTH,
         },
         render: {
@@ -72,34 +72,34 @@ export default function GameCanvas() {
             const mainContainer = scene.add.container(width / 2, height / 2);
 
             // 1. City BG (로그인, 닉네임 입력용)
-            // 1280x720 규격에 딱 맞도록 강제
+            // 1920x1080 규격에 딱 맞도록 강제
             const cityBg = scene.add.image(0, 0, "city_bg");
-            cityBg.setDisplaySize(1280, 720);
+            cityBg.setDisplaySize(1920, 1080);
             
             // 2. Play BG (사무실)
             const playContainer = scene.add.container(0, 0);
             const playBg = scene.add.image(0, 0, bgKey);
             const playOfc = scene.add.image(0, 0, ofcKey);
             
-            // bg와 ofc 크기를 1280x720에 맞춤
-            playBg.setDisplaySize(1280, 720);
-            playOfc.setDisplaySize(1280, 720);
+            // bg와 ofc 크기를 1920x1080에 맞춤
+            playBg.setDisplaySize(1920, 1080);
+            playOfc.setDisplaySize(1920, 1080);
 
             playContainer.add([playBg, playOfc]);
 
-            // 책상 5개 배치
-            const originDeskScale = 0.225;
+            // 책상 5개 배치 (원근비례 고려하여 해상도 1.5배 증가에 맞춰 위치/스케일 보정)
+            const originDeskScale = 0.3375; // (0.225 * 1.5)
             const deskPositions = [
-              // 2nd desk from left (index 0) - right 30, down 20
-              { x: 90, y: 70 },
-              // 4th desk from left (index 1) - unchanged
-              { x: 30, y: 160 },
-              // 1st desk from left (index 2) - right 20, up 20
-              { x: -200, y: 70 },
-              // 5th desk from left (index 3) - up 100
-              { x: 50, y: 190 },
-              // 3rd desk from left (index 4) - right 40, up 50
-              { x: -90, y: 120 },
+              // 2nd desk from left (index 0) 
+              { x: 135, y: 105 },
+              // 4th desk from left (index 1) 
+              { x: 45, y: 240 },
+              // 1st desk from left (index 2) 
+              { x: -300, y: 105 },
+              // 5th desk from left (index 3) 
+              { x: 75, y: 285 },
+              // 3rd desk from left (index 4) 
+              { x: -135, y: 180 },
             ];
 
             const deskDataList: any[] = [];
@@ -150,7 +150,19 @@ export default function GameCanvas() {
             
             mainContainer.add([cityBg, playContainer]);
 
-            // scene 업데이트에서 gameStatus에 따라 visible 변경
+            // Set initial visibility based on the store's sync state
+            const initialStatus = useGameStore.getState().gameStatus;
+            scene.registry.set('currentStatus', initialStatus);
+            
+            if (initialStatus === "PLAYING") {
+              cityBg.setVisible(false);
+              playContainer.setVisible(true);
+            } else {
+              cityBg.setVisible(true);
+              playContainer.setVisible(false);
+            }
+
+            // scene 업데이트에서 gameStatus에 따라 visible 변경을 위해 registry 저장
             scene.registry.set('cityBg', cityBg);
             scene.registry.set('playContainer', playContainer);
             scene.registry.set('deskDataList', deskDataList);

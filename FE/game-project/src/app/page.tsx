@@ -36,6 +36,8 @@ export default function Home() {
     isProcessing.current = true;
     setIsSyncing(true);
 
+    // [백엔드 연동 보류] BE 코드는 건드리지 않고 프론트엔드 단독 테스트가 가능하도록 fetch 로직 주석 처리
+    /*
     try {
       const privyToken = await getAccessToken();
       const API_HOST = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -67,13 +69,13 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Backend sync failed:", error);
-      
-      // 프론트엔드 테스트를 위해 LocalStorage로 회원상태 모킹 (Backend 연동 전 임시)
-      console.warn("⚠️ 서버 연결 실패: 로컬 스토리지 데이터로 임시 로그인 플로우를 진행합니다.");
-      
+    }
+    */
+
+    // 백엔드 통신 없이 순수 FE 작동을 위한 모킹 (0.5초 딜레이 UX 추가)
+    setTimeout(() => {
       const isExistingUser = localStorage.getItem("mock_has_nickname");
       setWallet(user.wallet?.address || "Mock_Wallet_Address");
-      // 임시로 발급한 토큰 세팅
       setAuth("mock_jwt_token");
 
       if (isExistingUser) {
@@ -82,9 +84,9 @@ export default function Home() {
       } else {
         setGameStatus("NICKNAME_INPUT");
       }
-    } finally {
       setIsSyncing(false);
-    }
+    }, 500);
+
   }, [authenticated, user, accessToken, getAccessToken, setAuth, setWallet, setGameStatus, setNickname]);
 
   useEffect(() => {
@@ -130,8 +132,9 @@ export default function Home() {
     setErrorMessage("");
     setIsSyncing(true);
 
+    // [백엔드 연동 보류] BE 지원 없이 FE 단독 구동을 위해 fetch 주석 처리
+    /*
     try {
-      // 닉네임 설정 (백엔드 연동 부)
       const API_HOST = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
       await fetch(`${API_HOST}/api/v1/users/nickname`, {
         method: 'POST',
@@ -141,18 +144,20 @@ export default function Home() {
         },
         body: JSON.stringify({ nickname: trimmed })
       });
-      // 성공 가정
     } catch (e) {
       console.error("Nickname sync error - using local fallback", e);
     }
+    */
     
-    // 로컬 스토리지에 회원가입 완료 상태 저장 (모킹용)
-    localStorage.setItem("mock_has_nickname", "true");
-    localStorage.setItem("mock_nickname", trimmed);
+    // 백엔드 요청 없이 바로 로컬 모킹 데이터 저장 및 화면 전환
+    setTimeout(() => {
+      localStorage.setItem("mock_has_nickname", "true");
+      localStorage.setItem("mock_nickname", trimmed);
 
-    setNickname(trimmed);
-    setIsSyncing(false);
-    startGame();
+      setNickname(trimmed);
+      setIsSyncing(false);
+      startGame();
+    }, 500);
   };
 
   // 실제 상용시 로딩 (ready 검사)
