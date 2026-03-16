@@ -322,9 +322,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   // The aspect ratio of a card is 104 / 144.
   // The grid width is determined by Flex layout. Let's assume a row is roughly 150px height + 12px gap.
   // To avoid cutting off, we increase ROW_HEIGHT and add a padding bottom to total height.
-  const ROW_HEIGHT = 160 + 12; // Card Height + Row gap
+  const ROW_HEIGHT = 210 + 12; // Card Height (increased for 3 cols) + Row gap
   const VISIBLE_ROWS = 3.2; // Show 3 rows and a peek of the 4th
-  const totalRows = Math.ceil(CARD_POOL.length / 4);
+  const totalRows = Math.ceil(CARD_POOL.length / 3);
   const p2TotalContentHeight = totalRows * ROW_HEIGHT + 32; // 하단 여백 추가 (패딩+마진)
   const p2VisibleHeight = VISIBLE_ROWS * ROW_HEIGHT;
   const p2MaxScroll = Math.max(0, p2TotalContentHeight - p2VisibleHeight);
