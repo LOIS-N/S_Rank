@@ -1,9 +1,24 @@
 /* gacha.css */
 
-.gacha-layout {
+/* --- 게임 컨테이너 (1280x720 고정, 배경색) --- */
+.gacha-page-wrapper {
+  width: 100vw;
+  height: 100vh;
   display: flex;
-  height: calc(100vh - 80px); /* 헤더 영역 제외 */
+  justify-content: center;
+  align-items: center;
+  background: #000;
   overflow: hidden;
+}
+
+.gacha-page-container {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  box-sizing: border-box;
 }
 
 .gacha-content {
@@ -27,40 +42,68 @@
   display: flex;
   height: 80px;
   width: 100%;
+  margin-top: -20px; /* 위쪽 절반을 화면 밖으로 밀어내어 가림 */
 }
 
-.gacha-tab {
-  flex: 1;
+/* 탭 부모 래퍼 (정확히 1/3씩 분할하기 위함) */
+.gacha-tab-wrapper {
+  flex: 0 0 33.3333%; /* 확실하게 1/3 고정 */
+  width: 33.3333%;
   display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  position: relative;
+}
+
+/* 실제 탭 버튼 */
+.gacha-tab {
+  flex: 1; 
+  width: 100% !important; /* 강제 적용 */
+  height: 80px; /* 기본 높이 */
+  display: flex;
+  cursor: pointer;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   border: none;
-  background: transparent;
   color: #2a2a40;
+  position: relative;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
   font-size: 24px;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition: height 0.2s ease, transform 0.1s ease, filter 0.1s ease;
+  transform-origin: top center;
+  box-sizing: border-box;
 }
 
 .gacha-tab:hover {
   filter: brightness(1.1);
 }
 
-.gacha-tab:active {
-  transform: scale(0.98);
-}
-
 .gacha-tab.active {
-  /* 활성화된 탭에 대한 스타일 - 필터 등으로 강조 */
-  filter: brightness(1.2) drop-shadow(0 0 5px rgba(255,255,255,0.5));
+  height: 100px; /* 활성화 시 버튼이 더 길어져서 아래로 튀어나옴 */
+  filter: brightness(1.1) drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+  z-index: 2;
 }
 
-.gacha-tab .nineslice-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.gacha-tab span {
+  position: relative;
+  z-index: 5;
+  padding-top: 10px; /* 위쪽 짤리는 효과 보정 */
+}
+
+/* 투명 영역(X 431, Y 119)을 상쇄하여 화면에 패널만 딱 맞게 채움 */
+.gacha-tab-inner {
+  position: absolute;
+  top: -20px;
+  bottom: -20px;
+  left: -74px;
+  right: -74px;
+  border-image-source: url('/assets/006/topButton_000.png');
+  border-image-slice: 189 501 fill;
+  border-image-width: 32px 86px;
+  border-image-repeat: stretch;
+  z-index: 1;
 }
 
 /* Main Area */
@@ -69,33 +112,49 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding-bottom: 40px;
+  padding: 40px;
 }
 
-/* Bottom Buttons Area */
+/* Bottom Buttons Area - 초기 화면에서는 우측 하단 */
+.gacha-bottom-area {
+  margin-top: auto;
+  align-self: flex-end; /* 우측 정렬 */
+  display: flex;
+  gap: 24px;
+  align-items: flex-end; /* 버튼들이 아래 기준선에 맞게 */
+}
+
+/* Result Buttons Area - 결과 화면에서는 중앙 부근의 기존 gacha-bottom-buttons 활용 */
 .gacha-bottom-buttons {
   display: flex;
   gap: 24px;
   align-items: center;
+  justify-content: center;
 }
 
 .gacha-action-btn {
-  width: 200px; /* 조금 더 넓게 */
-  height: 72px; /* 세로 높이 상향 */
+  width: 240px; /* 좀 더 넉넉하게 고정 너비 지정 */
+  height: 80px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: transform 0.1s ease, filter 0.1s ease;
-  color: #2a2a40;
+  color: #2a2a40; /* 어두운 텍스트가 더 잘 보임 */
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 24px; /* 글자 크기 상향 */
+  font-size: 26px;
+  background-size: 105.17% 177.64%; /* 정확히 내부 그림과 일치하도록 크기조절 */
+  background-repeat: no-repeat;
+  background-position: center 47.78%;
+  position: relative;
 }
 
 .gacha-action-btn.btn-10pull {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
+  line-height: 1.1;
+  height: 82px; /* 서브타이틀 때문에 10회 뽑기가 더 큼 설정 */
 }
 
 .gacha-action-btn:hover {
@@ -113,7 +172,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-bottom: 4px; /* 텍스트가 살짝 위로 치우치는 것을 방지 */
+  padding: 0;
 }
 
 .btn-subtitle {
