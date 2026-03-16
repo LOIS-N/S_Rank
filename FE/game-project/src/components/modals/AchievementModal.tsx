@@ -65,19 +65,19 @@ export default function AchievementModal({ onClose }: AchievementModalProps) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold pointer-events-auto">
-      <div className="bg-[#b0c4de] p-8 border-4 border-[#6b859e] w-[600px] h-[80vh] flex flex-col shadow-[8px_8px_0px_#4a5d73] relative">
+      <div className="bg-[#b0c4de] p-10 border-4 border-[#6b859e] w-[780px] h-[85vh] flex flex-col shadow-[8px_8px_0px_#4a5d73] relative">
         
         <button onClick={onClose} className="absolute top-2 right-4 text-white hover:text-red-600 text-3xl drop-shadow-md">
           &times;
         </button>
 
-        <h2 className="text-slate-900 font-bold text-3xl mb-8 text-center">업적</h2>
+        <h2 className="text-slate-900 font-bold text-5xl mb-10 text-center">업적</h2>
 
         {/* 일괄 수령 버튼 */}
         <div className="flex justify-end mb-4">
           <button 
             onClick={handleClaimAll}
-            className="px-6 py-2 bg-yellow-500 text-black border-b-4 border-r-4 border-yellow-800 active:border-0 active:translate-y-1 transition-all"
+            className="px-10 py-4 text-2xl bg-yellow-500 text-black border-b-4 border-r-4 border-yellow-800 active:border-0 active:translate-y-1 transition-all"
           >
             일괄 수령
           </button>
@@ -88,7 +88,7 @@ export default function AchievementModal({ onClose }: AchievementModalProps) {
           {achievements.map((ach) => (
             <div 
               key={ach.id} 
-              className={`flex items-center justify-between p-4 border-2 shadow-[4px_4px_0px_rgba(74,93,115,0.5)]
+              className={`flex items-center justify-between p-7 border-2 shadow-[4px_4px_0px_rgba(74,93,115,0.5)]
                 ${ach.isClaimed 
                   ? 'bg-[#8ea4b8] border-[#6b859e] text-slate-700' 
                   : (ach.isCompleted ? 'bg-green-100 border-green-600 text-slate-900 cursor-pointer active:translate-y-1 active:shadow-none' : 'bg-[#e2e8f0] border-slate-400 text-slate-800')
@@ -97,18 +97,18 @@ export default function AchievementModal({ onClose }: AchievementModalProps) {
                 if (ach.isCompleted && !ach.isClaimed) handleClaim(ach.id, ach.reward);
               }}
             >
-              <div className="flex items-center gap-4">
-                <div className="text-3xl">🏆</div>
+              <div className="flex items-center gap-8">
+                <div className="text-5xl">🏆</div>
                 <div>
-                  <div className="text-xl mb-1">{ach.title}</div>
-                  <div className={`text-sm ${ach.isClaimed ? 'text-slate-500' : 'text-slate-600'}`}>{ach.condition}</div>
+                  <div className="text-3xl mb-1">{ach.title}</div>
+                  <div className={`text-xl ${ach.isClaimed ? 'text-slate-500' : 'text-slate-600'}`}>{ach.condition}</div>
                 </div>
               </div>
-              <div className="text-right flex flex-col items-end gap-2">
-                <div className="bg-[#6b859e] text-white px-2 py-1 text-sm rounded shadow-sm">{ach.status}</div>
-                <div className={`text-sm ${ach.isClaimed ? 'hidden' : 'text-blue-700 font-bold'}`}>보상: {ach.reward}G</div>
-                {ach.isClaimed && <div className="text-slate-600 text-sm">수령 완료</div>}
-                {!ach.isClaimed && ach.isCompleted && <div className="text-green-600 text-sm animate-pulse drop-shadow-sm">클릭하여 수령!</div>}
+              <div className="text-right flex flex-col items-end gap-4">
+                <div className="bg-[#6b859e] text-white px-4 py-1 text-lg rounded shadow-sm">{ach.status}</div>
+                <div className={`text-xl ${ach.isClaimed ? 'hidden' : 'text-blue-700 font-bold'}`}>보상: {ach.reward}G</div>
+                {ach.isClaimed && <div className="text-slate-600 text-xl">수령 완료</div>}
+                {!ach.isClaimed && ach.isCompleted && <div className="text-green-600 text-xl animate-pulse drop-shadow-sm">클릭하여 수령!</div>}
               </div>
             </div>
           ))}

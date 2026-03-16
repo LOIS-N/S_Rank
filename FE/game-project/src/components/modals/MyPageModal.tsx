@@ -56,7 +56,7 @@ export default function MyPageModal({ onClose }: MyPageModalProps) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold">
-      <div className="bg-[#b0c4de] p-8 border-4 border-[#6b859e] w-[450px] max-w-[90%] shadow-[8px_8px_0px_#4a5d73] text-center relative pointer-events-auto">
+      <div className="bg-[#b0c4de] p-12 border-4 border-[#6b859e] w-[600px] max-w-[90%] shadow-[8px_8px_0px_#4a5d73] text-center relative pointer-events-auto">
         
         {/* 모달 닫기 버튼 */}
         <button 
@@ -66,13 +66,13 @@ export default function MyPageModal({ onClose }: MyPageModalProps) {
           &times;
         </button>
 
-        <h2 className="text-slate-900 font-bold text-3xl mb-8">마이페이지</h2>
+        <h2 className="text-slate-900 font-bold text-5xl mb-12">마이페이지</h2>
 
         {/* 닉네임 수정 영역 */}
-        <div className="mb-8">
-          <div className="flex gap-2">
+        <div className="mb-12">
+          <div className="flex gap-6">
             <input
-              className={`flex-1 p-2 bg-white text-black border-2 ${isError ? 'border-red-500' : 'border-slate-400'} outline-none focus:border-blue-500`}
+              className={`flex-1 p-5 text-2xl bg-white text-black border-2 ${isError ? 'border-red-500' : 'border-slate-400'} outline-none focus:border-blue-500`}
               value={inputValue}
               onChange={(e) => {
                 setInputValue(e.target.value);
@@ -82,29 +82,29 @@ export default function MyPageModal({ onClose }: MyPageModalProps) {
             />
             <button 
               onClick={handleUpdateNickname}
-              className="px-4 bg-[#6b859e] text-white border-b-4 border-r-4 border-[#3e5368] active:border-0 active:translate-y-1 transition-all"
+              className="px-10 text-2xl font-bold bg-[#6b859e] text-white border-b-4 border-r-4 border-[#3e5368] active:border-0 active:translate-y-1 transition-all"
             >
               수정하기
             </button>
           </div>
           {message && (
-            <p className={`mt-2 text-sm ${isError ? 'text-red-500' : 'text-green-400'}`}>
+            <p className={`mt-4 text-xl ${isError ? 'text-red-500' : 'text-green-400'}`}>
               {message}
             </p>
           )}
         </div>
 
         {/* 로그아웃 & 회원탈퇴 버튼 */}
-        <div className="flex justify-between gap-4">
+        <div className="flex justify-between gap-8 mt-6">
           <button 
             onClick={() => setShowLogoutConfirm(true)}
-            className="flex-1 py-3 bg-slate-500 text-white border-b-4 border-r-4 border-slate-600 active:border-0 active:translate-y-1 transition-all"
+            className="flex-1 py-6 text-3xl font-bold bg-slate-500 text-white border-b-4 border-r-4 border-slate-600 active:border-0 active:translate-y-1 transition-all"
           >
             로그아웃
           </button>
           <button 
             onClick={() => setShowWithdrawConfirm(true)}
-            className="flex-1 py-3 bg-red-600 text-white border-b-4 border-r-4 border-red-800 active:border-0 active:translate-y-1 transition-all"
+            className="flex-1 py-6 text-3xl font-bold bg-red-600 text-white border-b-4 border-r-4 border-red-800 active:border-0 active:translate-y-1 transition-all"
           >
             회원 탈퇴
           </button>

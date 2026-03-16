@@ -26,14 +26,14 @@ export default function NotificationModal({ onClose }: NotificationModalProps) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold pointer-events-auto">
-      <div className="bg-[#b0c4de] p-8 border-4 border-[#6b859e] w-[500px] h-[50vh] flex flex-col shadow-[8px_8px_0px_#4a5d73] relative">
+      <div className="bg-[#b0c4de] p-10 border-4 border-[#6b859e] w-[650px] h-[65vh] flex flex-col shadow-[8px_8px_0px_#4a5d73] relative">
         
         {/* 우측 상단 X 버튼 */}
         <button onClick={onClose} className="absolute top-2 right-4 text-white hover:text-red-600 text-3xl drop-shadow-md">
           &times;
         </button>
 
-        <h2 className="text-slate-900 font-bold text-3xl mb-6 text-center">알림</h2>
+        <h2 className="text-slate-900 font-bold text-5xl mb-10 text-center">알림</h2>
 
         {/* 스크롤 가능한 메세지 목록 */}
         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
@@ -41,19 +41,19 @@ export default function NotificationModal({ onClose }: NotificationModalProps) {
             <div 
               key={noti.id} 
               onClick={() => handleRead(noti.id)}
-              className={`mb-3 p-4 border-2 cursor-pointer transition-colors active:translate-y-0.5
+              className={`mb-5 p-6 border-2 cursor-pointer transition-colors active:translate-y-0.5
                 ${noti.isRead 
                   ? 'bg-[#8ea4b8] border-[#6b859e] text-slate-700' 
                   : 'bg-white border-[#4a90e2] text-slate-900 shadow-[4px_4px_0px_rgba(74,144,226,0.5)]'}`}
             >
               <div className="flex justify-between items-center mb-2">
-                <span className="text-lg">{noti.title}</span>
-                {!noti.isRead && <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">NEW</span>}
+                <span className="text-2xl">{noti.title}</span>
+                {!noti.isRead && <span className="bg-red-500 text-white text-sm px-2 py-1 rounded">NEW</span>}
               </div>
-              <p className={`text-sm ${noti.isRead ? 'text-slate-600' : 'text-slate-700'}`}>
+              <p className={`text-xl ${noti.isRead ? 'text-slate-600' : 'text-slate-700'}`}>
                 {noti.content}
               </p>
-              <p className={`text-xs mt-2 text-right ${noti.isRead ? 'text-slate-500' : 'text-slate-400'}`}>
+              <p className={`text-base mt-4 text-right ${noti.isRead ? 'text-slate-500' : 'text-slate-400'}`}>
                 {noti.date}
               </p>
             </div>

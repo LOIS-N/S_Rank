@@ -48,6 +48,13 @@ export default function GameCanvas() {
             this.load.image("desks", "/assets/desks_001.png");
             this.load.image("new_001", "/assets/new_001.png");
             this.load.image("result_001", "/assets/result_001.png");
+            this.load.image("lock_001", "/assets/lock_001.png");
+
+            // 캐릭터 애니메이션용 에셋 로드
+            for (let i = 1; i <= 5; i++) {
+              this.load.image(`people${i}_001`, `/assets/people${i}_001.png`);
+              this.load.image(`people${i}_002`, `/assets/people${i}_002.png`);
+            }
           },
           create: function (this: Phaser.Scene) {
             const scene = this;
@@ -87,53 +94,60 @@ export default function GameCanvas() {
 
             playContainer.add([playBg, playOfc]);
 
-            // 책상 5개 배치 (원근비례 고려하여 해상도 1.5배 증가에 맞춰 위치/스케일 보정)
-            const originDeskScale = 0.3375; // (0.225 * 1.5)
+            // 책상 5개 배치
+            const originDeskScale = 0.350; // 3% 확대 (0.340 * 1.03)
             const deskPositions = [
-              // 2nd desk from left (index 0) 
-              { x: 135, y: 105 },
-              // 4th desk from left (index 1) 
-              { x: 45, y: 240 },
-              // 1st desk from left (index 2) 
-              { x: -300, y: 105 },
-              // 5th desk from left (index 3) 
-              { x: 75, y: 285 },
-              // 3rd desk from left (index 4) 
-              { x: -135, y: 180 },
+              { x: 160, y: 55, layer: 2 },   // 0 (오른쪽에서 2번째)
+              { x: -125, y: 200, layer: 2 }, // 1 (오른쪽에서 4번째)
+              { x: -340, y: 105, layer: 3 }, // 2 (오른쪽에서 5번째)
+              { x: 215, y: 235, layer: 1 },  // 3 (제일 오른쪽)
+              { x: -55, y: -50, layer: 3 },  // 4 (오른쪽에서 3번째)
             ];
 
             const deskDataList: any[] = [];
 
             deskPositions.forEach((pos, index) => {
               const deskContainer = scene.add.container(pos.x, pos.y);
-              deskContainer.setDepth(pos.y); // Isometric depth sorting
+              
+              // 사용자 정의 레이어링 (Layer 1: Highest Depth, Layer 3: Lowest Depth)
+              // Phaser에서는 Depth가 클수록 화면 상단(앞쪽)에 그려짐
+              const depthMap = { 1: 3000, 2: 2000, 3: 1000 };
+              deskContainer.setDepth((depthMap as any)[pos.layer] || pos.y);
               
               const desk = scene.add.image(0, 0, "desks");
               desk.setScale(originDeskScale);
-              desk.setInteractive({ useHandCursor: true });
 
-              // 클릭 이벤트 - Zustand Store 액션 호출
-              desk.on('pointerdown', () => {
-                const quest = useGameStore.getState().quests[index];
-                if (quest.status === 'IDLE') {
-                  useGameStore.getState().startQuest(index);
-                } else if (quest.status === 'COMPLETED') {
-                  useGameStore.getState().completeQuest(index);
-                }
+              // 상태 UI 그래픽들 (10% 크게, x: 3, y: -37 오프셋)
+              const newIcon = scene.add.image(3, -37, "new_001");
+              newIcon.setScale(0.0892); 
+              newIcon.setAlpha(0.9); 
+              newIcon.setVisible(false);
+              newIcon.setInteractive({ useHandCursor: true });
+              newIcon.on('pointerdown', () => {
+                useGameStore.getState().startQuest(index);
               });
 
-              // 상태 UI 그래픽들 (책상의 중앙부에 가깝게 배치)
-              const uiY = -15; // 중앙에 맞추기 위해 Y 오프셋을 조절
-              
-              const newIcon = scene.add.image(0, uiY, "new_001");
-              newIcon.setScale(0.052); // 기존 0.04에서 30% 증가
-              newIcon.setVisible(false);
-
-              const resultIcon = scene.add.image(0, uiY, "result_001");
-              resultIcon.setScale(0.052); // 기존 0.04에서 30% 증가
+              const resultIcon = scene.add.image(3, -37, "result_001");
+              resultIcon.setScale(0.0892); 
               resultIcon.setVisible(false);
+              resultIcon.setInteractive({ useHandCursor: true });
+              resultIcon.on('pointerdown', () => {
+                useGameStore.getState().completeQuest(index);
+              });
 
-              const timerText = scene.add.text(0, uiY, "00:00", {
+              const lockIcon = scene.add.image(3, -37, "lock_001"); 
+              lockIcon.setScale(0.0892);
+              lockIcon.setVisible(false);
+              lockIcon.setInteractive({ useHandCursor: true });
+              lockIcon.on('pointerdown', () => {
+                useGameStore.getState().setUnlockConfirm(index);
+              });
+
+              // 캐릭터 이미지 (퀘스트 진행 중 코딩 효과)
+              const charImage = scene.add.image(0, 0, `people${index + 1}_001`);
+              charImage.setVisible(false);
+
+              const timerText = scene.add.text(0, 0, "00:00", {
                 fontFamily: "BitBit, sans-serif",
                 fontSize: "24px",
                 color: "#ffffff",
@@ -142,10 +156,10 @@ export default function GameCanvas() {
               }).setOrigin(0.5);
               timerText.setVisible(false);
 
-              deskContainer.add([desk, newIcon, resultIcon, timerText]);
+              deskContainer.add([desk, charImage, newIcon, resultIcon, lockIcon, timerText]);
               playContainer.add(deskContainer);
 
-              deskDataList.push({ id: index, newIcon, resultIcon, timerText });
+              deskDataList.push({ id: index, desk, charImage, newIcon, resultIcon, lockIcon, timerText });
             });
             
             mainContainer.add([cityBg, playContainer]);
@@ -166,6 +180,7 @@ export default function GameCanvas() {
             scene.registry.set('cityBg', cityBg);
             scene.registry.set('playContainer', playContainer);
             scene.registry.set('deskDataList', deskDataList);
+            scene.registry.set('originDeskScale', originDeskScale);
           },
           update: function (this: Phaser.Scene) {
             const currentStatus = this.registry.get('currentStatus');
@@ -186,22 +201,45 @@ export default function GameCanvas() {
                       const quest = quests[i];
                       if (!quest) return;
 
+                      // 잠금 상태 처리
+                      if (quest.isLocked) {
+                        deskData.desk.setTint(0x666666);
+                        deskData.lockIcon.setVisible(true);
+                        deskData.newIcon.setVisible(false);
+                        deskData.resultIcon.setVisible(false);
+                        deskData.timerText.setVisible(false);
+                        deskData.charImage.setVisible(false);
+                        return;
+                      } else {
+                        deskData.desk.clearTint();
+                        deskData.lockIcon.setVisible(false);
+                      }
+
                       if (quest.status === 'IDLE') {
+                        deskData.desk.setVisible(true);
                         deskData.newIcon.setVisible(true);
                         deskData.resultIcon.setVisible(false);
                         deskData.timerText.setVisible(false);
+                        deskData.charImage.setVisible(false);
                       } 
                       else if (quest.status === 'IN_PROGRESS') {
+                        deskData.desk.setVisible(false);
                         deskData.newIcon.setVisible(false);
                         deskData.resultIcon.setVisible(false);
                         deskData.timerText.setVisible(true);
+                        deskData.charImage.setVisible(true);
+
+                        const animFrame = Math.floor(Date.now() / 200) % 2 + 1;
+                        deskData.charImage.setTexture(`people${i + 1}_00${animFrame}`);
+                        deskData.charImage.displayWidth = deskData.desk.displayWidth * 0.721;
+                        deskData.charImage.scaleY = deskData.charImage.scaleX;
+                        deskData.charImage.setY(0);
 
                         const now = Date.now();
                         const remainMs = (quest.endTime || now) - now;
                         
                         if (remainMs <= 0) {
                            useGameStore.getState().finishQuestTimer(quest.id);
-                           deskData.timerText.setVisible(false);
                         } else {
                            const totalSec = Math.floor(remainMs / 1000);
                            const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
@@ -210,13 +248,20 @@ export default function GameCanvas() {
                         }
                       } 
                       else if (quest.status === 'COMPLETED') {
+                        deskData.desk.setVisible(false);
                         deskData.newIcon.setVisible(false);
                         deskData.resultIcon.setVisible(true);
                         deskData.timerText.setVisible(false);
+                        deskData.charImage.setVisible(true);
+
+                        const animFrame = Math.floor(Date.now() / 200) % 2 + 1;
+                        deskData.charImage.setTexture(`people${i + 1}_00${animFrame}`);
+                        deskData.charImage.displayWidth = deskData.desk.displayWidth * 0.721;
+                        deskData.charImage.scaleY = deskData.charImage.scaleX;
+                        deskData.charImage.setY(0);
                       }
                     });
                   }
-
                } else {
                   cityBg.setVisible(true);
                   playContainer.setVisible(false);
@@ -237,7 +282,6 @@ export default function GameCanvas() {
     };
   }, []);
 
-  // 외부(Zustand) 상태가 바뀔 때 Phaser registry에 반영하여 update에서 처리하도록 함
   useEffect(() => {
     if (gameRef.current && gameRef.current.scene?.scenes[0]) {
       const scene = gameRef.current.scene.scenes[0];

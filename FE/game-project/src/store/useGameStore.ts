@@ -5,6 +5,7 @@ export type QuestStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 export interface DeskQuest {
   id: number;
   status: QuestStatus;
+  isLocked: boolean;
   endTime: number | null; 
   reward: number;
 }
@@ -20,6 +21,7 @@ interface GameState {
   unreadNotifications: number;
   quests: DeskQuest[];
   activeRewardModal: { isOpen: boolean; title: string; text: string } | null;
+  activeUnlockConfirm: { isOpen: boolean; deskId: number } | null;
   setAuth: (token: string | null) => void;
   increaseScore: (by: number) => void;
   increaseGold: (by: number) => void;
@@ -33,26 +35,29 @@ interface GameState {
   startQuest: (id: number) => void;
   finishQuestTimer: (id: number) => void;
   completeQuest: (id: number) => void;
+  unlockQuestSlot: (id: number) => void;
+  setUnlockConfirm: (id: number | null) => void;
   closeRewardModal: () => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
   score: 0,
-  gold: 0,
+  gold: 100000, // 테스트 및 해금 검증을 위해 초기 골드 10만 세팅
   coffee: 0,
   nickname: '',
   walletAddress: null,
   gameStatus: 'IDLE',
   accessToken: null,
-  unreadNotifications: 1, // 테스트를 위해 안 읽은 메세지 수 1로 초기화
+  unreadNotifications: 1, 
   quests: [
-    { id: 0, status: 'IDLE', endTime: null, reward: 100 },
-    { id: 1, status: 'IDLE', endTime: null, reward: 200 },
-    { id: 2, status: 'IDLE', endTime: null, reward: 300 },
-    { id: 3, status: 'IDLE', endTime: null, reward: 400 },
-    { id: 4, status: 'IDLE', endTime: null, reward: 500 },
+    { id: 0, status: 'IDLE', isLocked: false, endTime: null, reward: 100 },
+    { id: 1, status: 'IDLE', isLocked: true,  endTime: null, reward: 200 },
+    { id: 2, status: 'IDLE', isLocked: true,  endTime: null, reward: 300 },
+    { id: 3, status: 'IDLE', isLocked: true,  endTime: null, reward: 400 },
+    { id: 4, status: 'IDLE', isLocked: true,  endTime: null, reward: 500 },
   ],
   activeRewardModal: null,
+  activeUnlockConfirm: null,
   
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
@@ -96,6 +101,16 @@ export const useGameStore = create<GameState>((set) => ({
       gold: state.gold + rewardAcc,
       activeRewardModal: { isOpen: true, title: "퀘스트 완료", text: `${rewardAcc.toLocaleString()} 골드를 획득하였습니다.` }
     };
+  }),
+  unlockQuestSlot: (id: number) => set((state) => {
+    if (state.gold < 50000) return state;
+    const updated = state.quests.map(q => 
+      q.id === id ? { ...q, isLocked: false } : q
+    );
+    return { gold: state.gold - 50000, quests: updated, activeUnlockConfirm: null };
+  }),
+  setUnlockConfirm: (id: number | null) => set({ 
+    activeUnlockConfirm: id !== null ? { isOpen: true, deskId: id } : null 
   }),
   closeRewardModal: () => set({ activeRewardModal: null }),
 }));
