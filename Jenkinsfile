@@ -5,19 +5,19 @@ pipeline {
         COMPOSE_PATH = '/home/ubuntu/cicd/develop'
     }
 
-    stage('Checkout') {
-        steps {
-            checkout([$class: 'GitSCM',
-                branches: [[name: '*/develop']],
-                userRemoteConfigs: [[
-                    refspec: '+refs/heads/develop:refs/remotes/origin/develop',
-                    url: 'https://lab.ssafy.com/s14-blochain-sub1/S14P21E204.git',
-                    credentialsId: 'gitlab-token'
-                ]]
-            ])
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/develop']],
+                    userRemoteConfigs: [[
+                        refspec: '+refs/heads/develop:refs/remotes/origin/develop',
+                        url: 'https://lab.ssafy.com/s14-blochain-sub1/S14P21E204.git',
+                        credentialsId: 'gitlab-token'
+                    ]]
+                ])
+            }
         }
-    }
-
 
         stage('Build') {
             steps {
@@ -48,4 +48,6 @@ pipeline {
             echo 'Dev 배포 실패!'
         }
     }
+}
+
 }
