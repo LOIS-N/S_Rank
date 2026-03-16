@@ -1,6 +1,7 @@
 package com.ssafy.srank.quest.application.service;
 
 import com.ssafy.srank.common.exception.BusinessException;
+import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.application.dto.response.SubQuestResponse;
 import com.ssafy.srank.quest.domain.entity.SubQuestTemplate;
