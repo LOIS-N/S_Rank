@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 import PrivyProviderWrapper from "@/components/providers/PrivyProviderWrapper";
+import BottomNavBar from "@/components/BottomNavBar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,6 +22,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#0f172a" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta
           httpEquiv="Content-Security-Policy"
           content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://auth.privy.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: http://localhost:8080; frame-src 'self' https://auth.privy.io;"
@@ -48,6 +54,7 @@ export default function RootLayout({
           <div className="game-wrapper">
             <PrivyProviderWrapper>
               {children}
+              <BottomNavBar />
             </PrivyProviderWrapper>
           </div>
         </div>

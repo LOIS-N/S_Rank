@@ -20,6 +20,7 @@ interface GameState {
   accessToken: string | null; 
   unreadNotifications: number;
   quests: DeskQuest[];
+  selectingDeskId: number | null;
   activeRewardModal: { isOpen: boolean; title: string; text: string } | null;
   activeUnlockConfirm: { isOpen: boolean; deskId: number } | null;
   setAuth: (token: string | null) => void;
@@ -32,7 +33,8 @@ interface GameState {
   setGameStatus: (status: 'IDLE' | 'NICKNAME_INPUT' | 'PLAYING') => void;
   startGame: () => void;
   logout: () => void;
-  startQuest: (id: number) => void;
+  setSelectingDeskId: (id: number | null) => void;
+  startQuest: (id: number, durationSeconds: number, reward: number) => void;
   finishQuestTimer: (id: number) => void;
   completeQuest: (id: number) => void;
   unlockQuestSlot: (id: number) => void;
@@ -56,6 +58,7 @@ export const useGameStore = create<GameState>((set) => ({
     { id: 3, status: 'IDLE', isLocked: true,  endTime: null, reward: 400 },
     { id: 4, status: 'IDLE', isLocked: true,  endTime: null, reward: 500 },
   ],
+  selectingDeskId: null,
   activeRewardModal: null,
   activeUnlockConfirm: null,
   
@@ -74,12 +77,17 @@ export const useGameStore = create<GameState>((set) => ({
     accessToken: null, 
     walletAddress: null 
   }),
-  startQuest: (id: number) => set((state) => {
+  setSelectingDeskId: (id) => set({ selectingDeskId: id }),
+  startQuest: (id: number, durationSeconds: number, reward: number) => set((state) => {
     const updated = state.quests.map(q => 
-      // 5초 테스트 퀘스트
-      q.id === id ? { ...q, status: 'IN_PROGRESS' as QuestStatus, endTime: Date.now() + 5000 } : q
+      q.id === id ? { 
+        ...q, 
+        status: 'IN_PROGRESS' as QuestStatus, 
+        endTime: Date.now() + (durationSeconds * 1000),
+        reward: reward
+      } : q
     );
-    return { quests: updated };
+    return { quests: updated, selectingDeskId: null };
   }),
   finishQuestTimer: (id: number) => set((state) => {
     const updated = state.quests.map(q => 

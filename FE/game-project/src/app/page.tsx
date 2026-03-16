@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 "use client";
 
 import dynamic from "next/dynamic";
@@ -26,10 +25,6 @@ export default function Home() {
     const regex = /^[a-zA-Z0-9가-힣]{2,8}$/;
     return regex.test(name);
   };
-
-  // 백엔드 연동 전, 프론트 작업을 위해 강제로 다음 단계로 넘기는 설정
-  // 백엔드 연동 전 임시 주석 처리
-  // const isDevMode = true; 
 
   const syncWithBackend = useCallback(async () => {
     if (isProcessing.current || !authenticated || !user || accessToken) return;
@@ -132,23 +127,6 @@ export default function Home() {
 
     setErrorMessage("");
     setIsSyncing(true);
-
-    // [백엔드 연동 보류] BE 지원 없이 FE 단독 구동을 위해 fetch 주석 처리
-    /*
-    try {
-      const API_HOST = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-      await fetch(`${API_HOST}/api/v1/users/nickname`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({ nickname: trimmed })
-      });
-    } catch (e) {
-      console.error("Nickname sync error - using local fallback", e);
-    }
-    */
     
     // 백엔드 요청 없이 바로 로컬 모킹 데이터 저장 및 화면 전환
     setTimeout(() => {
@@ -161,8 +139,7 @@ export default function Home() {
     }, 500);
   };
 
-  // 실제 상용시 로딩 (ready 검사)
-  if (!ready) return <div className="bg-black text-white h-screen flex items-center justify-center font-dot">LOADING...</div>;
+  if (!ready) return <div className="bg-black text-white h-screen flex items-center justify-center font-dot text-2xl animate-pulse">LOADING...</div>;
 
   return (
     <main className="relative w-full h-full overflow-hidden bg-black text-white font-dot">
@@ -176,33 +153,38 @@ export default function Home() {
       {/* 1. 로그인 전 (IDLE) */}
       {gameStatus === "IDLE" && !isSyncing && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#8ea4b8]/60 p-4">
-          <h1 className="font-dot text-4xl md:text-6xl text-white mb-10 text-center leading-tight [text-shadow:2px_2px_0px_#4a5d73]">
-            S급 개발자들이<br/>
-            <span className="text-yellow-400">나를 따르는 이유에 대하여</span>
-          </h1>
-          <button onClick={() => login()} className="flex items-center gap-3 bg-white text-black px-8 py-4 border-b-8 border-r-8 border-[#6b859e] font-dot text-2xl font-bold active:border-0 active:translate-y-2 transition-all shadow-lg hover:bg-slate-50">
-            <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-8 h-8" />
-            <span>GOOGLE LOGIN</span>
-          </button>
+          <div className="flex flex-col items-center justify-center text-center">
+            <h1 className="font-dot text-4xl md:text-6xl lg:text-7xl text-white mb-10 leading-tight [text-shadow:4px_4px_0px_#4a5d73]">
+              S급 개발자들이<br/>
+              <span className="text-yellow-400">나를 따르는 이유에 대하여</span>
+            </h1>
+            <button 
+              onClick={() => login()} 
+              className="group flex items-center gap-4 bg-white text-black px-10 py-5 border-b-8 border-r-8 border-[#6b859e] font-dot text-2xl sm:text-3xl font-bold active:border-0 active:translate-y-2 transition-all shadow-2xl hover:bg-slate-50"
+            >
+              <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-8 h-8 sm:w-10 sm:h-10" />
+              <span>GOOGLE LOGIN</span>
+            </button>
+          </div>
         </div>
       )}
 
-      {/* 2. 동기화 중 (SERVER SYNC) */}
+      {/* 2. 동기화 중 (SERVER SYNC) / 로딩 */}
       {isSyncing && (
         <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-[#8ea4b8]/80 font-dot text-white">
-          <div className="w-12 h-12 border-4 border-t-blue-500 border-white rounded-full animate-spin mb-4" />
-          <p className="animate-pulse drop-shadow-md">서버와 동기화 중...</p>
+          <div className="w-16 h-16 border-8 border-t-yellow-400 border-white/20 rounded-full animate-spin mb-6" />
+          <p className="text-2xl animate-pulse drop-shadow-md font-bold text-yellow-100">서버와 동기화 중...</p>
         </div>
       )}
 
       {/* 3. 닉네임 입력 (NICKNAME_INPUT) */}
       {gameStatus === "NICKNAME_INPUT" && (
         <div className="absolute inset-0 z-[70] flex items-center justify-center bg-[#8ea4b8]/80 p-4 font-dot">
-          <div className="bg-[#b0c4de] p-8 border-4 border-white w-full max-w-sm shadow-[8px_8px_0px_#4a5d73]">
-            <h2 className="text-slate-900 mb-4 text-center text-xl font-bold">닉네임 설정하기</h2>
+          <div className="bg-[#b0c4de] p-10 border-4 border-white w-full max-w-md shadow-[12px_12px_0px_#4a5d73] transition-all transform scale-110 sm:scale-125">
+            <h2 className="text-slate-900 mb-6 text-center text-2xl sm:text-3xl font-bold">닉네임 설정하기</h2>
             <input
               autoFocus
-              className="w-full p-3 bg-black text-green-400 border-2 border-slate-500 mb-2 text-center outline-none focus:border-blue-500"
+              className="w-full p-4 bg-black text-green-400 border-4 border-slate-500 mb-4 text-center outline-none focus:border-yellow-400 text-2xl font-bold"
               value={inputValue}
               onChange={(e) => {
                 setInputValue(e.target.value);
@@ -213,9 +195,9 @@ export default function Home() {
               placeholder="최대 8자 (공백 불가)"
             />
             {errorMessage && (
-              <p className="text-red-500 text-sm mb-4 text-center">{errorMessage}</p>
+              <p className="text-red-600 text-lg mb-6 text-center font-bold animate-bounce">{errorMessage}</p>
             )}
-            <button onClick={handleStartGame} className="w-full bg-[#6b859e] text-white py-4 border-b-4 border-r-4 border-[#3e5368] active:border-0 active:translate-y-1 transition-all mt-4 font-bold text-xl">
+            <button onClick={handleStartGame} className="w-full bg-[#6b859e] text-white py-5 border-b-6 border-r-6 border-[#3e5368] active:border-0 active:translate-y-1 transition-all mt-4 font-bold text-2xl shadow-lg">
               게임 시작
             </button>
           </div>
@@ -228,17 +210,6 @@ export default function Home() {
           <MainHUD />
         </div>
       )}
-=======
-export default function Home() {
-  return (
-    <main style={{ padding: "40px" }}>
-      <h1 style={{ fontSize: "32px", fontWeight: "bold" }}>
-        게임 프로젝트 시작
-      </h1>
-      <p style={{ marginTop: "12px" }}>
-        Next.js가 정상적으로 실행되고 있습니다.
-      </p>
->>>>>>> aa0652b9b70407d5264f3f9930be0a4892751961
     </main>
   );
 }

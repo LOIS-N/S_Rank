@@ -10,12 +10,9 @@
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
-<<<<<<< HEAD
     "@privy-io/react-auth": "^3.17.0",
     "@sentry/nextjs": "^10.43.0",
-=======
     "image-size": "^2.0.2",
->>>>>>> aa0652b9b70407d5264f3f9930be0a4892751961
     "next": "16.1.6",
     "next-auth": "^4.24.13",
     "phaser": "^3.90.0",

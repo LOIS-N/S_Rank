@@ -17,8 +17,6 @@ export default function MainHUD() {
 
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
-  const menuItems = ["카드 목록", "퀘스트", "메인", "뽑기", "강화", "합성", "거래"];
-
   return (
     <div className="absolute inset-0 pointer-events-none font-dot flex flex-col justify-between select-none">
       
@@ -34,38 +32,38 @@ export default function MainHUD() {
             <div className="relative flex items-center h-[90px] sm:h-[106px] w-56 sm:w-68 md:w-80">
               <div 
                 className="absolute left-12 right-0 top-0 bottom-0 text-black drop-shadow-md text-shadow-sm font-bold flex items-center justify-end pr-6 sm:pr-8 text-[28px] sm:text-[34px] md:text-[41px]"
-                style={{ backgroundImage: "url('/assets/upperBlank_002.png')", backgroundSize: "100% 100%" }}
+                style={{ backgroundImage: "url('/assets/002/upperBlank_002.png')", backgroundSize: "100% 100%" }}
               >
                 <span className="tabular-nums">{gold.toLocaleString()}</span> <span className="ml-2 text-[28px] sm:text-[34px] md:text-[38px]">G</span>
               </div>
-              <img src="/assets/coin_002.png" alt="gold" className="absolute -left-8 top-0 w-20 sm:w-24 h-20 sm:h-24 pixelated z-10" style={{ imageRendering: 'pixelated' }} />
+              <img src="/assets/002/coin_002.png" alt="gold" className="absolute -left-8 top-0 w-20 sm:w-24 h-20 sm:h-24 pixelated z-10" style={{ imageRendering: 'pixelated' }} />
             </div>
 
             {/* Coffee Container */}
             <div className="relative flex items-center h-[90px] sm:h-[106px] w-56 sm:w-68 md:w-80 ml-4">
               <div 
                 className="absolute left-12 right-0 top-0 bottom-0 text-black drop-shadow-md text-shadow-sm font-bold flex items-center justify-end pr-6 sm:pr-8 text-[28px] sm:text-[34px] md:text-[41px]"
-                style={{ backgroundImage: "url('/assets/upperBlank_002.png')", backgroundSize: "100% 100%" }}
+                style={{ backgroundImage: "url('/assets/002/upperBlank_002.png')", backgroundSize: "100% 100%" }}
               >
                 <span className="tabular-nums">{coffee.toLocaleString()}</span> <span className="ml-2 text-[28px] sm:text-[34px] md:text-[38px]">잔</span>
               </div>
-              <img src="/assets/coffee_002.png" alt="coffee" className="absolute -left-8 top-0 w-20 sm:w-24 h-20 sm:h-24 pixelated z-10" style={{ imageRendering: 'pixelated' }} />
+              <img src="/assets/002/coffee_002.png" alt="coffee" className="absolute -left-8 top-0 w-20 sm:w-24 h-20 sm:h-24 pixelated z-10" style={{ imageRendering: 'pixelated' }} />
             </div>
           </div>
 
           <div className="flex gap-3 sm:gap-4 md:gap-5 md:pr-4">
             {[
-              { id: "mypage", icon: "/assets/mypage_002.png", label: "마이페이지" },
-              { id: "ranking", icon: "/assets/ranking_002.png", label: "랭킹" },
-              { id: "discord", icon: "/assets/discord_002.png", label: "디스코드" },
-              { id: "notification", icon: "/assets/message_002.png", label: "알림" },
-              { id: "achievement", icon: "/assets/awards_002.png", label: "업적" }
+              { id: "mypage", icon: "/assets/002/mypage_002.png", label: "마이페이지" },
+              { id: "ranking", icon: "/assets/002/ranking_002.png", label: "랭킹" },
+              { id: "discord", icon: "/assets/002/discord_002.png", label: "디스코드" },
+              { id: "notification", icon: "/assets/002/message_002.png", label: "알림" },
+              { id: "achievement", icon: "/assets/002/awards_002.png", label: "업적" }
             ].map((item) => (
                <button 
                  key={item.id} 
                  onClick={() => setActiveModal(item.id)}
                  className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex items-center justify-center shadow-[2px_2px_0px_#000] active:translate-y-1 transition-all hover:brightness-110"
-                 style={{ backgroundImage: "url('/assets/upperButton_002.png')", backgroundSize: "100% 100%" }}
+                 style={{ backgroundImage: "url('/assets/002/upperButton_002.png')", backgroundSize: "100% 100%" }}
                  title={item.label}
                >
                  <img src={item.icon} alt={item.label} className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16" style={{ imageRendering: 'pixelated' }} />
@@ -86,30 +84,6 @@ export default function MainHUD() {
       {activeModal === "achievement" && <AchievementModal onClose={() => setActiveModal(null)} />}
 
       <div className="flex-1" />
-
-      {/* --- 하단 메뉴바 --- */}
-      <div className="w-full bg-[#8ea4b8] border-t-4 border-black pointer-events-auto pt-3 pb-3 border-x-2 border-b-2 border-black">
-        <div className="w-full mx-auto flex justify-center px-4">
-          <div className="flex flex-wrap justify-center gap-[1px] sm:gap-[2px] lg:gap-[1.5px] w-full">
-          {menuItems.map((item) => (
-            <button
-              key={item}
-              className={`flex items-center justify-center text-black font-bold drop-shadow-md transition-all
-                active:translate-x-0.5 active:translate-y-0.5 hover:brightness-110
-                w-[174px] h-[64px] sm:w-[216px] sm:h-[78px] lg:w-[258px] lg:h-[92px]
-                text-[24px] sm:text-[36px] lg:text-[41px]`}
-              style={{ 
-                backgroundImage: "url('/assets/lowerButton_001.png')", 
-                backgroundSize: "100% 100%",
-                imageRendering: "pixelated",
-              }}
-            >
-              {item}
-            </button>
-          ))}
-          </div>
-        </div>
-      </div>
 
       {/* --- 퀘스트 모달들 --- */}
       {activeRewardModal?.isOpen && (

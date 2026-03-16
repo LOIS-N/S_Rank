@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
 
 export default function GameCanvas() {
   const gameRef = useRef<any>(null);
+  const router = useRouter();
   const { gameStatus } = useGameStore();
 
   useEffect(() => {
@@ -36,24 +38,24 @@ export default function GameCanvas() {
         scene: {
           preload: function (this: Phaser.Scene) {
             // 배경 이미지
-            this.load.image("city_bg", "/assets/city_bg.png");
-            this.load.image("bg_001", "/assets/background_001.png");
-            this.load.image("bg_002", "/assets/background_002.png");
-            this.load.image("bg_003", "/assets/background_003.png");
+            this.load.image("city_bg", "/assets/001/city_bg.png");
+            this.load.image("bg_001", "/assets/002/background_001.png");
+            this.load.image("bg_002", "/assets/002/background_002.png");
+            this.load.image("bg_003", "/assets/002/background_003.png");
             // 오피스 이미지
-            this.load.image("ofc_001", "/assets/office_001.png");
-            this.load.image("ofc_002", "/assets/office_002.png");
-            this.load.image("ofc_003", "/assets/office_003.png");
+            this.load.image("ofc_001", "/assets/002/office_001.png");
+            this.load.image("ofc_002", "/assets/002/office_002.png");
+            this.load.image("ofc_003", "/assets/002/office_003.png");
             // 책상 및 퀘스트 아이콘
-            this.load.image("desks", "/assets/desks_001.png");
-            this.load.image("new_001", "/assets/new_001.png");
-            this.load.image("result_001", "/assets/result_001.png");
-            this.load.image("lock_001", "/assets/lock_001.png");
+            this.load.image("desks", "/assets/002/desks_001.png");
+            this.load.image("new_001", "/assets/002/new_001.png");
+            this.load.image("result_001", "/assets/002/result_001.png");
+            this.load.image("lock_001", "/assets/002/lock_001.png");
 
             // 캐릭터 애니메이션용 에셋 로드
             for (let i = 1; i <= 5; i++) {
-              this.load.image(`people${i}_001`, `/assets/people${i}_001.png`);
-              this.load.image(`people${i}_002`, `/assets/people${i}_002.png`);
+              this.load.image(`people${i}_001`, `/assets/002/people${i}_001.png`);
+              this.load.image(`people${i}_002`, `/assets/002/people${i}_002.png`);
             }
           },
           create: function (this: Phaser.Scene) {
@@ -124,7 +126,8 @@ export default function GameCanvas() {
               newIcon.setVisible(false);
               newIcon.setInteractive({ useHandCursor: true });
               newIcon.on('pointerdown', () => {
-                useGameStore.getState().startQuest(index);
+                useGameStore.getState().setSelectingDeskId(index);
+                router.push('/quest');
               });
 
               const resultIcon = scene.add.image(3, -37, "result_001");
@@ -147,9 +150,9 @@ export default function GameCanvas() {
               const charImage = scene.add.image(0, 0, `people${index + 1}_001`);
               charImage.setVisible(false);
 
-              const timerText = scene.add.text(0, 0, "00:00", {
-                fontFamily: "BitBit, sans-serif",
-                fontSize: "24px",
+              const timerText = scene.add.text(3, -37, "00:00", {
+                fontFamily: "Stardust, sans-serif",
+                fontSize: "25px",
                 color: "#ffffff",
                 stroke: "#000000",
                 strokeThickness: 4,
@@ -242,9 +245,15 @@ export default function GameCanvas() {
                            useGameStore.getState().finishQuestTimer(quest.id);
                         } else {
                            const totalSec = Math.floor(remainMs / 1000);
-                           const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+                           const h = Math.floor(totalSec / 3600);
+                           const m = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
                            const s = (totalSec % 60).toString().padStart(2, '0');
-                           deskData.timerText.setText(`${m}:${s}`);
+                           
+                           if (h > 0) {
+                             deskData.timerText.setText(`${h}:${m}:${s}`);
+                           } else {
+                             deskData.timerText.setText(`${m}:${s}`);
+                           }
                         }
                       } 
                       else if (quest.status === 'COMPLETED') {

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useGameStore } from "@/store/useGameStore";
 import "./quest.css";
 
 /* ============================================================
@@ -295,7 +296,45 @@ function QuestDetail({ quest, onAccept }: { quest: Quest | null, onAccept: () =>
 // --- Phase 2: 카드 배치 콘텐츠 ---
 function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () => void }) {
   const router = useRouter();
+  const { selectingDeskId, startQuest } = useGameStore();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
+
+  // 시간 문자열 파싱 (예: "1시간 30분" -> 초 단위)
+  const parseEstimatedTime = (timeStr: string): number => {
+    let totalSeconds = 0;
+    const hourMatch = timeStr.match(/(\d+)시간/);
+    const minMatch = timeStr.match(/(\d+)분/);
+    
+    if (hourMatch) totalSeconds += parseInt(hourMatch[1]) * 3600;
+    if (minMatch) totalSeconds += parseInt(minMatch[1]) * 60;
+    
+    // 만약 "시간"이나 "분"이 없고 숫자만 있다면 초로 간주 (테스트용)
+    if (totalSeconds === 0) {
+      const fallback = parseInt(timeStr.replace(/[^0-9]/g, ''));
+      if (!isNaN(fallback)) totalSeconds = fallback;
+    }
+    
+    return totalSeconds || 60; // 기본 1분
+  };
+
+  // 보상 문자열 파싱 (예: "50,000G" -> 50000)
+  const parseReward = (rewardStr: string): number => {
+    const num = parseInt(rewardStr.replace(/[^0-9]/g, ''));
+    return isNaN(num) ? 0 : num;
+  };
+
+  const handleAcceptQuest = () => {
+    if (!quest) return;
+    
+    const duration = parseEstimatedTime(quest.estimatedTime);
+    const rewardNum = parseReward(quest.reward);
+    
+    // 선택된 책상이 없으면 0번 책상에 강제 할당 (예외 처리)
+    const targetDeskId = selectingDeskId !== null ? selectingDeskId : 0;
+    
+    startQuest(targetDeskId, duration, rewardNum);
+    router.push('/');
+  };
 
   // Dummy card pool
   const CARD_POOL = Array.from({ length: 24 }).map((_, i) => ({
@@ -486,7 +525,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
               framePadding={10}
               borderScale={0.35}
               className="phase2-btn-accept"
-              onClick={() => router.push('/')}
+              onClick={handleAcceptQuest}
           >
               <span style={{ position: 'relative', zIndex: 2 }}>수락하기</span>
           </NineSliceBox>

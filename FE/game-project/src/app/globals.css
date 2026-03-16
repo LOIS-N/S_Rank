@@ -22,13 +22,6 @@
 
 @font-face {
   font-family: 'Stardust';
-  src: url('/assets/PF스타더스트 3.0.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Stardust';
   src: url('/assets/fonts/stardust.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
