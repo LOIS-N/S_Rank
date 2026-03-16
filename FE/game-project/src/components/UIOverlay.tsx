@@ -13,30 +13,30 @@ export default function UIOverlay() {
       <div className="flex justify-between items-start w-full">
         
         {/* 왼쪽 상단: 플레이어 정보 (도트 박스 스타일) */}
-        <div className="font-dot bg-black/80 border-4 border-white p-4 shadow-[4px_4px_0px_#000]">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-3 h-3 bg-green-500 animate-pulse border border-black" />
-            <p className="text-slate-300 text-sm tracking-tighter">PLAYER: {nickname || 'GUEST'}</p>
+        <div className="font-dot bg-black/80 border-2 sm:border-4 border-white p-2 sm:p-4 shadow-[2px_2px_0px_#000] sm:shadow-[4px_4px_0px_#000]">
+          <div className="flex items-center gap-2 mb-1 sm:mb-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 animate-pulse border border-black" />
+            <p className="text-slate-300 text-[10px] sm:text-sm tracking-tighter uppercase">PLAYER: {nickname || 'GUEST'}</p>
           </div>
           <div className="flex flex-col">
-            <p className="text-slate-400 text-xs mb-1">CURRENT SCORE</p>
-            <p className="text-white text-4xl font-bold tracking-widest tabular-nums">
+            <p className="text-slate-400 text-[8px] sm:text-xs mb-0.5 sm:mb-1 uppercase">SCORE</p>
+            <p className="text-white text-xl sm:text-4xl font-bold tracking-widest tabular-nums">
               {score.toLocaleString().padStart(6, '0')}
             </p>
           </div>
         </div>
 
         {/* 오른쪽 상단: 컨트롤 버튼 (클릭 가능하게 pointer-events-auto 설정) */}
-        <div className="flex flex-col gap-3 items-end">
+        <div className="flex flex-col gap-2 sm:gap-3 items-end">
           <button
             onClick={resetScore}
-            className="pointer-events-auto font-dot bg-red-600 hover:bg-red-500 text-white px-4 py-2 border-b-4 border-r-4 border-red-900 active:border-0 active:translate-y-1 active:translate-x-1 transition-all"
+            className="pointer-events-auto font-dot bg-red-600 hover:bg-red-500 text-white px-2 py-1 sm:px-4 sm:py-2 border-b-2 sm:border-b-4 border-r-2 sm:border-r-4 border-red-900 active:border-0 active:translate-y-1 active:translate-x-1 transition-all text-[10px] sm:text-base font-bold"
           >
-            RESET_GAME
+            RESET
           </button>
           
-          <div className="font-dot bg-black/50 text-white px-3 py-1 text-xs border-2 border-white/30">
-            FPS: 60
+          <div className="font-dot bg-black/50 text-white px-2 py-0.5 text-[8px] sm:text-xs border border-white/30">
+            60 FPS
           </div>
         </div>
       </div>

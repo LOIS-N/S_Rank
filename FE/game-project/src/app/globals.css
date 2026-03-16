@@ -17,16 +17,7 @@
 }
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --font-bitbit: 'BitBit', cursive;
-}
-
-@font-face {
-  font-family: 'BitBit';
-  src: url('/fonts/DNFBitBitOTF.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
+  --font-stardust: 'Stardust', cursive;
 }
 
 @font-face {
@@ -83,7 +74,29 @@ html, body {
 }
 
 .font-dot {
-  font-family: var(--font-bitbit);
+  font-family: var(--font-stardust);
   image-rendering: pixelated;
   -webkit-font-smoothing: none;
+}
+
+/* 16:9 반응형 캔버스 래퍼 - 브라우저 규격에 꽉 차게 변경 */
+.game-wrapper {
+  position: relative;
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: min(100vh, calc(100vw * 9 / 16));
+  aspect-ratio: 16 / 9;
+  background-color: black;
+  overflow: hidden;
+  margin: 0 auto;
+  box-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+
+/* 래퍼를 수직/수평 중앙에 오게 하는 컨테이너 */
+.app-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background-color: #111; /* 바깥 배경은 어둡게 */
 }
