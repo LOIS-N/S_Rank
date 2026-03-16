@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
  *   G  : Global / 공통
  *   AU : Auth (인증/인가)
  *   U  : User (유저)
+ *   D  : Desk (책상)
  *   C  : Card (카드)
  *   Q  : Quest (퀘스트)
  *   GA : Gacha (뽑기)
@@ -49,6 +50,11 @@ public enum ErrorCode {
     WALLET_NOT_FOUND(HttpStatus.NOT_FOUND,              "U005", "지갑 정보를 찾을 수 없습니다."),
     WALLET_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "U006", "지갑 생성에 실패했습니다."),
 
+    // ======================== D : Desk (책상) ========================
+    DESK_NOT_FOUND(HttpStatus.NOT_FOUND,                "D001", "책상을 찾을 수 없습니다."),
+    DESK_ALREADY_UNLOCKED(HttpStatus.CONFLICT,          "D002", "이미 해금된 책상입니다."),
+    DESK_INSUFFICIENT_LEVEL(HttpStatus.BAD_REQUEST,     "D003", "책상 해금에 필요한 레벨이 부족합니다."),
+
     // ======================== C : Card ========================
     CARD_NOT_FOUND(HttpStatus.NOT_FOUND,                "C001", "카드를 찾을 수 없습니다."),
     CARD_NOT_OWNED(HttpStatus.FORBIDDEN,                "C002", "보유하지 않은 카드입니다."),
@@ -65,6 +71,7 @@ public enum ErrorCode {
     QUEST_EXCEED_HARD_CAP(HttpStatus.BAD_REQUEST,       "Q006", "예상 완료 시간이 하드캡을 초과합니다."),
     QUEST_SLOT_NOT_UNLOCKED(HttpStatus.FORBIDDEN,       "Q007", "해당 슬롯이 해금되지 않았습니다."),
     QUEST_NOT_COMPLETED(HttpStatus.BAD_REQUEST,         "Q008", "아직 완료되지 않은 퀘스트입니다."),
+    INVALID_QUEST_TYPE(HttpStatus.BAD_REQUEST,          "Q009", "유효하지 않은 퀘스트 타입입니다."),
 
     // ======================== GA : Gacha ========================
     GACHA_TYPE_NOT_FOUND(HttpStatus.NOT_FOUND,          "GA001", "존재하지 않는 뽑기 종류입니다."),
