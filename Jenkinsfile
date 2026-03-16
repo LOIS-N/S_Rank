@@ -5,12 +5,19 @@ pipeline {
         COMPOSE_PATH = '/home/ubuntu/cicd/develop'
     }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
+    stage('Checkout') {
+        steps {
+            checkout([$class: 'GitSCM',
+                branches: [[name: '*/develop']],
+                userRemoteConfigs: [[
+                    refspec: '+refs/heads/develop:refs/remotes/origin/develop',
+                    url: 'https://lab.ssafy.com/s14-blochain-sub1/S14P21E204.git',
+                    credentialsId: 'gitlab-token'
+                ]]
+            ])
         }
+    }
+
 
         stage('Build') {
             steps {
