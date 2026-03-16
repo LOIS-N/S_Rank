@@ -39,3 +39,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Codex local docs ###
+docs/
+AGENTS.md
