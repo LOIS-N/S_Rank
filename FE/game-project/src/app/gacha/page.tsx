@@ -1,0 +1,218 @@
+"use client";
+
+import { useState } from "react";
+import "./gacha.css";
+
+// --- NineSliceBox Component (from quest page) ---
+interface NineSliceBoxProps {
+  src: string;
+  slice: [number, number, number, number];
+  framePadding: number;
+  borderScale?: number;
+  children?: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  onClick?: () => void;
+}
+
+function NineSliceBox({ src, slice, framePadding, borderScale = 1, children, className, style, onClick }: NineSliceBoxProps) {
+  const t = Math.round(slice[0] * borderScale);
+  const r = Math.round(slice[1] * borderScale);
+  const b = Math.round(slice[2] * borderScale);
+  const l = Math.round(slice[3] * borderScale);
+
+  return (
+    <div 
+      className={`relative ${className || ''}`} 
+      style={{ padding: `${framePadding}px`, boxSizing: 'border-box', ...style }}
+      onClick={onClick}
+    >
+      <div 
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderStyle: 'solid',
+          borderWidth: `${t}px ${r}px ${b}px ${l}px`,
+          borderImageSource: `url(${src})`,
+          borderImageSlice: `${slice[0]} ${slice[1]} ${slice[2]} ${slice[3]} fill`,
+          borderImageRepeat: 'stretch',
+          imageRendering: 'pixelated',
+          transform: 'translateZ(0) scale(1.0001)', // 미세한 오버슈트로 틈새(seam) 제거
+          backfaceVisibility: 'hidden',
+          clipPath: 'inset(0)', // 오버슈트된 외곽선 잘라내기
+          zIndex: 0,
+          pointerEvents: 'none'
+        } as React.CSSProperties}
+      />
+      <div className="nineslice-content" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// --- Types & Dummy Data ---
+type TabType = 'flyer' | 'fair' | 'public';
+type PhaseType = 'select' | 'result_1' | 'result_10';
+
+interface GachaCard {
+  id: number;
+  image: string;
+}
+
+// SCardImage_000.png ~ SCardImage_019.png
+const CARD_POOL: GachaCard[] = Array.from({ length: 20 }).map((_, i) => ({
+  id: i,
+  image: `/assets/006/SCardImage_${i.toString().padStart(3, '0')}.png`
+}));
+
+export default function GachaPage() {
+  const [currentTab, setCurrentTab] = useState<TabType>('flyer');
+  const [phase, setPhase] = useState<PhaseType>('select');
+  const [drawnCards, setDrawnCards] = useState<GachaCard[]>([]);
+
+  // 1회 뽑기
+  const handlePull1 = () => {
+    const randomCard = CARD_POOL[Math.floor(Math.random() * CARD_POOL.length)];
+    setDrawnCards([randomCard]);
+    setPhase('result_1');
+  };
+
+  // 10회 뽑기
+  const handlePull10 = () => {
+    const pulled = [];
+    for (let i = 0; i < 10; i++) {
+        pulled.push(CARD_POOL[Math.floor(Math.random() * CARD_POOL.length)]);
+    }
+    setDrawnCards(pulled);
+    setPhase('result_10');
+  };
+
+  const handleReturn = () => {
+    setDrawnCards([]);
+    setPhase('select');
+  };
+
+  return (
+    <div className="gacha-layout">
+      {/* 
+        참고: 부모 레이아웃(layout.tsx)에서 Sidebar 및 Header를 감싸고 있다고 가정합니다. 
+        만약 Quest처럼 여기서도 레이아웃 구조체(flex)가 필요하다면 quest.css의 quest-layout 등을 사용할 수 있습니다.
+        현재는 gacha.css의 gacha-layout을 사용.
+      */}
+      <div className={`gacha-content gacha-bg-${currentTab}`}>
+        
+        {/* 상단 3개 탭 (각 1/3) */}
+        <div className="gacha-tabs-container">
+          <NineSliceBox 
+            src="/assets/006/topButton_000.png" 
+            slice={[130, 450, 180, 450]} 
+            framePadding={8} 
+            borderScale={0.15}
+            className={`gacha-tab ${currentTab === 'flyer' ? 'active' : ''}`}
+            onClick={() => { setCurrentTab('flyer'); setPhase('select'); }}
+          >
+            <span>전단지 뽑기</span>
+          </NineSliceBox>
+
+          <NineSliceBox 
+            src="/assets/006/topButton_000.png" 
+            slice={[130, 450, 180, 450]} 
+            framePadding={8} 
+            borderScale={0.15}
+            className={`gacha-tab ${currentTab === 'fair' ? 'active' : ''}`}
+            onClick={() => { setCurrentTab('fair'); setPhase('select'); }}
+          >
+            <span>박람회 뽑기</span>
+          </NineSliceBox>
+
+          <NineSliceBox 
+            src="/assets/006/topButton_000.png" 
+            slice={[130, 450, 180, 450]} 
+            framePadding={8} 
+            borderScale={0.15}
+            className={`gacha-tab ${currentTab === 'public' ? 'active' : ''}`}
+            onClick={() => { setCurrentTab('public'); setPhase('select'); }}
+          >
+            <span>공채 뽑기</span>
+          </NineSliceBox>
+        </div>
+
+        {/* 상시 표시되는 하단 뽑기 버튼 (결과창에서도 연달아 뽑기 가능하게 유지) */}
+        <div className="gacha-main-area">
+            {phase === 'select' && (
+                <div className="gacha-bottom-buttons">
+                    <NineSliceBox
+                        src="/assets/006/gachaButton_000.png"
+                        slice={[100, 300, 100, 300]}
+                        framePadding={10}
+                        borderScale={0.2}
+                        className="gacha-action-btn"
+                        onClick={handlePull1}
+                    >
+                        <span>1회 뽑기</span>
+                    </NineSliceBox>
+
+                    <NineSliceBox
+                        src="/assets/006/gachaButton_000.png"
+                        slice={[100, 300, 100, 300]}
+                        framePadding={10}
+                        borderScale={0.2}
+                        className="gacha-action-btn btn-10pull"
+                        onClick={handlePull10}
+                    >
+                        <span style={{ marginTop: '-4px' }}>10회 뽑기</span>
+                        <span className="btn-subtitle">(할인해줌 ㅋ)</span>
+                    </NineSliceBox>
+                </div>
+            )}
+        </div>
+
+        {/* --- 결과창 연출 --- */}
+        {phase === 'result_1' && (
+            <div className="gacha-result-container" onClick={handleReturn}>
+                <div className="gacha-1pull-card" onClick={(e) => e.stopPropagation()}>
+                    <img src={drawnCards[0]?.image} alt="Drawn Card" />
+                </div>
+                
+                <div className="gacha-bottom-buttons" onClick={(e) => e.stopPropagation()}>
+                    <NineSliceBox src="/assets/006/gachaButton_000.png" slice={[10, 10, 10, 10]} framePadding={10} borderScale={0.5} className="gacha-action-btn" onClick={handlePull1}>
+                        <span>1회 뽑기</span>
+                    </NineSliceBox>
+                    <NineSliceBox src="/assets/006/gachaButton_000.png" slice={[10, 10, 10, 10]} framePadding={10} borderScale={0.5} className="gacha-action-btn btn-10pull" onClick={handlePull10}>
+                        <span>10회 뽑기</span>
+                        <span className="btn-subtitle">(할인해줌 ㅋ)</span>
+                    </NineSliceBox>
+                </div>
+            </div>
+        )}
+
+        {phase === 'result_10' && (
+            <div className="gacha-result-container" onClick={handleReturn}>
+                <div className="gacha-10pull-grid" onClick={(e) => e.stopPropagation()}>
+                    {drawnCards.map((card, idx) => (
+                        <div key={idx} className="gacha-10pull-card">
+                            <img src={card.image} alt={`Drawn Card ${idx + 1}`} />
+                        </div>
+                    ))}
+                </div>
+                
+                <div className="gacha-bottom-buttons" onClick={(e) => e.stopPropagation()}>
+                    <NineSliceBox src="/assets/006/gachaButton_000.png" slice={[100, 300, 100, 300]} framePadding={10} borderScale={0.2} className="gacha-action-btn" onClick={handlePull1}>
+                        <span>1회 뽑기</span>
+                    </NineSliceBox>
+                    <NineSliceBox src="/assets/006/gachaButton_000.png" slice={[100, 300, 100, 300]} framePadding={10} borderScale={0.2} className="gacha-action-btn btn-10pull" onClick={handlePull10}>
+                        <span style={{ marginTop: '-4px' }}>10회 뽑기</span>
+                        <span className="btn-subtitle">(할인해줌 ㅋ)</span>
+                    </NineSliceBox>
+                </div>
+            </div>
+        )}
+
+      </div>
+    </div>
+  );
+}

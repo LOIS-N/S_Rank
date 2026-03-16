@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client";
 
 import dynamic from "next/dynamic";
@@ -227,6 +228,17 @@ export default function Home() {
           <MainHUD />
         </div>
       )}
+=======
+export default function Home() {
+  return (
+    <main style={{ padding: "40px" }}>
+      <h1 style={{ fontSize: "32px", fontWeight: "bold" }}>
+        게임 프로젝트 시작
+      </h1>
+      <p style={{ marginTop: "12px" }}>
+        Next.js가 정상적으로 실행되고 있습니다.
+      </p>
+>>>>>>> aa0652b9b70407d5264f3f9930be0a4892751961
     </main>
   );
 }
