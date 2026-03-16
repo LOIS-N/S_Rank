@@ -11,6 +11,7 @@
   height: 100vh;
   display: flex;
   justify-content: center;
+  align-items: center;
   background: #000;
   overflow: hidden;
 }
@@ -19,12 +20,11 @@
 .cardlist-page-container {
   width: 1280px;
   height: 720px;
+  position: relative;
   display: flex;
   flex-direction: column;
+  z-index: 1;
   box-sizing: border-box;
-  transform-origin: center center;
-  position: relative;
-  overflow: hidden;
 }
 
 .cardlist-page-container::before {
@@ -43,10 +43,11 @@
   z-index: 1;
 }
 
-/* --- 페이지 타이틀 --- */
 .cardlist-page-title-box {
-  margin-top: 20px;
-  margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .cardlist-page-title {
@@ -66,7 +67,7 @@
 .cardlist-content-padding {
   display: flex;
   flex: 1;
-  padding: 0 24px 80px 24px; /* 하단 네비게이션 바 고정 크기 80px */
+  padding: 0 24px 80px 24px;
   gap: 20px;
   min-height: 0;
   box-sizing: border-box;
@@ -150,7 +151,7 @@
 /* 카드 그리드 영역 */
 .cardlist-grid-wrapper {
   flex: 1;
-  clip-path: inset(-15px -15px);
+  clip-path: inset(0 -15px); /* 상하는 0으로 깎아 테두리 침범 방지, 좌우는 -15px로 두어 호버 효과 잘림 방지 */
   position: relative;
   min-height: 0;
 }
@@ -203,15 +204,19 @@
 
 /* 스크롤바 컬럼 */
 .cardlist-scrollbar-column {
-  flex: 0 0 32px;
-  height: 100%;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 32px;
+  flex-shrink: 0;
+  height: 100%;
 }
 
 .scrollbar-track {
   width: 18px;
-  height: 100%;
+  flex: 1;
+  min-height: 80px;
   background-image: url('/assets/008/scrollBar_000.png');
   background-size: 2298.85% 127.25%;
   background-position: 50% 50%;
@@ -331,4 +336,18 @@
   color: #111;
 }
 
-/* 삭제된 s-grade-desc 병합 방어 */
+/* --- 애니메이션: 상세 정보 등장 효과 --- */
+@keyframes detailAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-detail {
+  animation: detailAppear 0.3s ease-out forwards;
+}
