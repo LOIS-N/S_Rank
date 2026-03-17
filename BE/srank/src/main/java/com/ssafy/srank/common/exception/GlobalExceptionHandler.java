@@ -8,6 +8,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -89,6 +90,27 @@ public class GlobalExceptionHandler {
         String message = String.format("필수 파라미터 '%s'가 누락되었습니다.", e.getParameterName());
         log.warn("[MissingParam] {}", message);
 
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, message));
+    }
+
+    /**
+     * @RequestHeader 누락
+     */
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    protected ResponseEntity<ApiResponse<Void>> handleMissingHeader(
+            MissingRequestHeaderException e) {
+
+        log.warn("[MissingHeader] {}", e.getHeaderName());
+
+        if ("Authorization".equalsIgnoreCase(e.getHeaderName())) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.fail(ErrorCode.UNAUTHORIZED));
+        }
+
+        String message = String.format("필수 헤더 '%s'가 누락되었습니다.", e.getHeaderName());
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.fail(ErrorCode.INVALID_INPUT_VALUE, message));
