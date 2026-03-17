@@ -44,24 +44,25 @@ pipeline {
     post {
         success {
             sh """
-                PUSHER=\${GITLAB_USER_NAME:-수동 배포}
-                curl -X POST -H 'Content-type: application/json' \
+                PUSHER=\$(git log -1 --pretty=format:'%an' 2>/dev/null || echo '알 수 없음')
+                curl -X POST -H 'Content-type: application/json' \\
                 --data "{
-                    \\"text\\": \\"---\\\\n### ✅ Dev 배포 성공\\\\n| 항목 | 내용 |\\\\n|------|------|\\\\n| push한 사람 | \$PUSHER |\\\\n| 브랜치 | develop |\\\\n\\\\n📋 [Jenkins 로그 확인](${env.BUILD_URL}console)\\"
-                }" \
+                    \\"text\\": \\"### ✅ Dev 배포 성공\\n| 항목 | 내용 |\\n|---|---|\\n| Push한 사람 | \$PUSHER |\\n| 브랜치 | develop |\\n| 빌드 번호 | #${BUILD_NUMBER} |\\n| 소요 시간 | ${currentBuild.durationString} |\\"
+                }" \\
                 ${MATTERMOST_WEBHOOK}
             """
         }
         failure {
             sh """
-                PUSHER=\${GITLAB_USER_NAME:-수동 배포}
-                curl -X POST -H 'Content-type: application/json' \
+                PUSHER=\$(git log -1 --pretty=format:'%an' 2>/dev/null || echo '알 수 없음')
+                curl -X POST -H 'Content-type: application/json' \\
                 --data "{
-                    \\"text\\": \\"---\\\\n### ❌ Dev 배포 실패\\\\n| 항목 | 내용 |\\\\n|------|------|\\\\n| push한 사람 | \$PUSHER |\\\\n| 브랜치 | develop |\\\\n\\\\n📋 [Jenkins 로그 확인](${env.BUILD_URL}console)\\"
-                }" \
+                    \\"text\\": \\"### ❌ Dev 배포 실패\\n| 항목 | 내용 |\\n|---|---|\\n| Push한 사람 | \$PUSHER |\\n| 브랜치 | develop |\\n| 빌드 번호 | #${BUILD_NUMBER} |\\n| 확인 | ${BUILD_URL} |\\"
+                }" \\
                 ${MATTERMOST_WEBHOOK}
             """
         }
     }
+
 
 }
