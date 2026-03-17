@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import withPWAInit from "@ducanh2912/next-pwa";
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   // 1. 최신 버전에서는 experimental 밖으로 꺼내거나 아래와 같이 설정합니다.
   // 만약 계속 경고가 뜨면 아예 삭제해도 무방합니다 (로컬 개발에만 영향)
   experimental: {
