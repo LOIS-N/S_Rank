@@ -1,5 +1,6 @@
 package com.ssafy.srank.card.repository;
 
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
@@ -12,6 +13,7 @@ import com.ssafy.srank.card.domain.entity.QSpecialSkillTemplate;
 import com.ssafy.srank.card.domain.entity.QUserCard;
 import com.ssafy.srank.card.domain.enums.CardGrade;
 import com.ssafy.srank.card.domain.enums.PositionType;
+import com.ssafy.srank.card.domain.enums.SortType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -31,6 +33,7 @@ public class UserCardQueryRepositoryImpl implements UserCardQueryRepository {
     public List<UserCardFlatResponse> findUserCards(
             Long userId,
             PositionType statType,
+            SortType sortType,
             UserCardCursor cursor,
             int limit
     ) {
@@ -51,7 +54,7 @@ public class UserCardQueryRepositoryImpl implements UserCardQueryRepository {
                         userCard.stat3.skillType,
                         userCard.stat3.baseValue.add(userCard.stat3.bonusValue),
 
-                        specialSkill.skillName
+                        specialSkill.id
                 ))
                 .from(userCard)
                 .join(userCard.cardTemplate, cardTemplate)
@@ -63,9 +66,9 @@ public class UserCardQueryRepositoryImpl implements UserCardQueryRepository {
                         cursorCondition(cursor)
                 )
                 .orderBy(
-                        gradePriority().desc(),
-                        totalStat().desc(),
-                        userCard.id.asc()
+                        "TOTAL_STAT".equals(sortType)
+                                ? new OrderSpecifier[]{totalStat().desc(), gradePriority().desc(), userCard.id.asc()}
+                                : new OrderSpecifier[]{gradePriority().desc(), totalStat().desc(), userCard.id.asc()}
                 )
                 .limit(limit + 1L)
                 .fetch();

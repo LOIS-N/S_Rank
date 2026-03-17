@@ -1,12 +1,11 @@
 package com.ssafy.srank.card.domain.entity;
 
+import com.ssafy.srank.card.application.dto.response.*;
 import com.ssafy.srank.common.entity.SoftDeleteEntity;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -14,6 +13,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "user_card")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class UserCard extends SoftDeleteEntity {
 
     private static final int MAX_ENHANCE_TRY_COUNT = 7;
@@ -67,27 +68,6 @@ public class UserCard extends SoftDeleteEntity {
     @Column(name = "nft_token_id", length = 255)
     private String nftTokenId;
 
-
-    public UserCard(
-            Long userId,
-            CardTemplate cardTemplate,
-            SpecialSkillTemplate specialSkillTemplate,
-            SkillStat stat1,
-            SkillStat stat2,
-            SkillStat stat3,
-            String nftTokenId
-    ) {
-        this.userId = userId;
-        this.cardTemplate = cardTemplate;
-        this.specialSkillTemplate = specialSkillTemplate;
-        this.stat1 = stat1;
-        this.stat2 = stat2;
-        this.stat3 = stat3;
-        this.enhanceTryCount = 0;
-        this.enhanceSuccessCount = 0;
-        this.nftTokenId = nftTokenId;
-    }
-
     public int getEnhanceLevel() {
         return enhanceSuccessCount;
     }
@@ -124,5 +104,39 @@ public class UserCard extends SoftDeleteEntity {
         if (enhanceTryCount >= MAX_ENHANCE_TRY_COUNT) {
             throw new BusinessException(ErrorCode.CARD_ENHANCE_TRY_EXCEEDED);
         }
+    }
+
+    public UserCardResponse toResponse() {
+        SpecialAbilityResponse specialAbility = null;
+        if (specialSkillTemplate != null) {
+            var effects = specialSkillTemplate.getEffects().stream()
+                    .map(e -> new SpecialSkillEffectResponse(
+                            e.getEffectType(),
+                            e.getEffectOperator(),
+                            e.getEffectAmount(),
+                            e.getTargetScope(),
+                            e.getTargetPosition(),
+                            e.getConditionType(),
+                            e.getConditionValue(),
+                            e.getConditionPosition(),
+                            e.getPriority()
+                    ))
+                    .toList();
+            specialAbility = new SpecialAbilityResponse(
+                    specialSkillTemplate.getSkillName(),
+                    specialSkillTemplate.getDescription(),
+                    effects
+            );
+        }
+        return new UserCardResponse(
+                id,
+                cardTemplate.getGrade().name(),
+                cardTemplate.getCharacterName(),
+                cardTemplate.getPortraitImageUrl(),
+                new CardSkillResponse(stat1.getSkillType(), stat1.getTotalValue()),
+                new CardSkillResponse(stat2.getSkillType(), stat2.getTotalValue()),
+                new CardSkillResponse(stat3.getSkillType(), stat3.getTotalValue()),
+                specialAbility
+        );
     }
 }
