@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         COMPOSE_PATH = '/home/ubuntu/cicd/develop'
+        MATTERMOST_WEBHOOK = 'https://meeting.ssafy.com/hooks/gkjzzhugwfy3jr3fcj4wj9bbkc'
     }
 
     stages {
@@ -47,7 +48,7 @@ pipeline {
                 --data '{
                     "text": "### ✅ Dev 배포 성공\\n**push한 사람**: ${env.GITLAB_USER_NAME}\\n**브랜치**: develop\\n[jenkins 로그 확인](${env.BUILD_URL}console)"
                 }' \
-                ${https://meeting.ssafy.com/hooks/gkjzzhugwfy3jr3fcj4wj9bbkc}
+                ${MATTERMOST_WEBHOOK}
             """
         }
         failure {
@@ -56,9 +57,8 @@ pipeline {
                 --data '{
                     "text": "### ❌ Dev 배포 실패\\n**push한 사람**: ${env.GITLAB_USER_NAME}\\n**브랜치**: develop\\n[jenkins 로그 확인](${env.BUILD_URL}console)"
                 }' \
-                ${https://meeting.ssafy.com/hooks/gkjzzhugwfy3jr3fcj4wj9bbkc}
+                ${MATTERMOST_WEBHOOK}
             """
         }
     }
-
 }
