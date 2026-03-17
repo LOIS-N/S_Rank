@@ -138,25 +138,14 @@ const generateDummyCards = (): Card[] => {
 const DUMMY_CARDS = generateDummyCards();
 
 export default function CardListPage() {
-  const [scale, setScale] = useState(1);
   const [selectedCardId, setSelectedCardId] = useState<number>(DUMMY_CARDS[0].id);
+
 
   // 필터 상태
   const [capacitySort, setCapacitySort] = useState("ALL");
   const [orderSort, setOrderSort] = useState("GRADE"); // GRADE(등급순), STAT(능력순), LATEST(최신순)
 
-  // 윈도우 스케일링
-  useEffect(() => {
-    const handleResize = () => {
-      const scaleX = window.innerWidth / 1280;
-      const scaleY = window.innerHeight / 720;
-      setScale(Math.min(scaleX, scaleY));
-    };
 
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   // 필터링 및 정렬 로직
   const filteredAndSortedCards = useMemo(() => {
@@ -270,11 +259,8 @@ export default function CardListPage() {
   const selectedCard = DUMMY_CARDS.find(c => c.id === selectedCardId) || DUMMY_CARDS[0];
 
   return (
-    <div className="cardlist-page-wrapper">
-      <div
-        className="cardlist-page-container"
-        style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
-      >
+    <div className="cardlist-page-container">
+
         {/* 상단 타이틀 */}
         <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
           <NineSliceBox
@@ -405,6 +391,5 @@ export default function CardListPage() {
 
         </div>
       </div>
-    </div>
   );
 }
