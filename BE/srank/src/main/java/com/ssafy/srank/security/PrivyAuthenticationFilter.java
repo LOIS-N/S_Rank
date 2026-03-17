@@ -41,6 +41,7 @@ public class PrivyAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
+            System.out.println(">>>>> authHeader: [" + request.getHeader("Authorization") + "]");
             String privyId = privyTokenService.verifyAccessToken(request.getHeader("Authorization"));
             User user = userRepository.findByPrivyId(privyId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
