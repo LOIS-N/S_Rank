@@ -101,5 +101,8 @@ html, body {
   height: min(100dvh, calc(100vw * 9 / 16));
   background-color: black;
   overflow: hidden;
+  /* CSS Container Query: 자식 요소들이 cqw 단위로 game-wrapper 너비 기준 비율 크기 사용 가능 */
+  container-type: inline-size;
+  container-name: game;
 }
 
