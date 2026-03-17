@@ -45,3 +45,6 @@ docs/
 AGENTS.md
 
 .gradle-user-home/
+
+### OMX runtime artifacts ###
+.omx/
