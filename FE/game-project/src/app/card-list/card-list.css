@@ -119,6 +119,35 @@
   color: #111;
 }
 
+/* 스킬 필터 버튼 */
+.cardlist-filter-btn {
+  appearance: none;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  padding: 5px 10px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  outline: none;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.cardlist-filter-btn:hover {
+  background-color: #d0d0d0;
+  transform: scale(1.05);
+}
+
+.cardlist-filter-btn.active {
+  background-color: #ffd700;
+  border-color: #b8960f;
+  color: #2a2a40;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.5), inset 0 0 6px rgba(255, 215, 0, 0.3);
+}
+
 /* 카드 목록 박스 */
 .cardlist-left-box {
   flex: 1;

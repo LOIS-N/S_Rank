@@ -31,6 +31,20 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+
+  // 👇 이 부분이 수정/추가된 부분입니다 (시작)
+  // 프론트엔드에서 발생하는 API Network (CORS) 에러를 우회하기 위한 프록시(Proxy) 설정
+  async rewrites() {
+    return [
+      {
+        // 프론트엔드(localhost:3000)에서 '/api/...' 로 요청을 보내면
+        source: "/api/:path*",
+        // 브라우저 몰래 백엔드 서버(localhost:8080)로 요청을 전달함
+        destination: "http://localhost:8080/api/:path*", 
+      },
+    ];
+  },
+  // 👆 이 부분이 수정/추가된 부분입니다 (끝)
 };
 
 const withPWA = withPWAInit({
