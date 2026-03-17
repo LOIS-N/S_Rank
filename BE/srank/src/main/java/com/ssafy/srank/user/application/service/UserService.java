@@ -5,9 +5,9 @@ import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
 
 public interface UserService {
 
-    MyInfoResponse getMyInfo(String authorizationHeader);
+    MyInfoResponse getMyInfo(Long userId);
 
-    void updateNickname(String authorizationHeader, UpdateNicknameRequest request);
+    void updateNickname(Long userId, UpdateNicknameRequest request);
 
-    void withdraw(String authorizationHeader);
+    void withdraw(Long userId);
 }
