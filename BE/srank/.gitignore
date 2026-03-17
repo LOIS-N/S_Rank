@@ -43,3 +43,5 @@ out/
 ### Codex local docs ###
 docs/
 AGENTS.md
+
+.gradle-user-home/

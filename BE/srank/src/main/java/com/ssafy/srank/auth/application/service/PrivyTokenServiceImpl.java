@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
@@ -142,12 +141,17 @@ public class PrivyTokenServiceImpl implements PrivyTokenService {
     private PublicKey parseVerificationKey(String rawKey) {
         try {
             String normalizedKey = rawKey
+                    .trim()
                     .replace("\\n", "\n")
                     .replace("-----BEGIN PUBLIC KEY-----", "")
                     .replace("-----END PUBLIC KEY-----", "")
                     .replaceAll("\\s", "");
 
-            byte[] keyBytes = java.util.Base64.getDecoder().decode(normalizedKey.getBytes(StandardCharsets.UTF_8));
+            if (!StringUtils.hasText(normalizedKey)) {
+                throw new IllegalArgumentException("Privy verification key is blank");
+            }
+
+            byte[] keyBytes = java.util.Base64.getDecoder().decode(normalizedKey);
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
             return KeyFactory.getInstance("EC").generatePublic(keySpec);
         } catch (Exception e) {
