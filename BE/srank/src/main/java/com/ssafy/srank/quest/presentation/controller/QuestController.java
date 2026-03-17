@@ -8,10 +8,15 @@ import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.application.dto.response.SubQuestResponse;
 import com.ssafy.srank.quest.application.service.MainQuestService;
 import com.ssafy.srank.quest.application.service.SubQuestService;
+import com.ssafy.srank.security.SecurityUtil;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -25,25 +30,21 @@ public class QuestController {
     private final SubQuestService subQuestService;
 
     @GetMapping("/main")
-    public ResponseEntity<ApiResponse<List<MainQuestResponse>>> getMainQuests(
-            @RequestHeader("X-User-Id") Long userId
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(mainQuestService.getMainQuests(userId)));
+    public ResponseEntity<ApiResponse<List<MainQuestResponse>>> getMainQuests() {
+        return ResponseEntity.ok(ApiResponse.success(mainQuestService.getMainQuests(SecurityUtil.getCurrentUserId())));
     }
 
     @GetMapping("/sub")
-    public ResponseEntity<ApiResponse<List<SubQuestResponse>>> getSubQuests(
-            @RequestHeader("X-User-Id") Long userId
-    ) {
-        return ResponseEntity.ok(ApiResponse.success(subQuestService.getSubQuests(userId)));
+    public ResponseEntity<ApiResponse<List<SubQuestResponse>>> getSubQuests() {
+        return ResponseEntity.ok(ApiResponse.success(subQuestService.getSubQuests(SecurityUtil.getCurrentUserId())));
     }
 
     @GetMapping("/{questId}")
     public ResponseEntity<ApiResponse<QuestDetailResponse>> getQuestDetail(
-            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long questId,
             @RequestParam String type
     ) {
+        Long userId = SecurityUtil.getCurrentUserId();
         if ("sub".equalsIgnoreCase(type)) {
             return ResponseEntity.ok(ApiResponse.success(
                     subQuestService.getSubQuestDetail(userId, questId)

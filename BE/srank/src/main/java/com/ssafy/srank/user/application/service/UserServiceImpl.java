@@ -1,6 +1,5 @@
 package com.ssafy.srank.user.application.service;
 
-import com.ssafy.srank.auth.application.service.PrivyTokenService;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.user.application.dto.request.UpdateNicknameRequest;
@@ -20,18 +19,17 @@ public class UserServiceImpl implements UserService {
 
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[A-Za-z0-9가-힣]{2,8}$");
 
-    private final PrivyTokenService privyTokenService;
     private final UserRepository userRepository;
 
     @Override
-    public MyInfoResponse getMyInfo(String authorizationHeader) {
-        return MyInfoResponse.from(getActiveUser(authorizationHeader));
+    public MyInfoResponse getMyInfo(Long userId) {
+        return MyInfoResponse.from(getActiveUser(userId));
     }
 
     @Override
     @Transactional
-    public void updateNickname(String authorizationHeader, UpdateNicknameRequest request) {
-        User user = getActiveUser(authorizationHeader);
+    public void updateNickname(Long userId, UpdateNicknameRequest request) {
+        User user = getActiveUser(userId);
         validateNickname(request.getNickname());
 
         if (request.getNickname().equals(user.getNickname())) {
@@ -47,14 +45,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void withdraw(String authorizationHeader) {
-        User user = getActiveUser(authorizationHeader);
+    public void withdraw(Long userId) {
+        User user = getActiveUser(userId);
         user.withdraw();
     }
 
-    private User getActiveUser(String authorizationHeader) {
-        String privyId = privyTokenService.verifyAccessToken(authorizationHeader);
-        User user = userRepository.findByPrivyId(privyId)
+    private User getActiveUser(Long userId) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         if (user.isWithdrawn()) {
