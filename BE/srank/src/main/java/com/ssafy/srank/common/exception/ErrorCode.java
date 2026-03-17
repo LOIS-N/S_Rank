@@ -64,6 +64,9 @@ public enum ErrorCode {
     CARD_INVENTORY_FULL(HttpStatus.BAD_REQUEST,         "C003", "카드 인벤토리가 가득 찼습니다. (최대 200장)"),
     CARD_ALREADY_IN_USE(HttpStatus.CONFLICT,            "C004", "이미 퀘스트에 배치된 카드입니다."),
     CARD_ON_SALE(HttpStatus.CONFLICT,                   "C005", "거래소에 등록된 카드는 사용할 수 없습니다."),
+    CARD_DELETED(HttpStatus.CONFLICT,                   "C006", "삭제된 카드입니다."),
+    CARD_CANNOT_ENHANCE_DELETED(HttpStatus.CONFLICT,    "C007", "삭제된 카드는 강화할 수 없습니다."),
+    CARD_ENHANCE_TRY_EXCEEDED(HttpStatus.BAD_REQUEST,   "C008", "강화 가능 횟수를 모두 소진했습니다."),
 
     // ======================== Q : Quest ========================
     QUEST_NOT_FOUND(HttpStatus.NOT_FOUND,               "Q001", "퀘스트를 찾을 수 없습니다."),
