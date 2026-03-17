@@ -5,6 +5,7 @@ import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.desk.repository.UserDeskRepository;
+import com.ssafy.srank.quest.application.dto.request.CompleteQuestRequest;
 import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
 import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
@@ -173,8 +174,32 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
                 .build());
     }
 
+    @Transactional
+    @Override
+    public void completeQuest(Long userId, CompleteQuestRequest request) {
 
-    // ============ 검증 메소드들 ============
+        if(request.questType().equals(QuestType.MAIN)){
+            UserMainQuest mainQuest = userMainQuestRepository.findByIdAndUserIdAndStatus(request.questId(), userId, QuestStatus.IN_PROGRESS)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
+            if (mainQuest.getEndAt().isAfter(LocalDateTime.now()))
+                throw new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS);
+
+            userMainQuestCardRepository.deleteByUserIdAndUserMainQuest_Id(userId, request.questId());
+            userMainQuestRepository.delete(mainQuest);
+        }else{
+            UserSubQuest subQuest = userSubQuestRepository.findByIdAndUserIdAndStatus(request.questId(), userId, QuestStatus.IN_PROGRESS)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
+            if (subQuest.getEndAt().isAfter(LocalDateTime.now()))
+                throw new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS);
+
+            userSubQuestCardRepository.deleteByUserIdAndUserSubQuest_Id(userId, request.questId());
+            userSubQuestRepository.delete(subQuest);
+        }
+        userDeskQuestRepository.deleteByUserIdAndQuestId(userId,request.questId());
+        //Todo : 보상 증가
+    }
+
+// ============ 검증 메소드들 ============
 
     /**
      * 카드 개수 검증 (3~5장)

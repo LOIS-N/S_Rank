@@ -20,4 +20,6 @@ public interface UserMainQuestRepository extends JpaRepository<UserMainQuest, Lo
     Optional<UserMainQuest> findByUserIdAndTemplateId(@Param("userId") Long userId, @Param("templateId") Long templateId);
 
     Optional<UserMainQuest> findByIdAndUserId(Long questId, Long userId);
+
+    Optional<UserMainQuest> findByIdAndUserIdAndStatus(Long id, Long userId, QuestStatus status);
 }

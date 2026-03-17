@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserMainQuestCardRepository extends JpaRepository<UserMainQuestCard, Long> {
     boolean existsByUserIdAndUserCardId(Long userId, Long cardId);
+    void deleteByUserIdAndUserMainQuest_Id(Long userId, Long userMainQuestId);
 }

@@ -1,5 +1,7 @@
 package com.ssafy.srank.quest.repository;
 
+import com.ssafy.srank.quest.domain.entity.QuestStatus;
+import com.ssafy.srank.quest.domain.entity.UserMainQuest;
 import com.ssafy.srank.quest.domain.entity.UserSubQuest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,4 +21,5 @@ public interface UserSubQuestRepository extends JpaRepository<UserSubQuest, Long
     Optional<UserSubQuest> findByUserIdAndTemplateId(@Param("userId") Long userId, @Param("templateId") Long templateId);
 
     Optional<UserSubQuest> findByIdAndUserId(Long questId, Long userId);
+    Optional<UserSubQuest> findByIdAndUserIdAndStatus(Long id, Long userId, QuestStatus status);
 }
