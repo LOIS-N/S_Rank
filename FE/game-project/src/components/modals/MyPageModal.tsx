@@ -2,45 +2,99 @@
 
 import { useState } from "react";
 import { useGameStore } from "@/store/useGameStore";
+import { useUserStore } from "@/store/useUserStore";
 import { usePrivy } from "@privy-io/react-auth";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 interface MyPageModalProps {
   onClose: () => void;
+  isOnboarding?: boolean;
 }
 
-export default function MyPageModal({ onClose }: MyPageModalProps) {
+export default function MyPageModal({ onClose, isOnboarding = false }: MyPageModalProps) {
   const { nickname, setNickname, logout } = useGameStore();
+  const { accessToken, setNickname: setUserStoreNickname, setProfile, finalizeOnboarding, clearUser } = useUserStore();
   const { logout: privyLogout } = usePrivy();
+  const router = useRouter();
   
   const [inputValue, setInputValue] = useState(nickname);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
-
+  
   // 닉네임 유효성 검사
   const validateNickname = (name: string) => {
     const regex = /^[a-zA-Z0-9가-힣]{2,8}$/;
     return regex.test(name);
   };
 
-  const handleUpdateNickname = () => {
+  const handleUpdateNickname = async () => {
     const trimmed = inputValue.trim();
     if (!validateNickname(trimmed)) {
       setIsError(true);
       setMessage("2~8자의 영문, 한글, 숫자만 가능합니다. (띄어쓰기 불가)");
       return;
     }
-    
-    setNickname(trimmed);
+
+    setLoading(true);
     setIsError(false);
-    setMessage("변경이 완료되었습니다");
+    setMessage("");
+
+    try {
+      // 1. 닉네임 수정 API 호출
+      const response = await axios.put(
+        '/api/v1/users/me/nickname',
+        { nickname: trimmed },
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.data.success) {
+        // 2. 성공 시 최신 프로필 정보 다시 가져오기
+        const profileRes = await axios.get('/api/v1/users/me', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        
+        if (profileRes.data.success) {
+          setProfile(profileRes.data.data);
+        }
+
+        setNickname(trimmed); // GameStore 업데이트
+        setUserStoreNickname(trimmed); // UserStore 업데이트
+        finalizeOnboarding(); // Onboarding 완료 상태로 변경
+        setIsError(false);
+        setMessage("변경이 완료되었습니다");
+
+        // 3. 온보딩 중이면 메인으로 이동
+        if (isOnboarding) {
+          router.push('/main');
+        }
+      } else {
+        setIsError(true);
+        setMessage(response.data.error?.message || "닉네임 수정에 실패했습니다.");
+      }
+    } catch (err: any) {
+      setIsError(true);
+      const errorMsg = err.response?.data?.error?.message || "서버 오류가 발생했습니다.";
+      setMessage(errorMsg);
+      console.error('Update nickname failed:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = async () => {
     await privyLogout();
     logout(); 
+    clearUser();
   };
 
   const handleWithdraw = async () => {
@@ -52,6 +106,7 @@ export default function MyPageModal({ onClose }: MyPageModalProps) {
     localStorage.removeItem("mock_nickname");
     
     logout();
+    clearUser();
   };
 
   return (
@@ -82,9 +137,12 @@ export default function MyPageModal({ onClose }: MyPageModalProps) {
             />
             <button 
               onClick={handleUpdateNickname}
-              className="px-10 text-2xl font-bold bg-[#6b859e] text-white border-b-4 border-r-4 border-[#3e5368] active:border-0 active:translate-y-1 transition-all"
+              disabled={loading}
+              className={`px-10 text-2xl font-bold border-b-4 border-r-4 active:border-0 active:translate-y-1 transition-all ${
+                loading ? 'bg-slate-400 border-slate-500' : 'bg-[#6b859e] text-white border-[#3e5368]'
+              }`}
             >
-              수정하기
+              {loading ? '...' : '수정하기'}
             </button>
           </div>
           {message && (
@@ -115,7 +173,7 @@ export default function MyPageModal({ onClose }: MyPageModalProps) {
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#8ea4b8]/80 font-dot pointer-events-auto">
           <div className="bg-[#b0c4de] p-8 border-4 border-[#6b859e] max-w-sm text-center shadow-[4px_4px_0px_#4a5d73]">
-            <p className="text-slate-900 font-bold text-2xl mb-8">로그아웃 하시겠습니까?</p>
+            <p className="text-slate-900 font-bold text-2xl mb-8">로그아웃 하시습니까?</p>
             <div className="flex gap-4">
               <button 
                 onClick={handleLogout} 

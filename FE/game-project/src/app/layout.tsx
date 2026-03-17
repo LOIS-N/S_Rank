@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 import PrivyProviderWrapper from "@/components/providers/PrivyProviderWrapper";
+import AuthProvider from "@/components/providers/AuthProvider";
 import BottomNavBar from "@/components/BottomNavBar";
 import GlobalModals from "@/components/GlobalModals";
 import ZoomGuard from "@/components/ZoomGuard";
@@ -31,7 +32,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://auth.privy.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: http://localhost:8080; frame-src 'self' https://auth.privy.io;"
+          content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://auth.privy.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: http://localhost:8080 https://auth.privy.io wss://auth.privy.io https://j14e204.p.ssafy.io:8001; frame-src 'self' https://auth.privy.io;"
         />
         {/* Google Analytics */}
         {gaId && (
@@ -56,9 +57,11 @@ export default function RootLayout({
         <div className="app-container">
           <div className="game-wrapper">
             <PrivyProviderWrapper>
-              {children}
-              <BottomNavBar />
-              <GlobalModals />
+              <AuthProvider>
+                {children}
+                <BottomNavBar />
+                <GlobalModals />
+              </AuthProvider>
             </PrivyProviderWrapper>
           </div>
         </div>
