@@ -80,11 +80,12 @@ public enum ErrorCode {
     INVALID_QUEST_TYPE(HttpStatus.BAD_REQUEST,          "Q009", "유효하지 않은 퀘스트 타입입니다."),
 
     // ======================== GA : Gacha ========================
-    GACHA_TYPE_NOT_FOUND(HttpStatus.NOT_FOUND,          "GA001", "존재하지 않는 뽑기 종류입니다."),
-    GACHA_NOT_UNLOCKED(HttpStatus.FORBIDDEN,            "GA002", "해금되지 않은 뽑기입니다. 회사 단계를 높이세요."),
-    GACHA_COUNT_INVALID(HttpStatus.BAD_REQUEST,         "GA003", "뽑기 횟수는 1회 또는 10회만 가능합니다."),
-    GACHA_VRF_PENDING(HttpStatus.ACCEPTED,              "GA004", "VRF 결과 대기 중입니다."),
-    GACHA_VRF_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,  "GA005", "VRF 확률 처리에 실패했습니다."),
+    GACHA_INVALID_COUNT(HttpStatus.BAD_REQUEST,         "GA001", "뽑기 횟수는 1회 또는 10회만 가능합니다."),
+    GACHA_GOLD_INSUFFICIENT(HttpStatus.BAD_REQUEST,     "GA002", "골드가 부족합니다."),
+    GACHA_TYPE_LOCKED(HttpStatus.FORBIDDEN,             "GA003", "아직 해금되지 않은 뽑기입니다."),
+    GACHA_TYPE_INVALID(HttpStatus.BAD_REQUEST,          "GA004", "유효하지 않은 뽑기 타입입니다."),
+    GACHA_INVENTORY_FULL(HttpStatus.CONFLICT,           "GA005", "카드 보관함이 가득 차 뽑기를 진행할 수 없습니다."),
+    GACHA_VRF_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,  "GA006", "뽑기 확률 검증 중 오류가 발생했습니다."),
 
     // ======================== EN : Enhance (강화) ========================
     ENHANCE_NO_ATTEMPTS_LEFT(HttpStatus.BAD_REQUEST,    "EN001", "강화 횟수가 남아있지 않습니다. (최대 7회)"),

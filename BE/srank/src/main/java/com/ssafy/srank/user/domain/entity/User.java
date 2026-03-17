@@ -71,6 +71,16 @@ public class User extends BaseEntity {
         this.nickname = nickname;
     }
 
+    public void spendGold(long amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("amount must be positive");
+        }
+        if (gold < amount) {
+            throw new IllegalStateException("insufficient gold");
+        }
+        this.gold -= amount;
+    }
+
     public void withdraw() {
         this.deletedAt = LocalDateTime.now();
     }
