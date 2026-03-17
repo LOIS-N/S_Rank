@@ -45,6 +45,9 @@ public class SubQuestServiceImpl implements SubQuestService {
                 .toList();
     }
 
+    /*
+    *   서브퀘스트 템플릿 ID
+    * */
     @Override
     public QuestDetailResponse getSubQuestDetail(Long userId, Long questId) {
         SubQuestTemplate template = subQuestTemplateRepository.findById(questId)
@@ -56,5 +59,11 @@ public class SubQuestServiceImpl implements SubQuestService {
                 .orElse(null);
 
         return QuestDetailResponse.fromSub(template, status);
+    }
+
+    @Override
+    public QuestDetailResponse getUserSubQuestDetail(Long userId, Long questId) {
+        return QuestDetailResponse.userDetailSub(userSubQuestRepository.findByIdAndUserId(questId, userId).orElseThrow(
+                ()-> new BusinessException(ErrorCode.QUEST_NOT_FOUND)));
     }
 }

@@ -8,14 +8,11 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class QuestRestClientConfig {
 
-    @Value("${openai.base-url}")
-    private String baseUrl;
-
-    @Value("${openai.api-key}")
-    private String apiKey;
-
     @Bean
-    public RestClient openAiRestClient() {
+    public RestClient openAiRestClient(
+            @Value("${openai.base-url}") String baseUrl,
+            @Value("${openai.api-key}") String apiKey
+    ) {
         return RestClient.builder()
                 .baseUrl(baseUrl)
                 .defaultHeader("Authorization", "Bearer " + apiKey)

@@ -17,4 +17,6 @@ public interface UserSubQuestRepository extends JpaRepository<UserSubQuest, Long
     // 유저의 특정 템플릿 단건 상태 조회
     @Query("SELECT u FROM UserSubQuest u WHERE u.userId = :userId AND u.subQuestTemplate.id = :templateId")
     Optional<UserSubQuest> findByUserIdAndTemplateId(@Param("userId") Long userId, @Param("templateId") Long templateId);
+
+    Optional<UserSubQuest> findByIdAndUserId(Long questId, Long userId);
 }

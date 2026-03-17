@@ -3,10 +3,13 @@ package com.ssafy.srank.quest.presentation.controller;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.common.response.ApiResponse;
+import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.MainQuestResponse;
+import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.application.dto.response.SubQuestResponse;
 import com.ssafy.srank.quest.application.service.MainQuestService;
+import com.ssafy.srank.quest.application.service.QuestFacadeService;
 import com.ssafy.srank.quest.application.service.SubQuestService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +26,13 @@ public class QuestController {
 
     private final MainQuestService mainQuestService;
     private final SubQuestService subQuestService;
+    private final QuestFacadeService service;
 
     @GetMapping("/main")
     public ResponseEntity<ApiResponse<List<MainQuestResponse>>> getMainQuests(
             @RequestHeader("X-User-Id") Long userId
     ) {
-        return ResponseEntity.ok(ApiResponse.success(mainQuestService.getMainQuests(userId)));
+        return ResponseEntity.ok(ApiResponse.success(mainQuestService.getMainQuestList(userId)));
     }
 
     @GetMapping("/sub")
@@ -56,4 +60,21 @@ public class QuestController {
 
         throw new BusinessException(ErrorCode.INVALID_QUEST_TYPE);
     }
+
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<List<InProcessQuestResponse>>> getInProcessQuest(
+            @RequestHeader("X-User-Id") Long userId
+    ){
+        return ResponseEntity.ok(ApiResponse.success(service.getInProcessQuestList(userId)));
+    }
+
+    @PostMapping("/main/{questId}/start")
+    public ResponseEntity<ApiResponse<Void>> startMainQuest(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestBody MainQuestRequest request
+            ){
+
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
 }

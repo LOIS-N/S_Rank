@@ -8,4 +8,5 @@ import java.util.List;
 public interface SubQuestService {
     List<SubQuestResponse> getSubQuests(Long userId);
     QuestDetailResponse getSubQuestDetail(Long userId, Long questId);
+    QuestDetailResponse getUserSubQuestDetail(Long userId, Long questId);
 }
