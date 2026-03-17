@@ -23,18 +23,15 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // 2. CORS 상세 설정 추가
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 모든 주소를 허용하거나, 실제 프론트엔드 도메인을 명시합니다.
         configuration.addAllowedOriginPattern("*"); 
         configuration.addAllowedMethod("*");
         configuration.addAllowedHeader("*");
         configuration.setAllowCredentials(true);
         
-        // 브라우저가 Authorization 헤더를 읽을 수 있게 노출시킵니다.
         configuration.addExposedHeader("Authorization");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

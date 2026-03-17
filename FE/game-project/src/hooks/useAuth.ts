@@ -15,7 +15,6 @@ export const useAuth = () => {
 
   useEffect(() => {
     const loginToBackend = async () => {
-      // 인증은 되었지만 우리 서비스 로그인은 안 된 상태일 때 진행
       if (authenticated && !isAuthenticated && user && identityToken && !isprocessing.current) {
         try {
           isprocessing.current = true;
