@@ -15,8 +15,8 @@ export default function MainHUD() {
   return (
     <div className="absolute inset-0 pointer-events-none font-dot flex flex-col justify-between select-none">
       
-      {/* --- 상단 바 --- */}
-      <div className="w-full bg-[#8ea4b8] border-b-[3px] border-[#6b859e] pointer-events-auto shadow-md">
+      {/* --- 상단 바 (1/3 스케일) --- */}
+      <div className="w-full bg-[#8ea4b8] border-b-[3px] border-[#6b859e] pointer-events-auto shadow-md" style={{ zoom: 1/3 }}>
         <div className="w-full mx-auto p-3 flex flex-row justify-between items-center bg-[#b0c4de]/40">
           <div className="flex items-center pl-4">
             <div className="font-bold text-[22px] drop-shadow-[2px_2px_0px_#000] text-white mr-6">

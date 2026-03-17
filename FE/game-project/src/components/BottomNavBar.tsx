@@ -47,7 +47,7 @@ export default function BottomNavBar() {
 
   return (
     <div className="absolute bottom-0 left-0 w-full z-[80] pointer-events-none">
-      <div className="w-full bg-[#8ea4b8] border-t-4 border-black pointer-events-auto pt-2 pb-2 border-x-2 border-b-2 border-black shadow-[0_-4px_10px_rgba(0,0,0,0.5)]">
+      <div className="w-full bg-[#8ea4b8] border-t-4 border-black pointer-events-auto pt-2 pb-2 border-x-2 border-b-2 border-black shadow-[0_-4px_10px_rgba(0,0,0,0.5)]" style={{ zoom: 1/3 }}>
         <div className="w-full mx-auto flex justify-center px-2">
           <div className="flex flex-nowrap justify-center gap-1 w-full overflow-x-auto no-scrollbar">
             {menuItems.map((item) => (

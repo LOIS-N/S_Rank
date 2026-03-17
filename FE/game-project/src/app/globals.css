@@ -80,24 +80,26 @@ html, body {
   -webkit-font-smoothing: none;
 }
 
-/* 16:9 고정 해상도 게임 래퍼 - 1280x720 고정 + transform scale로 화면에 맞춤 */
-.game-wrapper {
-  position: relative;
-  width: 1280px;
-  height: 720px;
-  background-color: black;
-  overflow: hidden;
-  transform: scale(var(--app-scale, 1));
-  transform-origin: center center;
-  box-shadow: 0 0 20px rgba(0,0,0,0.8);
-}
-
-/* 래퍼를 수직/수평 중앙에 오게 하는 컨테이너 */
+/* 바깥 배경 컨테이너 - 전체 화면, 검은 배경 */
 .app-container {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100vw;
   height: 100vh;
-  background-color: #111; /* 바깥 배경은 어둡게 */
+  height: 100dvh; /* 모바일 주소창 제외한 실제 뷰포트 높이 */
+  background-color: black;
 }
+
+/* 16:9 비율 유지하며 화면에 꽉 채우는 래퍼 (letterbox) */
+.game-wrapper {
+  position: relative;
+  /* 화면 비율에 맞게 최대한 채우기: 가로/세로 중 제한되는 방향에 맞춤 */
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: min(100vh, calc(100vw * 9 / 16));
+  width: min(100vw, calc(100dvh * 16 / 9));
+  height: min(100dvh, calc(100vw * 9 / 16));
+  background-color: black;
+  overflow: hidden;
+}
+
