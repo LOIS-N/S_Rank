@@ -142,7 +142,7 @@ export default function Home() {
   if (!ready) return <div className="bg-black text-white h-screen flex items-center justify-center font-dot text-2xl animate-pulse">LOADING...</div>;
 
   return (
-    <main className="relative w-full h-full overflow-hidden bg-black text-white font-dot">
+    <main className="absolute inset-0 overflow-hidden bg-black text-white font-dot">
       <audio id="main-bgm" src="/assets/7번.mp3" autoPlay loop className="hidden" />
 
       {/* 0. 게임 캔버스 (배경) */}

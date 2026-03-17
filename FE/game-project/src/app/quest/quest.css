@@ -5,26 +5,13 @@
    - pixel-art 에셋 기반 UI
    ============================================================ */
 
-/* --- 뷰포트 맞춤 래퍼 --- */
-.quest-page-wrapper {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  /* align-items: center; */ /* Removed to allow quest-page-container to fill height */
-  justify-content: center;
-  background: #000;
-  overflow: hidden;
-}
-
-/* --- 게임 컨테이너: 1280x720 고정, Javascript transform scale에 의해 화면에 맞춰짐 --- */
+/* --- 게임 컨테이너: 부모 game-wrapper를 꽉 채움, Javascript transform scale을 부모에서 처리 --- */
 .quest-page-container {
-  width: 1280px;
-  height: 720px;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  transform-origin: center center; /* 중앙 유지하며 스케일링 */
-  /* 배경 이미지용 pseudo-element */
   position: relative;
   overflow: hidden;
 }

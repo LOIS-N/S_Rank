@@ -5,6 +5,7 @@ import Script from "next/script";
 import PrivyProviderWrapper from "@/components/providers/PrivyProviderWrapper";
 import BottomNavBar from "@/components/BottomNavBar";
 import GlobalModals from "@/components/GlobalModals";
+import ZoomGuard from "@/components/ZoomGuard";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -51,6 +52,7 @@ export default function RootLayout({
         )}
       </head>
       <body className={inter.className}>
+        <ZoomGuard />
         <div className="app-container">
           <div className="game-wrapper">
             <PrivyProviderWrapper>
