@@ -4,6 +4,7 @@ import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.common.response.ApiResponse;
 import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
+import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.MainQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
@@ -59,18 +60,27 @@ public class QuestController {
     }
 
     @GetMapping("/active")
-    public ResponseEntity<ApiResponse<List<InProcessQuestResponse>>> getInProcessQuest(
-            @RequestHeader("X-User-Id") Long userId
-    ){
-        return ResponseEntity.ok(ApiResponse.success(service.getInProcessQuestList(userId)));
+    public ResponseEntity<ApiResponse<List<InProcessQuestResponse>>> getInProcessQuest(){
+        return ResponseEntity.ok(ApiResponse.success(service.getInProcessQuestList(SecurityUtil.getCurrentUserId())));
     }
 
     @PostMapping("/main/{questId}/start")
     public ResponseEntity<ApiResponse<Void>> startMainQuest(
-            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long questId,
             @RequestBody MainQuestRequest request
             ){
+        Long userId = SecurityUtil.getCurrentUserId();
+        service.startMainQuest(userId,questId, request);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
 
+    @PostMapping("/sub/{questId}/start")
+    public ResponseEntity<ApiResponse<Void>> startSubQuest(
+            @PathVariable Long questId,
+            @RequestBody SubQuestRequest request
+    ){
+        Long userId = SecurityUtil.getCurrentUserId();
+        service.startSubQuest(userId,questId, request);
         return ResponseEntity.ok(ApiResponse.success());
     }
 

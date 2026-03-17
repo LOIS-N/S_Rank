@@ -1,5 +1,6 @@
 package com.ssafy.srank.quest.application.service;
 
+import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.application.dto.response.SubQuestResponse;
 
