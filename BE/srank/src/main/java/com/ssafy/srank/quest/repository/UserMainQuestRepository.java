@@ -18,4 +18,6 @@ public interface UserMainQuestRepository extends JpaRepository<UserMainQuest, Lo
     // 유저의 특정 템플릿 단건 상태 조회
     @Query("SELECT u FROM UserMainQuest u WHERE u.userId = :userId AND u.mainQuestTemplate.id = :templateId")
     Optional<UserMainQuest> findByUserIdAndTemplateId(@Param("userId") Long userId, @Param("templateId") Long templateId);
+
+    Optional<UserMainQuest> findByIdAndUserId(Long questId, Long userId);
 }

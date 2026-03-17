@@ -2,6 +2,8 @@ package com.ssafy.srank.quest.application.dto.response;
 
 import com.ssafy.srank.quest.domain.entity.MainQuestTemplate;
 import com.ssafy.srank.quest.domain.entity.SubQuestTemplate;
+import com.ssafy.srank.quest.domain.entity.UserMainQuest;
+import com.ssafy.srank.quest.domain.entity.UserSubQuest;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -73,4 +75,19 @@ public class QuestDetailResponse {
                 .status(status)
                 .build();
     }
+
+    public static QuestDetailResponse userDetailMain(UserMainQuest quest){
+        return QuestDetailResponse.builder()
+                .title(quest.getMainQuestTemplate().getTitle())
+                .rewardGold(quest.getMainQuestTemplate().getRewardGold())
+                .build();
+    }
+
+    public static QuestDetailResponse userDetailSub(UserSubQuest quest){
+        return QuestDetailResponse.builder()
+                .title(quest.getSubQuestTemplate().getTitle())
+                .rewardGold(quest.getSubQuestTemplate().getRewardGold())
+                .build();
+    }
+
 }
