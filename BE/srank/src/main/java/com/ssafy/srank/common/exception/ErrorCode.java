@@ -41,6 +41,9 @@ public enum ErrorCode {
     TOKEN_INVALID(HttpStatus.UNAUTHORIZED,              "AU003", "유효하지 않은 토큰입니다."),
     DUPLICATE_LOGIN(HttpStatus.CONFLICT,                "AU004", "중복 로그인이 감지되었습니다."),
     SOCIAL_LOGIN_FAILED(HttpStatus.BAD_GATEWAY,         "AU005", "소셜 로그인 처리에 실패했습니다."),
+    NICKNAME_DUPLICATE(HttpStatus.CONFLICT,             "AU006", "이미 사용 중인 닉네임입니다."),
+    NICKNAME_INVALID(HttpStatus.BAD_REQUEST,            "AU007", "닉네임 형식이 올바르지 않습니다."),
+    WITHDRAWN_USER(HttpStatus.FORBIDDEN,                "AU008", "탈퇴한 계정입니다."),
 
     // ======================== U : User ========================
     USER_NOT_FOUND(HttpStatus.NOT_FOUND,                "U001", "유저를 찾을 수 없습니다."),
