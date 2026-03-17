@@ -75,22 +75,7 @@ export default function GachaPage() {
   const [phase, setPhase] = useState<PhaseType>('select');
   const { openComingSoonModal } = useGameStore();
   const [drawnCards, setDrawnCards] = useState<GachaCard[]>([]);
-  const [scale, setScale] = useState(1);
 
-  // 창 크기에 맞춰 1280x720 화면 비율 유지
-  useEffect(() => {
-    const handleResize = () => {
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-      const widthScale = windowWidth / 1280;
-      const heightScale = windowHeight / 720;
-      setScale(Math.min(widthScale, heightScale));
-    };
-
-    handleResize(); // 초기화
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // 1회 뽑기
   const handlePull1 = () => {
@@ -115,12 +100,8 @@ export default function GachaPage() {
   };
 
   return (
-    <div className="gacha-page-wrapper">
-      <div 
-        className="gacha-page-container"
-        style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
-      >
-        <div className={`gacha-content gacha-bg-${currentTab}`}>
+    <div className="gacha-page-container">
+      <div className={`gacha-content gacha-bg-${currentTab}`}>
           
           {/* 상단 3개 탭 (각 1/3) */}
           <div className="gacha-tabs-container">
@@ -238,7 +219,6 @@ export default function GachaPage() {
               </div>
           )}
 
-        </div>
       </div>
     </div>
   );

@@ -1,19 +1,9 @@
 /* gacha.css */
 
-/* --- 게임 컨테이너 (1280x720 고정, 배경색) --- */
-.gacha-page-wrapper {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #000;
-  overflow: hidden;
-}
-
+/* --- 게임 컨테이너 (부모 game-wrapper를 꽉 채움) --- */
 .gacha-page-container {
-  width: 1280px;
-  height: 720px;
+  width: 100%;
+  height: 100%;
   position: relative;
   display: flex;
   flex-direction: column;

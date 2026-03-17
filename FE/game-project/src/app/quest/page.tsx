@@ -543,8 +543,7 @@ export default function QuestPage() {
   const [subQuests, setSubQuests] = useState<Quest[]>(INITIAL_SUB_QUESTS);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // --- 반응형 스케일 상태 ---
-  const [scale, setScale] = useState(1);
+  
 
   // --- 커스텀 스크롤바 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0); // 0 ~ 1
@@ -620,20 +619,7 @@ export default function QuestPage() {
     };
   }, []);
 
-  // --- 윈도우 리사이즈 스케일링 적용 ---
-  useEffect(() => {
-    const handleResize = () => {
-      // 1280x720 원본 비율을 기준으로 현재 창 크기에 맞게 스케일 계산
-      const scaleX = window.innerWidth / 1280;
-      const scaleY = window.innerHeight / 720;
-      // 화면에 요소가 잘리지 않도록 더 작은 비율을 선택
-      setScale(Math.min(scaleX, scaleY));
-    };
 
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   // 트랙 클릭으로 스크롤 이동
   const handleTrackClick = useCallback(
@@ -715,11 +701,8 @@ export default function QuestPage() {
      ============================================================ */
 
   return (
-    <div className="quest-page-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      <div 
-        className="quest-page-container" 
-        style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
-      >
+    <div className="quest-page-container">
+
         {/* 상단 타이틀 */}
         <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
           <NineSliceBox 
@@ -865,6 +848,5 @@ export default function QuestPage() {
           ```
           ============================================================ */}
       </div>
-    </div>
   );
 }

@@ -56,8 +56,8 @@ export default function BottomNavBar() {
                 onClick={() => handleMenuClick(item.name, item.disabled)}
                 className={`flex items-center justify-center text-black font-bold drop-shadow-md transition-all
                   active:translate-x-0.5 active:translate-y-0.5 hover:brightness-110
-                  w-[120px] h-[50px] sm:w-[160px] sm:h-[60px] lg:w-[180px] lg:h-[70px]
-                  text-[14px] sm:text-[20px] lg:text-[24px] flex-shrink-0
+                  w-[160px] h-[60px]
+                  text-[20px] flex-shrink-0
                   ${item.disabled ? 'brightness-75' : ''}`}
                 style={{ 
                   backgroundImage: "url('/assets/002/lowerButton_001.png')", 
@@ -74,3 +74,4 @@ export default function BottomNavBar() {
     </div>
   );
 }
+

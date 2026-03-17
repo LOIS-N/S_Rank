@@ -70,7 +70,8 @@ html, body {
   padding: 0;
   overflow: hidden;
   position: fixed; /* 스크롤 튕김 방지 */
-  touch-action: none;
+  touch-action: manipulation; /* 더블탭 줌 방지, 스크롤은 허용 */
+  -webkit-text-size-adjust: 100%; /* iOS 텍스트 크기 자동조정 방지 */
 }
 
 .font-dot {
@@ -79,15 +80,15 @@ html, body {
   -webkit-font-smoothing: none;
 }
 
-/* 16:9 반응형 캔버스 래퍼 - 브라우저 규격에 꽉 차게 변경 */
+/* 16:9 고정 해상도 게임 래퍼 - 1280x720 고정 + transform scale로 화면에 맞춤 */
 .game-wrapper {
   position: relative;
-  width: min(100vw, calc(100vh * 16 / 9));
-  height: min(100vh, calc(100vw * 9 / 16));
-  aspect-ratio: 16 / 9;
+  width: 1280px;
+  height: 720px;
   background-color: black;
   overflow: hidden;
-  margin: 0 auto;
+  transform: scale(var(--app-scale, 1));
+  transform-origin: center center;
   box-shadow: 0 0 20px rgba(0,0,0,0.8);
 }
 
