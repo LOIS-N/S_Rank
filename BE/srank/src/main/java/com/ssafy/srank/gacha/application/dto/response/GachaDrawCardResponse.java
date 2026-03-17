@@ -15,6 +15,7 @@ public record GachaDrawCardResponse(
         SpecialAbilityResponse specialAbility
 ) {
 
+    // 뽑기로 생성한 UserCard를 프론트가 바로 렌더링할 수 있는 형태로만 축약한다.
     public static GachaDrawCardResponse from(UserCardResponse response) {
         return new GachaDrawCardResponse(
                 response.cardId(),

@@ -8,5 +8,6 @@ import java.util.List;
 
 public interface CardTemplateRepository extends JpaRepository<CardTemplate, Long> {
 
+    // 실제 가챠 풀에 들어갈 수 있는 템플릿만 조회한다.
     List<CardTemplate> findAllByGradeAndActiveTrueAndHiddenFalseAndDeletedFalse(CardGrade grade);
 }

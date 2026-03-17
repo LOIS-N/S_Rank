@@ -72,6 +72,7 @@ public class User extends BaseEntity {
     }
 
     public void spendGold(long amount) {
+        // 가챠/강화/합성처럼 서버가 재화를 소모시킬 때 공통으로 재사용할 수 있는 도메인 메서드다.
         if (amount <= 0) {
             throw new IllegalArgumentException("amount must be positive");
         }

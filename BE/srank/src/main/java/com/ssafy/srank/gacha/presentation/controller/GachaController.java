@@ -20,6 +20,10 @@ public class GachaController {
 
     private final GachaService gachaService;
 
+    /**
+     * 가챠 API는 "이번 요청으로 실제로 뽑힌 카드들"을 즉시 반환한다.
+     * 카드 목록 조회 API와 달리 cursor/hasMore를 만드는 역할은 하지 않는다.
+     */
     @PostMapping("/draws")
     public ResponseEntity<ApiResponse<GachaDrawResponse>> draw(@Valid @RequestBody GachaDrawRequest request) {
         return ResponseEntity.ok(ApiResponse.success(gachaService.draw(SecurityUtil.getCurrentUserId(), request)));

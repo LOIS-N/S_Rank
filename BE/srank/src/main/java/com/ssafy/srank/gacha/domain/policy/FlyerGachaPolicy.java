@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class FlyerGachaPolicy {
 
+    // 10회는 10% 할인된 가격을 그대로 고정값으로 둔다.
     private static final long SINGLE_DRAW_COST = 10_000L;
     private static final long TEN_DRAW_COST = 90_000L;
 
@@ -18,6 +19,7 @@ public class FlyerGachaPolicy {
     }
 
     public CardGrade selectGrade(double roll) {
+        // 전단 확률표: B 10%, C 30%, D 60%
         if (roll < 0.10d) {
             return CardGrade.B;
         }
@@ -28,6 +30,7 @@ public class FlyerGachaPolicy {
     }
 
     public int minStat(CardGrade grade) {
+        // 개별 스탯 최소값은 기획서의 등급별 범위를 그대로 따른다.
         return switch (grade) {
             case B -> 40;
             case C -> 20;
@@ -37,6 +40,7 @@ public class FlyerGachaPolicy {
     }
 
     public int maxStat(CardGrade grade) {
+        // 개별 스탯 최대값은 기획서의 등급별 범위를 그대로 따른다.
         return switch (grade) {
             case B -> 60;
             case C -> 40;
