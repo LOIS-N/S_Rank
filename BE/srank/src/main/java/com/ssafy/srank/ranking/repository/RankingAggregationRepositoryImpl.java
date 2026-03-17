@@ -16,6 +16,7 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
 
     @Override
     public List<GoldRankingAggregate> findTopGoldRankings(int limit) {
+        // 현재 보유 골드가 아니라, 획득 로그(amount > 0)의 누적합으로 랭킹을 계산한다.
         String sql = """
                 SELECT
                     u.user_id,
@@ -45,6 +46,7 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
 
     @Override
     public List<CardGradeCountRankingAggregate> findTopCardGradeCountRankings(int limit) {
+        // 탈퇴 유저와 비활성/숨김/삭제 카드 템플릿은 집계 대상에서 제외한다.
         String sql = """
                 SELECT
                     u.user_id,
@@ -83,6 +85,7 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
 
     @Override
     public List<CardStatTotalRankingAggregate> findTopCardStatTotalRankings(int limit) {
+        // 카드 능력치 동점 시, 같은 statTotal에 먼저 도달한 카드가 앞서도록 achieved_at을 계산한다.
         String sql = """
                 SELECT
                     uc.user_card_id,

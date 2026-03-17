@@ -20,6 +20,7 @@ import java.util.List;
 @Transactional
 public class RankingSnapshotRefreshServiceImpl implements RankingSnapshotRefreshService {
 
+    // 초기 요구사항 기준 상위 10개만 스냅샷으로 유지한다.
     public static final int TOP_LIMIT = 10;
 
     private final RankingAggregationRepository rankingAggregationRepository;
@@ -43,6 +44,7 @@ public class RankingSnapshotRefreshServiceImpl implements RankingSnapshotRefresh
                     .build());
         }
 
+        // 배치 실행 시점의 랭킹만 남기기 위해 이전 스냅샷은 전량 교체한다.
         userGoldRankingSnapshotRepository.deleteAllInBatch();
         userGoldRankingSnapshotRepository.saveAll(snapshots);
     }
@@ -64,6 +66,7 @@ public class RankingSnapshotRefreshServiceImpl implements RankingSnapshotRefresh
                     .build());
         }
 
+        // 등급별 카드 랭킹도 동일하게 전체 교체 방식으로 관리한다.
         userCardGradeRankingSnapshotRepository.deleteAllInBatch();
         userCardGradeRankingSnapshotRepository.saveAll(snapshots);
     }
@@ -85,6 +88,7 @@ public class RankingSnapshotRefreshServiceImpl implements RankingSnapshotRefresh
                     .build());
         }
 
+        // 카드 능력치 랭킹은 achievedAt 정렬 결과까지 스냅샷으로 고정한다.
         cardStatTotalRankingSnapshotRepository.deleteAllInBatch();
         cardStatTotalRankingSnapshotRepository.saveAll(snapshots);
     }

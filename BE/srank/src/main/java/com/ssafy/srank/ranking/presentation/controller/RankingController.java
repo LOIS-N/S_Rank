@@ -20,16 +20,25 @@ public class RankingController {
 
     private final RankingQueryService rankingQueryService;
 
+    /**
+     * 배치가 만들어 둔 누적 골드 랭킹 스냅샷을 조회한다.
+     */
     @GetMapping("/gold")
     public ResponseEntity<ApiResponse<List<GoldRankingItemResponse>>> getGoldRankings() {
         return ResponseEntity.ok(ApiResponse.success(rankingQueryService.getGoldRankings()));
     }
 
+    /**
+     * 배치가 만들어 둔 유저별 S/A 등급 카드 보유 랭킹 스냅샷을 조회한다.
+     */
     @GetMapping("/cards/grade-count")
     public ResponseEntity<ApiResponse<List<CardGradeCountRankingItemResponse>>> getCardGradeCountRankings() {
         return ResponseEntity.ok(ApiResponse.success(rankingQueryService.getCardGradeCountRankings()));
     }
 
+    /**
+     * 배치가 만들어 둔 카드 능력치 총합 랭킹 스냅샷을 조회한다.
+     */
     @GetMapping("/cards/stat-total")
     public ResponseEntity<ApiResponse<List<CardStatTotalRankingItemResponse>>> getCardStatTotalRankings() {
         return ResponseEntity.ok(ApiResponse.success(rankingQueryService.getCardStatTotalRankings()));
