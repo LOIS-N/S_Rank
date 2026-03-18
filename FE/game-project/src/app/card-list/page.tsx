@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
-// [로컬 테스트용] axios 인스턴스 import - 실제 배포 시에는 주석 처리가 필요합니다.
+import api from "@/lib/axios";
 import "./card-list.css";
 
 // [실제 배포용] fetch 방식 전환 시 사용 - 현재 axios 사용 중이므로 미사용
@@ -75,7 +75,7 @@ interface CardListItem {
   skill1: CardSkill;
   skill2: CardSkill;
   skill3: CardSkill;
-  specialAbility: string | null;
+  specialAbility: { name: string; description: string; effects: string } | null;
 }
 
 interface CardDetailData {
@@ -86,23 +86,8 @@ interface CardDetailData {
   enhanceLevel: number;
 }
 
-// --- 등급 우선순위 ---
-const GRADE_RANK: Record<string, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 };
-
 // --- 스킬 필터 옵션 ---
 const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEVOPS", "DESIGN"] as const;
-
-// --- 유틸 함수 ---
-const getTotalSkillValue = (card: CardListItem): number => {
-  return card.skill1.value + card.skill2.value + card.skill3.value;
-};
-
-const getSkillValue = (card: CardListItem, skillType: string): number => {
-  if (card.skill1.skillType === skillType) return card.skill1.value;
-  if (card.skill2.skillType === skillType) return card.skill2.value;
-  if (card.skill3.skillType === skillType) return card.skill3.value;
-  return 0;
-};
 
 export default function CardListPage() {
   const { getAccessToken } = usePrivy();
@@ -129,25 +114,21 @@ export default function CardListPage() {
   }, [accessToken, getAccessToken]);
 
   // --- 카드 목록 조회 (cursor pagination) ---
-  // [로컬 테스트용] api(axios) 사용 - 실제 배포 시에는 주석 처리가 필요합니다.
-  const fetchCards = useCallback(async (cursor?: string | null) => {
+  const fetchCards = useCallback(async (cursor?: string | null, filterOverride?: string) => {
     if (isLoading) return;
     setIsLoading(true);
     try {
-      // [로컬 테스트용] axios 인스턴스로 요청 - 실제 배포 시에는 주석 처리가 필요합니다.
+      const token = await getAuthToken();
+      const currentFilter = filterOverride ?? capacitySort;
       const params: Record<string, string> = { limit: '30' };
       if (cursor) params.cursor = cursor;
-      const { data: json } = await api.get('/api/v1/cards', { params });
-
-      /* [실제 배포용] fetch 방식 - 배포 시 아래 주석을 해제하고 위 axios 코드를 주석 처리하세요.
-      const token = await getAuthToken();
-      let url = `${API_HOST}/api/v1/cards?limit=30`;
-      if (cursor) url += `&cursor=${cursor}`;
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` },
+      if (currentFilter && currentFilter !== 'ALL') {
+        params.statType = currentFilter;
+      }
+      const { data: json } = await api.get('/api/v1/cards', {
+        params,
+        headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
-      */
 
       if (json.success && json.data) {
         const newCards: CardListItem[] = json.data.cards;
@@ -168,25 +149,18 @@ export default function CardListPage() {
       setIsInitialLoad(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getAuthToken]);
+  }, [getAuthToken, capacitySort]);
 
   // --- 카드 상세 조회 ---
-  // [로컬 테스트용] api(axios) 사용 - 실제 배포 시에는 주석 처리가 필요합니다.
   const fetchCardDetail = useCallback(async (cardId: number) => {
     setIsDetailLoading(true);
     try {
-      // [로컬 테스트용] axios 인스턴스로 요청 - 실제 배포 시에는 주석 처리가 필요합니다.
-      const { data: json } = await api.get(`/api/v1/cards/${cardId}`);
-
-      /* [실제 배포용] fetch 방식 - 배포 시 아래 주석을 해제하고 위 axios 코드를 주석 처리하세요.
       const token = await getAuthToken();
-      const res = await fetch(`${API_HOST}/api/v1/cards/${cardId}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+      const { data: json } = await api.get(`/api/v1/cards/${cardId}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
-      */
 
-      if (json.isSuccess && json.data) {
+      if (json.success && json.data) {
         setSelectedDetail(json.data);
       }
     } catch (err) {
@@ -196,11 +170,18 @@ export default function CardListPage() {
     }
   }, [getAuthToken]);
 
-  // --- 초기 로드 ---
+  // --- 초기 로드 + 필터 변경 시 리셋 후 다시 fetch ---
   useEffect(() => {
-    fetchCards();
+    setCards([]);
+    setNextCursor(null);
+    setHasMore(true);
+    setSelectedCardId(null);
+    setSelectedDetail(null);
+    setScrollRatio(0);
+    setIsInitialLoad(true);
+    fetchCards(null, capacitySort);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [capacitySort]);
 
   // --- 카드 클릭 ---
   const handleCardClick = useCallback((cardId: number) => {
@@ -208,23 +189,8 @@ export default function CardListPage() {
     fetchCardDetail(cardId);
   }, [fetchCardDetail]);
 
-  // --- 정렬 로직 ---
-  const sortedCards = useMemo(() => {
-    const result = [...cards];
-    result.sort((a, b) => {
-      // 1차: 등급순 (S > A > B > C > D)
-      const gradeDiff = (GRADE_RANK[b.grade] || 0) - (GRADE_RANK[a.grade] || 0);
-      if (gradeDiff !== 0) return gradeDiff;
-
-      // 2차: 스킬값
-      if (capacitySort === "ALL") {
-        return getTotalSkillValue(b) - getTotalSkillValue(a);
-      } else {
-        return getSkillValue(b, capacitySort) - getSkillValue(a, capacitySort);
-      }
-    });
-    return result;
-  }, [cards, capacitySort]);
+  // --- 서버에서 정렬된 순서 그대로 사용 ---
+  const sortedCards = cards;
 
   // --- 선택된 카드의 리스트 데이터 ---
   const selectedListCard = useMemo(() => {
@@ -433,7 +399,7 @@ export default function CardListPage() {
                   <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc" style={{ flex: 1, justifyContent: 'flex-start' }}>
                     {selectedListCard.specialAbility ? (
                       <div className="cardlist-info-text" style={{ textAlign: 'left' }}>
-                        능력 : {selectedListCard.specialAbility}
+                        능력 : {selectedListCard.specialAbility.name}
                       </div>
                     ) : (
                       <div className="cardlist-info-text" style={{ textAlign: 'left', color: '#888' }}>
