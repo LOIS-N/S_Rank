@@ -231,7 +231,7 @@ export default function CardListPage() {
   const getThumbTop = useCallback(() => {
     if (!trackHeight) return 0;
     const trackPadding = 14;
-    const thumbSize = 24;
+    const thumbSize = 100;
     const maxThumbTop = trackHeight - thumbSize - (trackPadding * 2);
     if (maxThumbTop <= 0) return trackPadding;
     return trackPadding + (scrollRatio * maxThumbTop);
@@ -253,7 +253,7 @@ export default function CardListPage() {
       if (!isDraggingRef.current || !trackRef.current) return;
       const trackHeightCurrent = trackRef.current.clientHeight;
       const trackPadding = 14;
-      const thumbSize = 24;
+      const thumbSize = 100;
       const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
       if (maxThumbTop <= 0) return;
       const deltaY = e.clientY - dragStartYRef.current;
@@ -275,7 +275,7 @@ export default function CardListPage() {
     const clickY = e.clientY - rect.top;
     const trackHeightCurrent = rect.height;
     const trackPadding = 14;
-    const thumbSize = 24;
+    const thumbSize = 100;
     const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
     if (maxThumbTop <= 0) return;
     const adjustedClickY = clickY - trackPadding;

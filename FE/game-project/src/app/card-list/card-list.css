@@ -56,7 +56,7 @@
 .cardlist-content-padding {
   display: flex;
   flex: 1;
-  padding: 0 24px 80px 24px;
+  padding: 0 24px 100px 24px;
   gap: 20px;
   min-height: 0;
   box-sizing: border-box;
@@ -226,17 +226,17 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: 32px;
+  width: 120px;
   flex-shrink: 0;
   height: 100%;
 }
 
 .scrollbar-track {
-  width: 18px;
+  width: 80px;
   flex: 1;
   min-height: 80px;
   background-image: url('/assets/008/scrollBar_000.png');
-  background-size: 2298.85% 127.25%;
+  background-size: 518% 108%;
   background-position: 50% 50%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
@@ -247,11 +247,11 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  width: 24px;
-  height: 24px;
+  width: 100px;
+  height: 100px;
   background-image: url('/assets/008/scrollButton_000.png');
-  background-size: 349.65% 201.8%;
-  background-position: 50% 49.19%;
+  background-size: 84% 48%;
+  background-position: 50% 49%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
   cursor: grab;
