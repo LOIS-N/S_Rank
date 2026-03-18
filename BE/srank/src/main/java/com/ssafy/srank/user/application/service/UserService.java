@@ -10,4 +10,6 @@ public interface UserService {
     void updateNickname(Long userId, UpdateNicknameRequest request);
 
     void withdraw(Long userId);
+    void rewardGold(Long userId, Long gold);
+    void spendGold(Long userId, Long gold);
 }
