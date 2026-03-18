@@ -1,12 +1,19 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { usePrivy } from "@privy-io/react-auth";
+import { useGameStore } from "@/store/useGameStore";
+// [로컬 테스트용] axios 인스턴스 import - 실제 배포 시에는 주석 처리가 필요합니다.
 import "./card-list.css";
 
-// --- 공용 JS 9-slice 컴포넌트 (Quest 페이지에서 재사용) ---
+// [실제 배포용] fetch 방식 전환 시 사용 - 현재 axios 사용 중이므로 미사용
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const API_HOST = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+// --- 공용 JS 9-slice 컴포넌트 ---
 interface NineSliceBoxProps {
   src: string;
-  slice: [number, number, number, number]; // [top, right, bottom, left]
+  slice: [number, number, number, number];
   framePadding: number;
   borderScale?: number;
   children?: React.ReactNode;
@@ -54,131 +61,177 @@ function NineSliceBox({ src, slice, framePadding, borderScale = 1, children, cla
   );
 }
 
-// --- 타입 정의 ---
-type StatMap = { [key: string]: number };
-
-interface Card {
-  id: number;
-  name: string;
-  grade: 'S' | 'A' | 'B' | 'C';
-  image: string;
-  enhanceCount: number;
-  maxEnhance: number;
-  stats: StatMap;
-  description: string;
-  ability?: string;
-  createdAt: number; // 최신순 정렬용 더미 타임스탬프
+// --- API 응답 타입 ---
+interface CardSkill {
+  skillType: string;
+  value: number;
 }
 
-// --- 시드 기반 결정적 난수 생성 (SSR/CSR hydration 불일치 방지) ---
-const seededRand = (seed: number): number => {
-  const x = Math.sin(seed + 1) * 10000;
-  return x - Math.floor(x);
-};
-const BASE_TIMESTAMP = 1700000000000; // 고정 타임스탬프
+interface CardListItem {
+  cardId: number;
+  grade: string;
+  name: string;
+  imageUrl: string;
+  skill1: CardSkill;
+  skill2: CardSkill;
+  skill3: CardSkill;
+  specialAbility: string | null;
+}
 
-// --- 더미 데이터 리스트 ---
-const generateDummyCards = (): Card[] => {
-  const cards: Card[] = [];
+interface CardDetailData {
+  cardId: number;
+  grade: string;
+  name: string;
+  stats: { [key: string]: number };
+  enhanceLevel: number;
+}
 
-  // 첫 번째 카드는 상세 스펙 지정 (황사장 S등급)
-  cards.push({
-    id: 1,
-    name: "황사장",
-    grade: "S",
-    image: "/assets/008/SCardImage_000.png",
-    enhanceCount: 7,
-    maxEnhance: 7,
-    stats: { "BE": 100, "AI": 100, "DevOps": 100 },
-    description: "AI에도 미치시고 치킨에도 미치신 사장님입니다",
-    ability: "능력 : 퀘스트 중인 팀원의 AI 능력치 +5% 강화",
-    createdAt: BASE_TIMESTAMP,
-  });
+// --- 등급 우선순위 ---
+const GRADE_RANK: Record<string, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 };
 
-  const grades: ('S' | 'A' | 'B' | 'C')[] = ['S', 'A', 'B', 'C'];
-  const statKeys = ["BE", "FE", "AI", "DBA", "DevOps", "Design"];
+// --- 스킬 필터 옵션 ---
+const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEVOPS", "DESIGN"] as const;
 
-  for (let i = 1; i < 20; i++) {
-    // SCardImage_000 ~ SCardImage_019 사용
-    const imageNumber = i.toString().padStart(3, '0');
-    const grade = grades[Math.floor(seededRand(i * 10) * grades.length)];
-    const randomStatCnt = Math.floor(seededRand(i * 10 + 1) * 3) + 1;
-    const stats: StatMap = {};
-    for (let j = 0; j < randomStatCnt; j++) {
-      const key = statKeys[Math.floor(seededRand(i * 10 + 2 + j) * statKeys.length)];
-      stats[key] = Math.floor(seededRand(i * 10 + 5 + j) * 50) + 10;
-    }
-
-    cards.push({
-      id: i + 1,
-      name: `개발자 ${i}`,
-      grade: grade,
-      image: `/assets/008/SCardImage_${imageNumber}.png`,
-      enhanceCount: Math.floor(seededRand(i * 10 + 8) * 5),
-      maxEnhance: grade === 'S' ? 7 : (grade === 'A' ? 5 : 3),
-      stats: stats,
-      description: `열심히 코딩하는 개발자 ${i} 입니다.`,
-      ability: grade === 'S' ? "능력 : 야근 시 체력 감소율 10% 감소" : undefined,
-      createdAt: BASE_TIMESTAMP - Math.floor(seededRand(i * 10 + 9) * 10000000),
-    });
-  }
-
-  // 데이터 부족하면 이미지를 재탕해서 채움 (총 24개 맞춤)
-  for (let i = 20; i < 24; i++) {
-    cards.push({
-      ...cards[i - 20],
-      id: i + 1,
-      createdAt: BASE_TIMESTAMP - Math.floor(seededRand(i * 10 + 9) * 10000000),
-    });
-  }
-
-  return cards;
+// --- 유틸 함수 ---
+const getTotalSkillValue = (card: CardListItem): number => {
+  return card.skill1.value + card.skill2.value + card.skill3.value;
 };
 
-const DUMMY_CARDS = generateDummyCards();
+const getSkillValue = (card: CardListItem, skillType: string): number => {
+  if (card.skill1.skillType === skillType) return card.skill1.value;
+  if (card.skill2.skillType === skillType) return card.skill2.value;
+  if (card.skill3.skillType === skillType) return card.skill3.value;
+  return 0;
+};
 
 export default function CardListPage() {
-  const [selectedCardId, setSelectedCardId] = useState<number>(DUMMY_CARDS[0].id);
+  const { getAccessToken } = usePrivy();
+  const { accessToken } = useGameStore();
 
+  // --- 카드 목록 상태 ---
+  const [cards, setCards] = useState<CardListItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // 필터 상태
-  const [capacitySort, setCapacitySort] = useState("ALL");
-  const [orderSort, setOrderSort] = useState("GRADE"); // GRADE(등급순), STAT(능력순), LATEST(최신순)
+  // --- 선택 / 상세 상태 ---
+  const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<CardDetailData | null>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
 
+  // --- 필터 상태 ---
+  const [capacitySort, setCapacitySort] = useState<string>("ALL");
 
+  // --- 인증 토큰 ---
+  const getAuthToken = useCallback(async () => {
+    return accessToken || await getAccessToken();
+  }, [accessToken, getAccessToken]);
 
-  // 필터링 및 정렬 로직
-  const filteredAndSortedCards = useMemo(() => {
-    let result = [...DUMMY_CARDS];
+  // --- 카드 목록 조회 (cursor pagination) ---
+  // [로컬 테스트용] api(axios) 사용 - 실제 배포 시에는 주석 처리가 필요합니다.
+  const fetchCards = useCallback(async (cursor?: string | null) => {
+    if (isLoading) return;
+    setIsLoading(true);
+    try {
+      // [로컬 테스트용] axios 인스턴스로 요청 - 실제 배포 시에는 주석 처리가 필요합니다.
+      const params: Record<string, string> = { limit: '30' };
+      if (cursor) params.cursor = cursor;
+      const { data: json } = await api.get('/api/v1/cards', { params });
 
-    // 능력치(Capacity) 필터
-    if (capacitySort !== "ALL") {
-      result = result.filter(card => {
-        // Dev 는 DevOps 로 매핑 등 조건 처리
-        const searchKey = capacitySort === "Dev" ? "DevOps" : capacitySort;
-        return card.stats[searchKey] !== undefined;
+      /* [실제 배포용] fetch 방식 - 배포 시 아래 주석을 해제하고 위 axios 코드를 주석 처리하세요.
+      const token = await getAuthToken();
+      let url = `${API_HOST}/api/v1/cards?limit=30`;
+      if (cursor) url += `&cursor=${cursor}`;
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-    }
+      const json = await res.json();
+      */
 
-    // 정렬 (Order)
-    result.sort((a, b) => {
-      if (orderSort === "GRADE") {
-        const gradeRank = { 'S': 4, 'A': 3, 'B': 2, 'C': 1 };
-        return gradeRank[b.grade] - gradeRank[a.grade];
-      } else if (orderSort === "STAT") {
-        const sumA = Object.values(a.stats).reduce((acc, val) => acc + val, 0);
-        const sumB = Object.values(b.stats).reduce((acc, val) => acc + val, 0);
-        return sumB - sumA;
-      } else if (orderSort === "LATEST") {
-        return b.createdAt - a.createdAt;
+      if (json.success && json.data) {
+        const newCards: CardListItem[] = json.data.cards;
+        setCards(prev => cursor ? [...prev, ...newCards] : newCards);
+        setNextCursor(json.data.nextCursor || null);
+        setHasMore(json.data.hasMore);
+
+        // 첫 로드 시 첫 번째 카드 자동 선택
+        if (!cursor && newCards.length > 0) {
+          setSelectedCardId(newCards[0].cardId);
+          fetchCardDetail(newCards[0].cardId);
+        }
       }
-      return 0;
+    } catch (err) {
+      console.error("카드 목록 조회 실패:", err);
+    } finally {
+      setIsLoading(false);
+      setIsInitialLoad(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getAuthToken]);
+
+  // --- 카드 상세 조회 ---
+  // [로컬 테스트용] api(axios) 사용 - 실제 배포 시에는 주석 처리가 필요합니다.
+  const fetchCardDetail = useCallback(async (cardId: number) => {
+    setIsDetailLoading(true);
+    try {
+      // [로컬 테스트용] axios 인스턴스로 요청 - 실제 배포 시에는 주석 처리가 필요합니다.
+      const { data: json } = await api.get(`/api/v1/cards/${cardId}`);
+
+      /* [실제 배포용] fetch 방식 - 배포 시 아래 주석을 해제하고 위 axios 코드를 주석 처리하세요.
+      const token = await getAuthToken();
+      const res = await fetch(`${API_HOST}/api/v1/cards/${cardId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const json = await res.json();
+      */
+
+      if (json.isSuccess && json.data) {
+        setSelectedDetail(json.data);
+      }
+    } catch (err) {
+      console.error("카드 상세 조회 실패:", err);
+    } finally {
+      setIsDetailLoading(false);
+    }
+  }, [getAuthToken]);
+
+  // --- 초기 로드 ---
+  useEffect(() => {
+    fetchCards();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- 카드 클릭 ---
+  const handleCardClick = useCallback((cardId: number) => {
+    setSelectedCardId(cardId);
+    fetchCardDetail(cardId);
+  }, [fetchCardDetail]);
+
+  // --- 정렬 로직 ---
+  const sortedCards = useMemo(() => {
+    const result = [...cards];
+    result.sort((a, b) => {
+      // 1차: 등급순 (S > A > B > C > D)
+      const gradeDiff = (GRADE_RANK[b.grade] || 0) - (GRADE_RANK[a.grade] || 0);
+      if (gradeDiff !== 0) return gradeDiff;
+
+      // 2차: 스킬값
+      if (capacitySort === "ALL") {
+        return getTotalSkillValue(b) - getTotalSkillValue(a);
+      } else {
+        return getSkillValue(b, capacitySort) - getSkillValue(a, capacitySort);
+      }
     });
-
     return result;
-  }, [capacitySort, orderSort]);
+  }, [cards, capacitySort]);
 
-  // 스크롤 관련 상태
+  // --- 선택된 카드의 리스트 데이터 ---
+  const selectedListCard = useMemo(() => {
+    return cards.find(c => c.cardId === selectedCardId) || null;
+  }, [cards, selectedCardId]);
+
+  // --- 스크롤 관련 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0);
   const [trackHeight, setTrackHeight] = useState(0);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -187,13 +240,21 @@ export default function CardListPage() {
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
 
-  const ROW_HEIGHT = 210 + 12; // 3열 기준 카드 높이
+  const ROW_HEIGHT = 210 + 12;
   const VISIBLE_ROWS = 2.8;
-  const totalRows = Math.ceil(filteredAndSortedCards.length / 3);
+  const totalRows = Math.ceil(sortedCards.length / 3);
   const totalContentHeight = totalRows * ROW_HEIGHT + 32;
   const visibleHeight = VISIBLE_ROWS * ROW_HEIGHT;
   const maxScroll = Math.max(0, totalContentHeight - visibleHeight);
   const scrollOffset = scrollRatio * maxScroll;
+
+  // --- 스크롤 하단 도달 시 다음 페이지 로드 ---
+  useEffect(() => {
+    if (scrollRatio > 0.9 && hasMore && !isLoading && nextCursor) {
+      fetchCards(nextCursor);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollRatio, hasMore, isLoading, nextCursor]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     if (maxScroll <= 0) return;
@@ -212,7 +273,7 @@ export default function CardListPage() {
 
   useEffect(() => {
     if (trackRef.current) setTrackHeight(trackRef.current.clientHeight);
-  }, [filteredAndSortedCards]);
+  }, [sortedCards]);
 
   const handleThumbMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -256,8 +317,6 @@ export default function CardListPage() {
     setScrollRatio(newRatio);
   }, []);
 
-  const selectedCard = DUMMY_CARDS.find(c => c.id === selectedCardId) || DUMMY_CARDS[0];
-
   return (
     <div className="cardlist-page-container">
 
@@ -279,35 +338,17 @@ export default function CardListPage() {
 
           {/* ──── 좌측: 필터 + 카드 그리드 ──── */}
           <div className="cardlist-left-col">
-            {/* 정렬창 (상단) */}
+            {/* 스킬 필터 드롭다운 */}
             <div className="cardlist-filters">
-              {/* 능력치 순 정렬 */}
               <div className="cardlist-select-wrapper">
                 <select
                   className="cardlist-select"
                   value={capacitySort}
                   onChange={(e) => setCapacitySort(e.target.value)}
                 >
-                  <option value="ALL">ALL</option>
-                  <option value="BE">BE</option>
-                  <option value="FE">FE</option>
-                  <option value="AI">AI</option>
-                  <option value="DBA">DBA</option>
-                  <option value="Dev">Dev</option>
-                  <option value="Design">Design</option>
-                </select>
-              </div>
-
-              {/* 속성 순 정렬 */}
-              <div className="cardlist-select-wrapper">
-                <select
-                  className="cardlist-select"
-                  value={orderSort}
-                  onChange={(e) => setOrderSort(e.target.value)}
-                >
-                  <option value="GRADE">등급순</option>
-                  <option value="STAT">능력순</option>
-                  <option value="LATEST">최신순</option>
+                  {SKILL_FILTERS.map(filter => (
+                    <option key={filter} value={filter}>{filter}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -316,18 +357,33 @@ export default function CardListPage() {
             <NineSliceBox src="/assets/008/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
               <div className="cardlist-grid-wrapper" onWheel={handleWheel} style={{ height: visibleHeight }}>
                 <div className="cardlist-grid" ref={gridRef} style={{ transform: `translateY(-${scrollOffset}px)` }}>
-                  {filteredAndSortedCards.map(card => {
-                    const isSelected = card.id === selectedCardId;
-                    return (
-                      <div
-                        key={card.id}
-                        className={`cardlist-card-item ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setSelectedCardId(card.id)}
-                      >
-                        <img src={card.image} alt={card.name} draggable={false} />
-                      </div>
-                    )
-                  })}
+                  {isInitialLoad ? (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>
+                      로딩 중...
+                    </div>
+                  ) : sortedCards.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>
+                      카드가 없습니다
+                    </div>
+                  ) : (
+                    sortedCards.map(card => {
+                      const isSelected = card.cardId === selectedCardId;
+                      return (
+                        <div
+                          key={card.cardId}
+                          className={`cardlist-card-item ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handleCardClick(card.cardId)}
+                        >
+                          <img src={card.imageUrl} alt={card.name} draggable={false} />
+                        </div>
+                      );
+                    })
+                  )}
+                  {isLoading && !isInitialLoad && (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 20, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 14 }}>
+                      더 불러오는 중...
+                    </div>
+                  )}
                 </div>
               </div>
             </NineSliceBox>
@@ -348,45 +404,50 @@ export default function CardListPage() {
             borderScale={0.5}
             className="cardlist-right-box"
           >
-            <div className="cardlist-detail-split animate-detail" key={selectedCard.id}>
-              {/* 아주 큰 카드 이미지 */}
-              <div className="cardlist-big-card-col">
-                <img src={selectedCard.image} alt="Selected Card Phase" draggable={false} />
-              </div>
+            {selectedListCard ? (
+              <div className="cardlist-detail-split animate-detail" key={selectedListCard.cardId}>
+                {/* 큰 카드 이미지 */}
+                <div className="cardlist-big-card-col">
+                  <img src={selectedListCard.imageUrl} alt={selectedListCard.name} draggable={false} />
+                </div>
 
-              {/* 우측 정보 뭉치 */}
-              <div className="cardlist-info-col">
-                {/* 이름 및 등급, 강화 횟수 */}
-                <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
-                  <div className="cardlist-info-header-text">
-                    {selectedCard.name}({selectedCard.grade}등급) +{selectedCard.enhanceCount}
-                  </div>
-                </NineSliceBox>
-
-                {/* 능력치 및 남은 강화 횟수 */}
-                <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
-                  <div className="cardlist-info-title">능력치</div>
-                  {Object.entries(selectedCard.stats).map(([key, val]) => (
-                    <div key={key} className="cardlist-info-text">{key} +{val}</div>
-                  ))}
-                  <div className="cardlist-info-text" style={{ marginTop: '8px' }}>
-                    남은 강화횟수 {selectedCard.maxEnhance - selectedCard.enhanceCount}
-                  </div>
-                </NineSliceBox>
-
-                {/* 설명 및 S등급 특수 능력 */}
-                <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc" style={{ flex: 1, justifyContent: 'flex-start' }}>
-                  <div className="cardlist-info-text" style={{ textAlign: 'left', marginBottom: '16px' }}>
-                    {selectedCard.description}
-                  </div>
-                  {selectedCard.grade === 'S' && selectedCard.ability && (
-                    <div className="cardlist-info-text" style={{ textAlign: 'left', color: '#111' }}>
-                      {selectedCard.ability}
+                {/* 우측 정보 */}
+                <div className="cardlist-info-col">
+                  {/* 이름 + 등급 + 강화 */}
+                  <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
+                    <div className="cardlist-info-header-text">
+                      {selectedListCard.name}({selectedListCard.grade}등급)
+                      {selectedDetail && ` +${selectedDetail.enhanceLevel}`}
                     </div>
-                  )}
-                </NineSliceBox>
+                  </NineSliceBox>
+
+                  {/* 능력치 */}
+                  <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
+                    <div className="cardlist-info-title">능력치</div>
+                    <div className="cardlist-info-text">{selectedListCard.skill1.skillType} +{selectedListCard.skill1.value}</div>
+                    <div className="cardlist-info-text">{selectedListCard.skill2.skillType} +{selectedListCard.skill2.value}</div>
+                    <div className="cardlist-info-text">{selectedListCard.skill3.skillType} +{selectedListCard.skill3.value}</div>
+                  </NineSliceBox>
+
+                  {/* 특수 능력 */}
+                  <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc" style={{ flex: 1, justifyContent: 'flex-start' }}>
+                    {selectedListCard.specialAbility ? (
+                      <div className="cardlist-info-text" style={{ textAlign: 'left' }}>
+                        능력 : {selectedListCard.specialAbility}
+                      </div>
+                    ) : (
+                      <div className="cardlist-info-text" style={{ textAlign: 'left', color: '#888' }}>
+                        특수 능력 없음
+                      </div>
+                    )}
+                  </NineSliceBox>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 18 }}>
+                {isInitialLoad ? "로딩 중..." : "카드를 선택해주세요"}
+              </div>
+            )}
           </NineSliceBox>
 
         </div>

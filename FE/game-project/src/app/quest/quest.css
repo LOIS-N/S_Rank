@@ -14,6 +14,8 @@
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
+  /* PWA safe area 대응 */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .quest-page-container::before {
@@ -39,7 +41,7 @@
   color: #fff;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 28px;
+  font-size: 42px;
   letter-spacing: 2px;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
   flex-shrink: 0;
@@ -69,8 +71,8 @@
 .quest-content {
   display: flex;
   flex: 1 0 50%; /* Each phase takes exactly 50% of the 200% wrapper -> 100% of container */
-  padding: 0 24px 80px 24px; /* 하단 네비게이션 바 고정 크기 80px */
-  gap: 20px;
+  padding: 8px 24px calc(100px + env(safe-area-inset-bottom, 0px)) 24px; /* 하단 네비게이션 바 여유 + PWA safe area */
+  gap: 16px;
   min-height: 0;
   box-sizing: border-box;
 }
@@ -80,9 +82,9 @@
    ============================ */
 .quest-left-area {
   display: flex;
-  gap: 12px;
-  width: 480px;
-  flex-shrink: 0;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -92,12 +94,13 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   gap: 8px;
 }
 
 /* --- 퀘스트 카드 공통 --- */
 .quest-card {
-  min-height: 54px;
+  min-height: 62px;
   cursor: pointer;
   transition: transform 0.15s ease, filter 0.15s ease;
   flex-shrink: 0;
@@ -115,32 +118,32 @@
 
 /* 메인 퀘스트 카드 (강조) */
 .quest-card.main-quest {
-  min-height: 60px;
+  min-height: 68px;
 }
 
 .quest-card-label {
   font-family: 'StardustS', 'Stardust', sans-serif;
-  margin-right: 6px;
+  margin-right: 8px;
   white-space: nowrap;
 }
 
 .main-label {
   color: #ffd700;
-  font-size: 15px;
+  font-size: 26px;
   font-weight: 800;
   text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
 }
 
 .sub-label {
   color: #a0c0ff;
-  font-size: 13px;
+  font-size: 22px;
   font-weight: 800;
   text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
 }
 
 .quest-card-title {
   font-family: 'StardustS', 'Stardust', sans-serif;
-  font-size: 16px;
+  font-size: 26px;
   font-weight: bold;
   color: #ffffff;
   text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
@@ -153,15 +156,15 @@
 /* 난이도 별 */
 .quest-stars {
   display: flex;
-  gap: 1px;
-  margin-left: 6px;
+  gap: 2px;
+  margin-left: 8px;
   flex-shrink: 0;
   align-items: center;
 }
 
 .quest-star {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   background-image: url('/assets/003-01/levelStar_000.png');
   background-size: 458.71% 255.37%;
   background-position: 50% 48.15%;
@@ -194,34 +197,35 @@
 }
 
 /* ============================
-   커스텀 스크롤바
+   커스텀 스크롤바 (중앙 배치)
    ============================ */
 .scrollbar-column {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  width: 32px;
+  gap: 4px; /* 트랙과 버튼 사이 간격 */
+  width: 36px;
   flex-shrink: 0;
 }
 
 /* 메인 퀘스트 높이만큼의 스페이서 */
 .scrollbar-spacer {
-  height: 68px;
+  height: 74px;
   flex-shrink: 0;
 }
 
-/* 스크롤바 트랙 추가(기존 유지) */
+/* 스크롤바 트랙 */
 .scrollbar-track {
   width: 18px;
   flex: 1;
+  max-height: calc(100% - 200px); /* 새로고침 버튼 공간 확보를 위해 끝 부분 제한 */
   background-image: url('/assets/003-01/scrollBar_000.png');
-  background-size: 2298.85% 127.25%;
-  background-position: 50% 50%;
+  background-size: 100% 100%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
-  min-height: 80px;
+  min-height: 60px;
   position: relative;
+  overflow: hidden; /* 썸이 트랙 밖으로 절대 나가지 않도록 */
 }
 
 /* 스크롤바 썸 (움직이는 손잡이) */
@@ -229,15 +233,14 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   background-image: url('/assets/003-01/scrollButton_000.png');
-  background-size: 349.65% 201.8%;
-  background-position: 50% 49.19%;
+  background-size: contain;
+  background-position: center;
   background-repeat: no-repeat;
   image-rendering: pixelated;
   cursor: grab;
-  /* top transition is handled in react style to avoid lag */
   z-index: 2;
 }
 
@@ -245,19 +248,19 @@
   cursor: grabbing;
 }
 
-/* 새로고침 버튼 (크기 강제 2배 확대) */
+/* 새로고침 버튼 — 스크롤바 줄인 공간만큼 크게 */
 .refresh-button {
-  width: 100px; /* Changed from 104px to 100px */
-  height: 100px; /* Changed from 104px to 100px */
+  width: 110px;  /* 80px → 110px (+30px) */
+  height: 110px; /* 80px → 110px (+30px) */
   cursor: pointer;
   background: none;
   border: none;
   padding: 0;
   flex-shrink: 0;
   transition: transform 0.2s ease;
-  margin-top: auto; /* 여백 밀착 */
-  margin-bottom: -15px; 
-  align-self: center; /* 중앙 정렬 */
+  margin-top: 0;
+  margin-bottom: 0;
+  align-self: center;
   position: relative;
   z-index: 5;
 }
@@ -291,6 +294,7 @@
    ============================ */
 .quest-detail-panel {
   flex: 1;
+  min-width: 0;
 }
 
 /* 상세 정보 없음 */
@@ -301,7 +305,7 @@
   justify-content: center;
   color: #8a8ab0;
   font-family: 'StardustS', 'Stardust', sans-serif;
-  font-size: 18px;
+  font-size: 32px;
 }
 
 /* 퀘스트 제목 (상세) */
@@ -309,45 +313,65 @@
   text-align: center;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 20px;
+  font-size: 34px;
   color: #2a2a40;
   padding: 6px 0;
   flex-shrink: 0;
 }
 
-/* 내부 패널 (questInf_001.png 배경) */
+/* 내부 패널 (questInf_001.png 배경) — 퀘스트 내용 박스 */
+.quest-info-box.content-box .nineslice-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;     /* 좌우 중앙 */
+  justify-content: center; /* 상하 중앙 */
+  text-align: center;
+}
+
 .quest-info-box.content-box {
-  flex: 1;
-  min-height: 80px;
+  flex: 1; /* quest-detail-row와 동일한 flex 비율 */
+  min-height: 0;
+  overflow: hidden; /* 스크롤 없음 */
 }
 
 .quest-info-box-label {
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 28px;
   color: #2a2a40;
   margin-bottom: 6px;
-  text-align: center; /* 전체 중앙 정렬 */
+  text-align: center;
 }
 
 .quest-info-box-text {
   font-family: 'Stardust', sans-serif;
-  font-size: 15px;
+  font-size: 26px;
   color: #111;
   font-weight: bold;
-  line-height: 1.5;
-  text-align: center; /* 세부 내용들 중앙 정렬 */
+  line-height: 1.6;
+  text-align: center;
 }
 
 /* 조건 + 보상 한 줄 */
 .quest-detail-row {
   display: flex;
   gap: 10px;
-  flex: 0 0 160px; /* 텍스트 길이에 따라 상자 크기가 변하지 않도록 높이 고정 */
+  flex: 1; /* content-box와 동일한 flex 비율 */
+  min-height: 0;
+}
+
+.quest-detail-row > .quest-info-box .nineslice-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .quest-detail-row > .quest-info-box {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 내부 텍스트들의 세로 중앙 정렬을 위한 하위 div 타겟팅 */
@@ -358,15 +382,16 @@
 /* 수락하기 버튼 */
 .quest-accept-button {
   cursor: pointer;
-  padding: 6px 0;
+  padding: 12px 0; /* 8px -> 12px */
   text-align: center;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 18px;
-  color: #2a2a40; /* 배경에서 잘 보이는 진한 색으로 교체 */
-  text-shadow: none; /* 가독성을 해치는 그림자 제거 */
+  font-size: 32px;
+  color: #2a2a40;
+  text-shadow: none;
   transition: transform 0.15s ease, filter 0.15s ease;
   flex-shrink: 0;
+  min-height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -497,7 +522,7 @@
 .phase2-info-title {
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 20px;
+  font-size: 30px;
   color: #2a2a40;
   text-align: center;
   width: 100%;
@@ -505,7 +530,7 @@
 .phase2-info-subtitle {
   font-family: 'Stardust', sans-serif;
   font-weight: bold;
-  font-size: 14px;
+  font-size: 22px;
   color: #444;
   text-align: center;
   width: 100%;
@@ -555,14 +580,14 @@
 
 .phase2-accept-button {
   flex-shrink: 0;
-  height: 54px;
+  height: 64px; /* 54px -> 64px to accommodate larger font */
 }
 
 /* Split Buttons in Phase 2 */
 .phase2-action-buttons {
   display: flex;
   gap: 12px;
-  flex: 0 0 54px;
+  flex: 0 0 64px; /* 54px -> 64px to accommodate larger font */
 }
 
 .phase2-btn-cancel,
@@ -572,7 +597,7 @@
   cursor: pointer;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 22px; /* 글자 크기 다시 상향 */
+  font-size: 30px; /* 글자 크기 다시 상향 */
   color: #2a2a40;
   transition: transform 0.15s ease, filter 0.15s ease;
 }
