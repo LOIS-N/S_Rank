@@ -23,21 +23,37 @@
 }
 
 /* Background Variations */
-.gacha-bg-flyer { background-image: url('/assets/006/lotto_000.png'); }
-.gacha-bg-fair { background-image: url('/assets/006/lotto_001.png'); }
-.gacha-bg-public { background-image: url('/assets/006/lotto_002.png'); }
+.gacha-bg-flyer {
+  background-image: url('/assets/006/lotto_000.png');
+}
+
+.gacha-bg-fair {
+  background-image: url('/assets/006/lotto_001.png');
+}
+
+.gacha-bg-public {
+  background-image: url('/assets/006/lotto_002.png');
+}
+
+/* --- 좌측 상단 골드 HUD --- */
+.gacha-gold-hud {
+  position: absolute;
+  top: 100px;
+  left: 24px;
+  z-index: 15;
+}
 
 /* Top Tabs */
 .gacha-tabs-container {
   display: flex;
   height: 80px;
   width: 100%;
-  margin-top: -20px; /* 위쪽 절반을 화면 밖으로 밀어내어 가림 */
+  margin-top: -20px;
 }
 
 /* 탭 부모 래퍼 (정확히 1/3씩 분할하기 위함) */
 .gacha-tab-wrapper {
-  flex: 0 0 33.3333%; /* 확실하게 1/3 고정 */
+  flex: 0 0 33.3333%;
   width: 33.3333%;
   display: flex;
   align-items: stretch;
@@ -48,9 +64,9 @@
 
 /* 실제 탭 버튼 */
 .gacha-tab {
-  flex: 1; 
-  width: 100% !important; /* 강제 적용 */
-  height: 80px; /* 기본 높이 */
+  flex: 1;
+  width: 100% !important;
+  height: 80px;
   display: flex;
   cursor: pointer;
   align-items: center;
@@ -71,18 +87,18 @@
 }
 
 .gacha-tab.active {
-  height: 100px; /* 활성화 시 버튼이 더 길어져서 아래로 튀어나옴 */
-  filter: brightness(1.1) drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+  height: 100px;
+  filter: brightness(1.1) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
   z-index: 2;
 }
 
 .gacha-tab span {
   position: relative;
   z-index: 5;
-  padding-top: 10px; /* 위쪽 짤리는 효과 보정 */
+  padding-top: 10px;
 }
 
-/* 투명 영역(X 431, Y 119)을 상쇄하여 화면에 패널만 딱 맞게 채움 */
+/* 투명 영역 오버슈트 보정 */
 .gacha-tab-inner {
   position: absolute;
   top: -20px;
@@ -102,20 +118,28 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 40px;
+  padding-top: 40px;
+  padding-left: 40px;
+  padding-right: 40px;
+  padding-bottom: 7.5cqw;
+  /* 하단 네비게이션 바 높이만큼 여백 확보 */
 }
 
-/* Bottom Buttons Area - 초기 화면에서는 우측 하단 */
+/* Bottom Buttons Area - 초기 화면에서는 우측 하단 네비게이션 바 위 */
 .gacha-bottom-area {
   margin-top: auto;
-  align-self: flex-end; /* 우측 정렬 */
+  align-self: flex-end;
   display: flex;
   gap: 24px;
-  align-items: flex-end; /* 버튼들이 아래 기준선에 맞게 */
+  align-items: flex-end;
 }
 
-/* Result Buttons Area - 결과 화면에서는 중앙 부근의 기존 gacha-bottom-buttons 활용 */
+/* Result Buttons Area - 결과 화면에서 네비게이션 바 바로 위 고정 */
 .gacha-bottom-buttons {
+  position: absolute;
+  bottom: 7.5cqw;
+  left: 0;
+  right: 0;
   display: flex;
   gap: 24px;
   align-items: center;
@@ -123,29 +147,27 @@
 }
 
 .gacha-action-btn {
-  width: 240px; /* 좀 더 넉넉하게 고정 너비 지정 */
-  height: 80px; 
+  width: 240px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column; /* To stack text */
-  padding-bottom: 20px; /* Moves content up by 10px since it's centered in 80px height */
-  margin-top: -10px; /* Moves the button itself up 10px */
+  flex-direction: column;
   cursor: pointer;
   transition: transform 0.1s ease, filter 0.1s ease;
-  color: #2a2a40; /* 어두운 텍스트가 더 잘 보임 */
+  color: #2a2a40;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
   font-size: 26px;
-  background-size: 105.17% 177.64%; /* 정확히 내부 그림과 일치하도록 크기조절 */
+  background-size: 105.17% 177.64%;
   background-repeat: no-repeat;
   background-position: center 47.78%;
   position: relative;
+  line-height: 1.1;
 }
 
 .gacha-action-btn.btn-10pull {
-  line-height: 1.1;
-  height: 82px; /* 서브타이틀 때문에 10회 뽑기가 더 큼 설정 */
+  height: 82px;
 }
 
 .gacha-action-btn:hover {
@@ -158,6 +180,22 @@
   filter: brightness(0.9);
 }
 
+/* 재화 부족 시 비활성화 */
+.gacha-action-btn.btn-disabled {
+  filter: brightness(0.5) grayscale(0.4);
+  cursor: not-allowed;
+}
+
+.gacha-action-btn.btn-disabled:hover {
+  transform: none;
+  filter: brightness(0.5) grayscale(0.4);
+}
+
+.gacha-action-btn.btn-disabled:active {
+  transform: none;
+  filter: brightness(0.5) grayscale(0.4);
+}
+
 .gacha-action-btn .nineslice-content {
   display: flex;
   flex-direction: column;
@@ -167,28 +205,34 @@
 }
 
 .btn-subtitle {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: normal;
   font-family: 'Stardust', sans-serif;
+  margin-top: 1px;
 }
 
 /* Result Phases */
 .gacha-result-container {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.6); /* 반투명 배경 */
+  background-color: rgba(0, 0, 0, 0.6);
   z-index: 10;
-  padding-bottom: 20px;
+  padding-bottom: 9cqw;
+  /* 카드를 상단 영역 중앙에 배치 */
 }
 
-/* 1 Pull Result */
+/* 1 Pull Result - 카드 크기 축소하여 버튼과 겹치지 않게 */
 .gacha-1pull-card {
-  width: 320px;
-  margin-bottom: 40px;
+  width: 20cqw;
+  max-width: 260px;
+  margin-bottom: 0;
   animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
@@ -204,7 +248,7 @@
   grid-template-columns: repeat(5, 1fr);
   grid-template-rows: repeat(2, 1fr);
   gap: 16px;
-  margin-bottom: 40px;
+  margin-bottom: 0;
   max-width: 800px;
 }
 
@@ -221,18 +265,54 @@
 }
 
 /* Stagger animation for 10 pulls */
-.gacha-10pull-card:nth-child(1) { animation-delay: 0.1s; }
-.gacha-10pull-card:nth-child(2) { animation-delay: 0.2s; }
-.gacha-10pull-card:nth-child(3) { animation-delay: 0.3s; }
-.gacha-10pull-card:nth-child(4) { animation-delay: 0.4s; }
-.gacha-10pull-card:nth-child(5) { animation-delay: 0.5s; }
-.gacha-10pull-card:nth-child(6) { animation-delay: 0.6s; }
-.gacha-10pull-card:nth-child(7) { animation-delay: 0.7s; }
-.gacha-10pull-card:nth-child(8) { animation-delay: 0.8s; }
-.gacha-10pull-card:nth-child(9) { animation-delay: 0.9s; }
-.gacha-10pull-card:nth-child(10) { animation-delay: 1.0s; }
+.gacha-10pull-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.gacha-10pull-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.gacha-10pull-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.gacha-10pull-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.gacha-10pull-card:nth-child(5) {
+  animation-delay: 0.5s;
+}
+
+.gacha-10pull-card:nth-child(6) {
+  animation-delay: 0.6s;
+}
+
+.gacha-10pull-card:nth-child(7) {
+  animation-delay: 0.7s;
+}
+
+.gacha-10pull-card:nth-child(8) {
+  animation-delay: 0.8s;
+}
+
+.gacha-10pull-card:nth-child(9) {
+  animation-delay: 0.9s;
+}
+
+.gacha-10pull-card:nth-child(10) {
+  animation-delay: 1.0s;
+}
 
 @keyframes popIn {
-  0% { transform: scale(0); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
