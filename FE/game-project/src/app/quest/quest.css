@@ -11,11 +11,9 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
+  box-sizing: border-box; /* card-list와 맞춤 */
   position: relative;
   overflow: hidden;
-  /* PWA safe area 대응 */
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .quest-page-container::before {
@@ -77,11 +75,18 @@
 /* --- 메인 콘텐츠 영역 공통 --- */
 .quest-content {
   display: flex;
-  flex: 1 0 50%; /* Each phase takes exactly 50% of the 200% wrapper -> 100% of container */
-  padding: 8px 24px calc(100px + env(safe-area-inset-bottom, 0px)) 24px; /* 하단 네비게이션 바 여유 + PWA safe area */
-  gap: 16px;
+  flex: 1 0 50%;
+  padding: 0 24px 100px 24px;
   min-height: 0;
   box-sizing: border-box;
+}
+
+.phase-1-content {
+  gap: 16px; /* Phase 1은 기존 간격 유지 */
+}
+
+.phase-2-content {
+  gap: 0; /* Phase 2 (카드 배치)는 card-list와 맞게 간격 제거 */
 }
 
 /* ============================
@@ -230,7 +235,7 @@
   background-size: 100% 100%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
-  min-height: 60px;
+  min-height: 80px; /* card-list와 맞춤 (기존 60px) */
   position: relative;
   overflow: hidden; /* 썸이 트랙 밖으로 절대 나가지 않도록 */
 }
@@ -422,13 +427,22 @@
   display: flex;
   flex: 1;
   width: 100%;
-  gap: 16px;
+  gap: 0; /* card-list와 맞춤 (scrollbar-column이 이미 120px 너비를 가짐) */
   min-height: 0;
 }
 
-/* 좌측: 카드 리스트 영역 (더 넓게 배정) */
+/* 좌측: 카드 리스트 컬럼 (card-list와 동기화) */
+.phase2-left-col {
+  flex: 3.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+
 .phase2-left-box {
-  flex: 3;
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -437,7 +451,7 @@
 
 .phase2-card-grid-wrapper {
   flex: 1;
-  clip-path: inset(-15px -15px); /* 그림자 짤림 방지 */
+  clip-path: inset(0 -15px); /* card-list와 동일: 상하 0, 좌우 -15px */
   position: relative;
   min-height: 0;
 }
@@ -503,19 +517,44 @@
   pointer-events: none;
 }
 
-/* 중앙 스크롤바 — card-list 페이지와 동일 크기 */
-.phase2-scrollbar-column {
-  flex: 0 0 120px;
-  height: 100%;
+/* 카드 능력치 오버레이 (card-list와 동일) */
+.phase2-card-stat {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  z-index: 2;
+  pointer-events: none;
 }
 
-/* 우측: 퀘스트 셋업 및 현황판 */
+.phase2-card-stat.stat-1 { bottom: 26%; }
+.phase2-card-stat.stat-2 { bottom: 16%; }
+.phase2-card-stat.stat-3 { bottom: 5%; }
+
+.phase2-scrollbar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 120px;
+  flex-shrink: 0;
+  height: 100%;
+  margin: 0;
+}
+
+/* 우측: 퀘스트 셋업 및 현황판 (card-list와 동일 비율) */
 .phase2-right-box {
   flex: 2;
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+  min-width: 0;
 }
 
 .phase2-right-title-box {
@@ -572,6 +611,51 @@
   filter: brightness(1.2) drop-shadow(2px 6px 8px rgba(0,0,0,0.5));
 }
 
+/* 빈 카드 슬롯 */
+.phase2-empty-slot {
+  width: 83px;
+  height: 120px;
+  border: 3px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.15);
+  image-rendering: pixelated;
+}
+
+.phase2-empty-slot span {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 36px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* 경고 메시지 */
+.phase2-warning {
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #ff4444;
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
+  padding: 4px 0;
+  flex-shrink: 0;
+  animation: warningPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes warningPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* 수락 버튼 비활성화 */
+.phase2-btn-accept.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Bottom elements */
 .phase2-right-bottom-row {
   display: flex;
@@ -590,11 +674,11 @@
   height: 76px; /* 64px -> 76px */
 }
 
-/* Split Buttons in Phase 2 */
+/* Split Buttons in Phase 2 (card-list 스타일 통일) */
 .phase2-action-buttons {
   display: flex;
-  gap: 12px;
-  flex: 0 0 76px; /* 64px -> 76px */
+  gap: 16px;
+  flex: 0 0 84px;
 }
 
 .phase2-btn-cancel,
@@ -604,7 +688,7 @@
   cursor: pointer;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 30px; /* 글자 크기 다시 상향 */
+  font-size: 32px;
   color: #2a2a40;
   transition: transform 0.15s ease, filter 0.15s ease;
 }
@@ -628,12 +712,15 @@
   filter: brightness(0.95);
 }
 
-/* Phase 2 Specific Scrollbar — card-list와 동일 크기 */
+/* Phase 2 Specific Scrollbar — card-list와 동일 위치/크기 */
 .phase2-scrollbar-column .scrollbar-track {
   width: 80px;
+  max-height: none;        /* Phase1 제한 해제 */
+  overflow: visible;       /* Phase1 overflow:hidden 해제 */
   background-image: url('/assets/003-02/scrollBar_000.png');
   background-size: 518% 108%;
   background-position: 50% 50%;
+  background-repeat: no-repeat;
 }
 .phase2-scrollbar-column .scrollbar-thumb {
   width: 100px;
@@ -641,4 +728,5 @@
   background-image: url('/assets/003-02/scrollButton_000.png');
   background-size: 84% 48%;
   background-position: 50% 49%;
+  background-repeat: no-repeat;
 }
