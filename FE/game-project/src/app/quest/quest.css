@@ -204,7 +204,7 @@
   flex-direction: column;
   align-items: center;
   gap: 4px; /* 트랙과 버튼 사이 간격 */
-  width: 36px;
+  width: 56px; /* 36px -> 56px */
   flex-shrink: 0;
 }
 
@@ -216,7 +216,7 @@
 
 /* 스크롤바 트랙 */
 .scrollbar-track {
-  width: 18px;
+  width: 36px; /* 18px -> 36px */
   flex: 1;
   max-height: calc(100% - 200px); /* 새로고침 버튼 공간 확보를 위해 끝 부분 제한 */
   background-image: url('/assets/003-01/scrollBar_000.png');
@@ -233,8 +233,8 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  width: 18px;
-  height: 18px;
+  width: 36px; /* 18px -> 36px */
+  height: 36px; /* 18px -> 36px */
   background-image: url('/assets/003-01/scrollButton_000.png');
   background-size: contain;
   background-position: center;
@@ -391,7 +391,7 @@
   text-shadow: none;
   transition: transform 0.15s ease, filter 0.15s ease;
   flex-shrink: 0;
-  min-height: 54px;
+  min-height: 72px; /* 54px -> 72px */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -437,7 +437,7 @@
 
 .phase2-card-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr); /* 3개 -> 4개로 원상복구 */
   gap: 12px;
   position: absolute;
   top: 0;
@@ -580,14 +580,14 @@
 
 .phase2-accept-button {
   flex-shrink: 0;
-  height: 64px; /* 54px -> 64px to accommodate larger font */
+  height: 76px; /* 64px -> 76px */
 }
 
 /* Split Buttons in Phase 2 */
 .phase2-action-buttons {
   display: flex;
   gap: 12px;
-  flex: 0 0 64px; /* 54px -> 64px to accommodate larger font */
+  flex: 0 0 76px; /* 64px -> 76px */
 }
 
 .phase2-btn-cancel,
