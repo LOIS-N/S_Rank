@@ -206,10 +206,10 @@ export default function CardListPage() {
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
 
-  const ROW_HEIGHT = 210 + 12;
-  const VISIBLE_ROWS = 2.8;
+  const ROW_HEIGHT = 360;
+  const VISIBLE_ROWS = 1.8;
   const totalRows = Math.ceil(sortedCards.length / 3);
-  const totalContentHeight = totalRows * ROW_HEIGHT + 32;
+  const totalContentHeight = totalRows * ROW_HEIGHT + 40;
   const visibleHeight = VISIBLE_ROWS * ROW_HEIGHT;
   const maxScroll = Math.max(0, totalContentHeight - visibleHeight);
   const scrollOffset = scrollRatio * maxScroll;
@@ -231,7 +231,7 @@ export default function CardListPage() {
   const getThumbTop = useCallback(() => {
     if (!trackHeight) return 0;
     const trackPadding = 14;
-    const thumbSize = 24;
+    const thumbSize = 100;
     const maxThumbTop = trackHeight - thumbSize - (trackPadding * 2);
     if (maxThumbTop <= 0) return trackPadding;
     return trackPadding + (scrollRatio * maxThumbTop);
@@ -253,7 +253,7 @@ export default function CardListPage() {
       if (!isDraggingRef.current || !trackRef.current) return;
       const trackHeightCurrent = trackRef.current.clientHeight;
       const trackPadding = 14;
-      const thumbSize = 24;
+      const thumbSize = 100;
       const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
       if (maxThumbTop <= 0) return;
       const deltaY = e.clientY - dragStartYRef.current;
@@ -275,7 +275,7 @@ export default function CardListPage() {
     const clickY = e.clientY - rect.top;
     const trackHeightCurrent = rect.height;
     const trackPadding = 14;
-    const thumbSize = 24;
+    const thumbSize = 100;
     const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
     if (maxThumbTop <= 0) return;
     const adjustedClickY = clickY - trackPadding;
@@ -396,13 +396,13 @@ export default function CardListPage() {
                   </NineSliceBox>
 
                   {/* 특수 능력 */}
-                  <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc" style={{ flex: 1, justifyContent: 'flex-start' }}>
+                  <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
                     {selectedListCard.specialAbility ? (
-                      <div className="cardlist-info-text" style={{ textAlign: 'left' }}>
+                      <div className="cardlist-info-text">
                         능력 : {selectedListCard.specialAbility.name}
                       </div>
                     ) : (
-                      <div className="cardlist-info-text" style={{ textAlign: 'left', color: '#888' }}>
+                      <div className="cardlist-info-text" style={{ color: '#888' }}>
                         특수 능력 없음
                       </div>
                     )}
