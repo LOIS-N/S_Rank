@@ -29,7 +29,7 @@ export const useAuth = () => {
             { identityToken },
             {
               headers: {
-                'Authorization': `${accessToken}`,
+                'Authorization': `Bearer ${accessToken}`,
               }
             }
           );

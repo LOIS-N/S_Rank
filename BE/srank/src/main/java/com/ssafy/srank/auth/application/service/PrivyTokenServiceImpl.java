@@ -44,12 +44,24 @@ public class PrivyTokenServiceImpl implements PrivyTokenService {
         String privyId = readPrivyId(claims);
         List<Map<String, Object>> linkedAccounts = parseLinkedAccounts(claims.get("linked_accounts"));
 
+        // 백엔드 수정 제안
         String email = linkedAccounts.stream()
-                .filter(account -> "email".equals(account.get("type")))
-                .map(account -> stringValue(account.get("address")))
-                .filter(StringUtils::hasText)
-                .findFirst()
-                .orElseThrow(() -> new BusinessException(ErrorCode.TOKEN_INVALID));
+            .filter(account -> "email".equals(account.get("type")) || "google_oauth".equals(account.get("type")))
+            .map(account -> {
+            // "email" 필드가 있으면 그것을 사용, 없으면 "address" 필드 사용
+            Object emailVal = account.get("email");
+            return emailVal != null ? stringValue(emailVal) : stringValue(account.get("address"));
+        })
+        .filter(StringUtils::hasText)
+        .findFirst()
+        .orElseThrow(() -> new BusinessException(ErrorCode.TOKEN_INVALID));
+        // String email = linkedAccounts.stream()
+        //         .filter(account -> "email".equals(account.get("type")))
+        //         .map(account -> stringValue(account.get("address")))
+        //         .filter(StringUtils::hasText)
+        //         .findFirst()
+        //         .orElseThrow(() -> new BusinessException(ErrorCode.TOKEN_INVALID));
+
 
         String walletAddress = linkedAccounts.stream()
                 .filter(account -> ETHEREUM_CHAIN.equalsIgnoreCase(stringValue(account.get("chain_type"))))
