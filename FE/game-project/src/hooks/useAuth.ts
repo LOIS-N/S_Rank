@@ -25,17 +25,13 @@ export const useAuth = () => {
           console.log("[Auth] All tokens ready. Calling backend...");
 
           // 1. 백엔드 로그인 요청 (client 사용)
-          // const response = await client.post('/api/v1/auth/login',
-          //   { identityToken },
-          //   {
-          //     headers: {
-          //       'Authorization': `Bearer ${accessToken}`,
-          //     }
-          //   }
-          // );
-
           const response = await client.post('/api/v1/auth/login',
-            { identityToken } // 헤더를 아예 제거하고 테스트
+            { identityToken },
+            {
+              headers: {
+                'Authorization': `${accessToken}`,
+              }
+            }
           );
 
           if (response.data.success) {
