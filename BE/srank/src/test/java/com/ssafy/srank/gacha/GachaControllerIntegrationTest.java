@@ -221,6 +221,19 @@ class GachaControllerIntegrationTest {
     }
 
     @Test
+    void drawAcceptsLowercaseType() throws Exception {
+        mockMvc.perform(post("/api/v1/gacha/draws")
+                        .header("Authorization", "Bearer valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"type":"flyer","count":1}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.gachaType").value("FLYER"));
+    }
+
+    @Test
     void drawRejectsInsufficientGold() throws Exception {
         User poorUser = userRepository.findById(user.getUserId()).orElseThrow();
         poorUser.spendGold(190_001L);

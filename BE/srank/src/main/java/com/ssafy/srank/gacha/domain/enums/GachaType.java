@@ -1,9 +1,19 @@
 package com.ssafy.srank.gacha.domain.enums;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
+import java.util.Locale;
+
 public enum GachaType {
-    // 1단계 구현 대상
     FLYER,
-    // 타입 값은 미리 정의해두고, 실제 해금 여부는 서비스에서 제어한다.
     EXPO,
-    OPEN_RECRUIT
+    OPEN_RECRUIT;
+
+    @JsonCreator
+    public static GachaType from(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return GachaType.valueOf(value.trim().toUpperCase(Locale.ROOT));
+    }
 }
