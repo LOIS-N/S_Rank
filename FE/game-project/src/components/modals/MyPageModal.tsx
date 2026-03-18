@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import { usePrivy } from "@privy-io/react-auth";
-import axios from "axios";
+import client from "@/lib/axios";
 import { useRouter } from "next/navigation";
 
 interface MyPageModalProps {
@@ -46,20 +46,19 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
 
     try {
       // 1. 닉네임 수정 API 호출
-      const response = await axios.put(
+      const response = await client.put(
         '/api/v1/users/me/nickname',
         { nickname: trimmed },
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
           },
         }
       );
 
       if (response.data.success) {
         // 2. 성공 시 최신 프로필 정보 다시 가져오기
-        const profileRes = await axios.get('/api/v1/users/me', {
+        const profileRes = await client.get('/api/v1/users/me', {
           headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         
@@ -75,7 +74,7 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
 
         // 3. 온보딩 중이면 메인으로 이동
         if (isOnboarding) {
-          router.push('/main');
+          router.push('/');
         }
       } else {
         setIsError(true);
