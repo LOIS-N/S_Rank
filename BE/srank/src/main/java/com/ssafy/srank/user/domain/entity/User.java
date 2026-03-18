@@ -1,6 +1,8 @@
 package com.ssafy.srank.user.domain.entity;
 
 import com.ssafy.srank.common.entity.BaseEntity;
+import com.ssafy.srank.common.exception.BusinessException;
+import com.ssafy.srank.common.exception.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -84,5 +86,20 @@ public class User extends BaseEntity {
 
     public void withdraw() {
         this.deletedAt = LocalDateTime.now();
+    }
+
+    public void increaseGold(Long gold){
+        if (gold == null || gold <= 0) {
+            throw new BusinessException(ErrorCode.GOLD_INVALID_AMOUNT);
+        }
+        this.gold += gold;
+    }
+
+    public void decreaseGold(Long gold){
+        if (gold == null || gold <= 0) {
+            throw new BusinessException(ErrorCode.GOLD_INVALID_AMOUNT);
+        }
+        if(this.gold - gold < 0) throw new BusinessException(ErrorCode.GOLD_INSUFFICIENT);
+        this.gold += gold;
     }
 }
