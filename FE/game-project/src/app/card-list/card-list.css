@@ -327,21 +327,27 @@
 /* S등급 추가 설명 란 */
 .cardlist-s-grade-desc {
   flex: 1; /* 남은 하단 공간 모두 차지 (가장 큰 박스) */
-  justify-content: flex-start;
+}
+
+/* 내부 콘텐츠 중앙 정렬 공통 */
+.cardlist-info-stats-box .nineslice-content,
+.cardlist-s-grade-desc .nineslice-content {
+  justify-content: center;
+  align-items: center;
 }
 
 .cardlist-info-title {
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 20px;
+  font-size: 28px;
   color: #111;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .cardlist-info-text {
   font-family: 'Stardust', sans-serif;
   font-weight: bold;
-  font-size: 16px;
+  font-size: 24px;
   color: #111;
   line-height: 1.6;
 }
