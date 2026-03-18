@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface UserDeskQuestRepository extends JpaRepository<UserDeskQuest, Long> {
     List<UserDeskQuest> findByUserId(Long userId);
+    void deleteByUserIdAndQuestId(Long userId, Long questId);
 }
