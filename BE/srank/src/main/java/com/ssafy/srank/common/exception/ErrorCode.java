@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus;
  *   BC : Blockchain (블록체인/NFT)
  *   RK : Ranking (랭킹)
  *   AC : Achievement (업적)
+ *   GD : GOLD (골드 재화)
  */
 @Getter
 @RequiredArgsConstructor
@@ -78,6 +79,9 @@ public enum ErrorCode {
     QUEST_SLOT_NOT_UNLOCKED(HttpStatus.FORBIDDEN,       "Q007", "해당 슬롯이 해금되지 않았습니다."),
     QUEST_NOT_COMPLETED(HttpStatus.BAD_REQUEST,         "Q008", "아직 완료되지 않은 퀘스트입니다."),
     INVALID_QUEST_TYPE(HttpStatus.BAD_REQUEST,          "Q009", "유효하지 않은 퀘스트 타입입니다."),
+    QUEST_ALREADY_COMPLETED(HttpStatus.CONFLICT,        "Q010", "이미 완료된 퀘스트입니다."),
+    QUEST_REWARD_ALREADY_CLAIMED(HttpStatus.CONFLICT,   "Q011", "이미 보상을 수령한 퀘스트입니다."),
+    QUEST_REWARD_NOT_AVAILABLE(HttpStatus.BAD_REQUEST,  "Q012", "보상을 받을 수 없는 상태입니다."),
 
     // ======================== GA : Gacha ========================
     GACHA_TYPE_NOT_FOUND(HttpStatus.NOT_FOUND,          "GA001", "존재하지 않는 뽑기 종류입니다."),
@@ -116,7 +120,11 @@ public enum ErrorCode {
 
     // ======================== AC : Achievement (업적) ========================
     ACHIEVEMENT_NOT_FOUND(HttpStatus.NOT_FOUND,         "AC001", "업적을 찾을 수 없습니다."),
-    ACHIEVEMENT_ALREADY_REWARDED(HttpStatus.CONFLICT,   "AC002", "이미 보상을 수령한 업적입니다.");
+    ACHIEVEMENT_ALREADY_REWARDED(HttpStatus.CONFLICT,   "AC002", "이미 보상을 수령한 업적입니다."),
+
+    // ======================== GD : Gold (골드-재화) ========================
+    GOLD_INVALID_AMOUNT(HttpStatus.BAD_REQUEST,      "GD001", "잘못된 골드(재화) 입니다."),
+    GOLD_INSUFFICIENT(HttpStatus.BAD_REQUEST,      "GD002", "보유 골드가 부족합니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
