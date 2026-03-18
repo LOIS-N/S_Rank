@@ -517,6 +517,25 @@
   pointer-events: none;
 }
 
+/* 카드 능력치 오버레이 (card-list와 동일) */
+.phase2-card-stat {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.phase2-card-stat.stat-1 { bottom: 26%; }
+.phase2-card-stat.stat-2 { bottom: 16%; }
+.phase2-card-stat.stat-3 { bottom: 5%; }
+
 .phase2-scrollbar-column {
   display: flex;
   flex-direction: column;
@@ -590,6 +609,51 @@
 .phase2-dropped-card:hover {
   transform: translateY(-5px);
   filter: brightness(1.2) drop-shadow(2px 6px 8px rgba(0,0,0,0.5));
+}
+
+/* 빈 카드 슬롯 */
+.phase2-empty-slot {
+  width: 83px;
+  height: 120px;
+  border: 3px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.15);
+  image-rendering: pixelated;
+}
+
+.phase2-empty-slot span {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 36px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* 경고 메시지 */
+.phase2-warning {
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #ff4444;
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
+  padding: 4px 0;
+  flex-shrink: 0;
+  animation: warningPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes warningPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* 수락 버튼 비활성화 */
+.phase2-btn-accept.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Bottom elements */
