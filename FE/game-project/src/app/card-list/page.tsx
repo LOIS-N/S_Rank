@@ -207,9 +207,9 @@ export default function CardListPage() {
   const dragStartRatioRef = useRef(0);
 
   const ROW_HEIGHT = 360;
-  const VISIBLE_ROWS = 1.8;
+  const VISIBLE_ROWS = 2;
   const totalRows = Math.ceil(sortedCards.length / 3);
-  const totalContentHeight = totalRows * ROW_HEIGHT + 40;
+  const totalContentHeight = totalRows * ROW_HEIGHT + 260;
   const visibleHeight = VISIBLE_ROWS * ROW_HEIGHT;
   const maxScroll = Math.max(0, totalContentHeight - visibleHeight);
   const scrollOffset = scrollRatio * maxScroll;
@@ -341,11 +341,9 @@ export default function CardListPage() {
                           onClick={() => handleCardClick(card.cardId)}
                         >
                           <img src={card.imageUrl} alt={card.name} draggable={false} />
-                          <div className="cardlist-card-stats-overlay">
-                            <span className="cardlist-card-stat">{card.skill1.skillType} {card.skill1.value}</span>
-                            <span className="cardlist-card-stat">{card.skill2.skillType} {card.skill2.value}</span>
-                            <span className="cardlist-card-stat">{card.skill3.skillType} {card.skill3.value}</span>
-                          </div>
+                          <span className="cardlist-card-stat stat-1">{card.skill1.skillType} {card.skill1.value}</span>
+                          <span className="cardlist-card-stat stat-2">{card.skill2.skillType} {card.skill2.value}</span>
+                          <span className="cardlist-card-stat stat-3">{card.skill3.skillType} {card.skill3.value}</span>
                         </div>
                       );
                     })
@@ -381,11 +379,9 @@ export default function CardListPage() {
                 <div className="cardlist-big-card-col">
                   <div className="cardlist-big-card-wrapper">
                     <img src={selectedListCard.imageUrl} alt={selectedListCard.name} draggable={false} />
-                    <div className="cardlist-big-card-stats-overlay">
-                      <span className="cardlist-big-card-stat">{selectedListCard.skill1.skillType} {selectedListCard.skill1.value}</span>
-                      <span className="cardlist-big-card-stat">{selectedListCard.skill2.skillType} {selectedListCard.skill2.value}</span>
-                      <span className="cardlist-big-card-stat">{selectedListCard.skill3.skillType} {selectedListCard.skill3.value}</span>
-                    </div>
+                    <span className="cardlist-big-card-stat stat-1">{selectedListCard.skill1.skillType} {selectedListCard.skill1.value}</span>
+                    <span className="cardlist-big-card-stat stat-2">{selectedListCard.skill2.skillType} {selectedListCard.skill2.value}</span>
+                    <span className="cardlist-big-card-stat stat-3">{selectedListCard.skill3.skillType} {selectedListCard.skill3.value}</span>
                   </div>
                 </div>
 
@@ -395,7 +391,9 @@ export default function CardListPage() {
                   <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
                     <div className="cardlist-info-header-text">
                       {selectedListCard.name}({selectedListCard.grade}등급)
+                      {/* TODO: 강화 레벨 표시 - 카드 상세 API에서 enhanceLevel 필드가 내려오면 아래 주석 해제
                       {selectedDetail && ` +${selectedDetail.enhanceLevel}`}
+                      */}
                     </div>
                   </NineSliceBox>
 

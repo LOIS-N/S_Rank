@@ -210,29 +210,24 @@
   filter: brightness(1.1);
 }
 
-/* 카드 위 능력치 오버레이 */
-.cardlist-card-stats-overlay {
+/* 카드 위 능력치 오버레이 (각 칸에 개별 배치) */
+.cardlist-card-stat {
   position: absolute;
-  bottom: 6%;
   left: 8%;
   right: 8%;
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
   z-index: 2;
   pointer-events: none;
 }
 
-.cardlist-card-stat {
-  display: block;
-  text-align: center;
-  font-family: 'StardustS', 'Stardust', sans-serif;
-  font-weight: 800;
-  font-size: 11.5px;
-  color: #fff;
-  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
-  line-height: 1.4;
-}
+.cardlist-card-stat.stat-1 { bottom: 26%; }
+.cardlist-card-stat.stat-2 { bottom: 16%; }
+.cardlist-card-stat.stat-3 { bottom: 5%; }
 
 .cardlist-card-item.selected::after {
   content: "";
@@ -333,28 +328,23 @@
   filter: drop-shadow(4px 4px 8px rgba(0,0,0,0.6));
 }
 
-/* 상세 카드 능력치 오버레이 */
-.cardlist-big-card-stats-overlay {
+/* 상세 카드 능력치 오버레이 (각 칸에 개별 배치) */
+.cardlist-big-card-stat {
   position: absolute;
-  bottom: 6%;
   left: 8%;
   right: 8%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  pointer-events: none;
-}
-
-.cardlist-big-card-stat {
-  display: block;
   text-align: center;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 18px;
+  font-size: 20px;
   color: #fff;
   text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
-  line-height: 1.4;
+  pointer-events: none;
 }
+
+.cardlist-big-card-stat.stat-1 { bottom: 26%; }
+.cardlist-big-card-stat.stat-2 { bottom: 15.5%; }
+.cardlist-big-card-stat.stat-3 { bottom: 5%; }
 
 .cardlist-info-col {
   flex: 1;
