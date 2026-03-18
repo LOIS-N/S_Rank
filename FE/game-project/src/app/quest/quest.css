@@ -36,6 +36,13 @@
 }
 
 /* --- 페이지 타이틀 --- */
+.quest-page-title-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .quest-page-title {
   text-align: center;
   color: #fff;
@@ -437,7 +444,7 @@
 
 .phase2-card-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 3개 -> 4개로 원상복구 */
+  grid-template-columns: repeat(3, 1fr); /* card-list와 동일하게 3열 */
   gap: 12px;
   position: absolute;
   top: 0;
@@ -496,9 +503,9 @@
   pointer-events: none;
 }
 
-/* 중앙 스크롤바 */
+/* 중앙 스크롤바 — card-list 페이지와 동일 크기 */
 .phase2-scrollbar-column {
-  flex: 0 0 32px;
+  flex: 0 0 120px;
   height: 100%;
 }
 
@@ -621,10 +628,17 @@
   filter: brightness(0.95);
 }
 
-/* Phase 2 Specific Scrollbar Assets */
+/* Phase 2 Specific Scrollbar — card-list와 동일 크기 */
 .phase2-scrollbar-column .scrollbar-track {
+  width: 80px;
   background-image: url('/assets/003-02/scrollBar_000.png');
+  background-size: 518% 108%;
+  background-position: 50% 50%;
 }
 .phase2-scrollbar-column .scrollbar-thumb {
+  width: 100px;
+  height: 100px;
   background-image: url('/assets/003-02/scrollButton_000.png');
+  background-size: 84% 48%;
+  background-position: 50% 49%;
 }

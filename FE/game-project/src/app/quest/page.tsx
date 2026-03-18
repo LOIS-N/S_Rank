@@ -281,7 +281,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const p2ThumbTop = useCallback(() => {
     if (!p2TrackHeight) return 0;
     const trackPadding = 14;
-    const thumbSize = 24;
+    const thumbSize = 100;
     const maxThumbTop = p2TrackHeight - thumbSize - (trackPadding * 2);
     if (maxThumbTop <= 0) return trackPadding;
     return trackPadding + (p2ScrollRatio * maxThumbTop);
@@ -304,7 +304,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       if (!isDraggingP2Ref.current || !p2TrackRef.current) return;
       const trackHeightCurrent = p2TrackRef.current.clientHeight;
       const trackPadding = 14;
-      const thumbSize = 24;
+      const thumbSize = 100;
       const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
       if (maxThumbTop <= 0) return;
       const deltaY = e.clientY - dragStartP2YRef.current;
@@ -326,7 +326,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     const clickY = e.clientY - rect.top;
     const trackHeightCurrent = rect.height;
     const trackPadding = 14;
-    const thumbSize = 24;
+    const thumbSize = 100;
     const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
     if (maxThumbTop <= 0) return;
     const adjustedClickY = clickY - trackPadding;
