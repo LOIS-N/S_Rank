@@ -10,6 +10,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -26,7 +27,13 @@ public class PrivyAuthenticationFilter extends OncePerRequestFilter {
     private final PrivyTokenService privyTokenService;
     private final UserRepository userRepository;
     private final HandlerExceptionResolver handlerExceptionResolver;
+    /* 백도어 */
+    @Value("${dev.backdoor.token:}")
+    private String backdoorToken;
 
+    @Value("${dev.backdoor.user-id:0}")
+    private Long backdoorUserId;
+    /* 백도어 */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
@@ -40,8 +47,20 @@ public class PrivyAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        System.out.println(">>>>> backdoorToken: [" + backdoorToken + "]");
+        System.out.println(">>>>> authHeader: [" + request.getHeader("Authorization") + "]");
         try {
-            System.out.println(">>>>> authHeader: [" + request.getHeader("Authorization") + "]");
+            // ----백도어
+            String authHeader = request.getHeader("Authorization");
+            if (!backdoorToken.isEmpty() && ("Bearer " + backdoorToken).equals(authHeader)) {
+                CurrentUserPrincipal principal = new CurrentUserPrincipal(backdoorUserId, "dev-backdoor");
+                SecurityContextHolder.getContext().setAuthentication(
+                        new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList())
+                );
+                filterChain.doFilter(request, response);
+                return;
+            }
+            // ------
             String privyId = privyTokenService.verifyAccessToken(request.getHeader("Authorization"));
             User user = userRepository.findByPrivyId(privyId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
