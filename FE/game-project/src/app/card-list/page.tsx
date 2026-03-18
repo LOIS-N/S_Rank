@@ -206,10 +206,10 @@ export default function CardListPage() {
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
 
-  const ROW_HEIGHT = 210 + 12;
-  const VISIBLE_ROWS = 2.8;
+  const ROW_HEIGHT = 360;
+  const VISIBLE_ROWS = 1.8;
   const totalRows = Math.ceil(sortedCards.length / 3);
-  const totalContentHeight = totalRows * ROW_HEIGHT + 32;
+  const totalContentHeight = totalRows * ROW_HEIGHT + 40;
   const visibleHeight = VISIBLE_ROWS * ROW_HEIGHT;
   const maxScroll = Math.max(0, totalContentHeight - visibleHeight);
   const scrollOffset = scrollRatio * maxScroll;
