@@ -75,7 +75,7 @@ interface CardListItem {
   skill1: CardSkill;
   skill2: CardSkill;
   skill3: CardSkill;
-  specialAbility: string | null;
+  specialAbility: { name: string; description: string; effects: string } | null;
 }
 
 interface CardDetailData {
@@ -399,7 +399,7 @@ export default function CardListPage() {
                   <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc" style={{ flex: 1, justifyContent: 'flex-start' }}>
                     {selectedListCard.specialAbility ? (
                       <div className="cardlist-info-text" style={{ textAlign: 'left' }}>
-                        능력 : {selectedListCard.specialAbility}
+                        능력 : {selectedListCard.specialAbility.name}
                       </div>
                     ) : (
                       <div className="cardlist-info-text" style={{ textAlign: 'left', color: '#888' }}>
