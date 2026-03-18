@@ -61,9 +61,9 @@ type PhaseType = 'select' | 'result_1' | 'result_10';
 
 // 탭별 뽑기 비용
 const GACHA_COSTS: Record<TabType, { single: number; ten: number }> = {
-  flyer:  { single: 10000,  ten: 90000  },
-  fair:   { single: 15000,  ten: 135000 },
-  public: { single: 40000,  ten: 360000 },
+  flyer: { single: 10000, ten: 90000 },
+  fair: { single: 15000, ten: 135000 },
+  public: { single: 40000, ten: 360000 },
 };
 
 interface GachaCard {
@@ -83,7 +83,7 @@ export default function GachaPage() {
   const { gold, increaseGold, openComingSoonModal } = useGameStore();
   const [drawnCards, setDrawnCards] = useState<GachaCard[]>([]);
 
-  const canPull1  = gold >= GACHA_COSTS[currentTab].single;
+  const canPull1 = gold >= GACHA_COSTS[currentTab].single;
   const canPull10 = gold >= GACHA_COSTS[currentTab].ten;
 
 
