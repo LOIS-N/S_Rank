@@ -50,7 +50,20 @@ public class UserServiceImpl implements UserService {
         user.withdraw();
     }
 
+    @Override
+    public void rewardGold(Long userId, Long gold) {
+        User user = getActiveUser(userId);
+        user.increaseGold(gold);
+    }
+
+    @Override
+    public void spendGold(Long userId, Long gold) {
+        User user = getActiveUser(userId);
+        user.decreaseGold(gold);
+    }
+
     private User getActiveUser(Long userId) {
+        System.out.println(userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 

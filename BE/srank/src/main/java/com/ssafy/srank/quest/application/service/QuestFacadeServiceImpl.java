@@ -11,6 +11,7 @@ import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.domain.entity.*;
 import com.ssafy.srank.quest.repository.*;
+import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
     private final UserMainQuestCardRepository userMainQuestCardRepository;
     private final UserSubQuestRepository userSubQuestRepository;
     private final UserSubQuestCardRepository userSubQuestCardRepository;
+    private final UserService userService;
 
     // 검증에 필요한 Repository들
     private final MainQuestTemplateRepository mainQuestTemplateRepository;
@@ -178,12 +180,14 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
     @Override
     public void completeQuest(Long userId, CompleteQuestRequest request) {
 
+        long gold;
+
         if(request.questType().equals(QuestType.MAIN)){
             UserMainQuest mainQuest = userMainQuestRepository.findByIdAndUserIdAndStatus(request.questId(), userId, QuestStatus.IN_PROGRESS)
                     .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
             if (mainQuest.getEndAt().isAfter(LocalDateTime.now()))
                 throw new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS);
-
+            gold = mainQuest.getMainQuestTemplate().getRewardGold();
             userMainQuestCardRepository.deleteByUserIdAndUserMainQuest_Id(userId, request.questId());
             userMainQuestRepository.delete(mainQuest);
         }else{
@@ -191,14 +195,16 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
                     .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
             if (subQuest.getEndAt().isAfter(LocalDateTime.now()))
                 throw new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS);
-
+            gold = subQuest.getSubQuestTemplate().getRewardGold();
             userSubQuestCardRepository.deleteByUserIdAndUserSubQuest_Id(userId, request.questId());
             userSubQuestRepository.delete(subQuest);
         }
         userDeskQuestRepository.deleteByUserIdAndQuestId(userId,request.questId());
-        //Todo : 보상 증가
-    }
 
+        //Todo : 보상 증가
+        
+        userService.rewardGold(userId, gold);
+    }
 // ============ 검증 메소드들 ============
 
     /**
@@ -264,20 +270,20 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
      * 카드 스탯이 퀘스트 요구치의 50% 이상인지 확인
      */
     private void validateCardStats(UserCard card, MainQuestTemplate template) {
-        // 요구 스킬 1 검증
-        if (!hasMinimumStat(card, template.getRequiredSkillType1(), template.getRequiredSkillValue1())) {
-            throw new BusinessException(ErrorCode.QUEST_STAT_INSUFFICIENT);
-        }
-
-        // 요구 스킬 2 검증
-        if (!hasMinimumStat(card, template.getRequiredSkillType2(), template.getRequiredSkillValue2())) {
-            throw new BusinessException(ErrorCode.QUEST_STAT_INSUFFICIENT);
-        }
-
-        // 요구 스킬 3 검증
-        if (!hasMinimumStat(card, template.getRequiredSkillType3(), template.getRequiredSkillValue3())) {
-            throw new BusinessException(ErrorCode.QUEST_STAT_INSUFFICIENT);
-        }
+//        // 요구 스킬 1 검증
+//        if (!hasMinimumStat(card, template.getRequiredSkillType1(), template.getRequiredSkillValue1())) {
+//            throw new BusinessException(ErrorCode.QUEST_STAT_INSUFFICIENT);
+//        }
+//
+//        // 요구 스킬 2 검증
+//        if (!hasMinimumStat(card, template.getRequiredSkillType2(), template.getRequiredSkillValue2())) {
+//            throw new BusinessException(ErrorCode.QUEST_STAT_INSUFFICIENT);
+//        }
+//
+//        // 요구 스킬 3 검증
+//        if (!hasMinimumStat(card, template.getRequiredSkillType3(), template.getRequiredSkillValue3())) {
+//            throw new BusinessException(ErrorCode.QUEST_STAT_INSUFFICIENT);
+//        }
     }
 
     /**
