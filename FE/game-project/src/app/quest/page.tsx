@@ -266,9 +266,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const dragStartP2YRef = useRef(0);
   const dragStartP2RatioRef = useRef(0);
 
-  const ROW_HEIGHT = 210 + 12;
+  const ROW_HEIGHT = 360;
   const totalRows = Math.ceil(CARD_POOL.length / 3);
-  const p2TotalContentHeight = totalRows * ROW_HEIGHT + 32;
+  const p2TotalContentHeight = totalRows * ROW_HEIGHT + 260;
   const p2MaxScroll = Math.max(0, p2TotalContentHeight - p2WrapperHeight);
   const p2ScrollOffset = p2ScrollRatio * p2MaxScroll;
 
@@ -288,8 +288,14 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   }, [p2ScrollRatio, p2TrackHeight]);
 
   useEffect(() => {
-    if (p2TrackRef.current) setP2TrackHeight(p2TrackRef.current.clientHeight);
-    if (p2WrapperRef.current) setP2WrapperHeight(p2WrapperRef.current.clientHeight);
+    const measure = () => {
+      if (p2TrackRef.current) setP2TrackHeight(p2TrackRef.current.clientHeight);
+      if (p2WrapperRef.current) setP2WrapperHeight(p2WrapperRef.current.clientHeight);
+    };
+    measure();
+    // Phase2 슬라이드 애니메이션 완료 후 재측정
+    const timer = setTimeout(measure, 450);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleP2ThumbMouseDown = useCallback((e: React.MouseEvent) => {
@@ -337,23 +343,25 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   if (!quest) return null;
 
   return (
-    <div className="phase2-container">
-      {/* ──── 좌측: 카드 목록 ──── */}
-      <NineSliceBox src="/assets/003-02/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
-        <div className="phase2-card-grid-wrapper" ref={p2WrapperRef} onWheel={handleP2Wheel} style={{ flex: 1, overflow: 'hidden' }}>
-          <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
-            {CARD_POOL.map((card) => {
-              const selected = selectedCards.includes(card.id);
-              return (
-                <div key={card.id} className={`phase2-card-item ${selected ? 'selected' : ''}`} onClick={() => handleCardClick(card.id)}>
-                  <img src={card.image} alt="card" draggable={false} />
-                  {selected && <div className="phase2-card-highlight"></div>}
-                </div>
-              );
-            })}
+    <>
+      {/* ──── 좌측: 카드 목록 (card-list 레이아웃 통일) ──── */}
+      <div className="phase2-left-col">
+        <NineSliceBox src="/assets/003-02/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
+          <div className="phase2-card-grid-wrapper" ref={p2WrapperRef} onWheel={handleP2Wheel} style={{ flex: 1, overflow: 'hidden' }}>
+            <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
+              {CARD_POOL.map((card) => {
+                const selected = selectedCards.includes(card.id);
+                return (
+                  <div key={card.id} className={`phase2-card-item ${selected ? 'selected' : ''}`} onClick={() => handleCardClick(card.id)}>
+                    <img src={card.image} alt="card" draggable={false} />
+                    {selected && <div className="phase2-card-highlight"></div>}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </NineSliceBox>
+        </NineSliceBox>
+      </div>
 
       {/* ──── 중간: 스크롤바 ──── */}
       <div className="scrollbar-column phase2-scrollbar-column">
@@ -412,13 +420,13 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
           </NineSliceBox>
         </div>
 
-        {/* 수락하기 / 취소하기 버튼 */}
+        {/* 수락하기 / 취소하기 버튼 (card-list 스타일 통일) */}
         <div className="phase2-action-buttons">
           <NineSliceBox
             src="/assets/003-01/questCard_000.png"
             slice={[200, 208, 200, 208]}
-            framePadding={10}
-            borderScale={0.35}
+            framePadding={14}
+            borderScale={0.4}
             className="phase2-btn-cancel"
             onClick={onCancel}
           >
@@ -426,19 +434,19 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
           </NineSliceBox>
 
           <NineSliceBox
-              src="/assets/003-01/questCard_000.png"
-              slice={[200, 208, 200, 208]}
-              framePadding={10}
-              borderScale={0.35}
-              className="phase2-btn-accept"
-              onClick={handleAcceptQuest}
+            src="/assets/003-01/questCard_000.png"
+            slice={[200, 208, 200, 208]}
+            framePadding={14}
+            borderScale={0.4}
+            className="phase2-btn-accept"
+            onClick={handleAcceptQuest}
           >
-              <span style={{ position: 'relative', zIndex: 2 }}>수락하기</span>
+            <span style={{ position: 'relative', zIndex: 2 }}>수락하기</span>
           </NineSliceBox>
         </div>
 
       </NineSliceBox>
-    </div>
+    </>
   );
 }
 
