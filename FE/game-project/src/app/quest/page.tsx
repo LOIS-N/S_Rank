@@ -84,6 +84,10 @@ interface CardListItem {
 
 const GRADE_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
 
+function displaySkillType(type: string): string {
+  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type;
+}
+
 function sortCardsByGradeAndStat(cards: CardListItem[]): CardListItem[] {
   return [...cards].sort((a, b) => {
     const gradeA = GRADE_ORDER[a.grade] ?? 99;
@@ -657,9 +661,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
                   return (
                     <div key={card.cardId} className={`phase2-card-item ${selected ? 'selected' : ''}`} onClick={() => handleCardClick(card.cardId)}>
                       <img src={card.imageUrl} alt={card.name} draggable={false} />
-                      <span className="phase2-card-stat stat-1">{card.skill1.skillType} {card.skill1.value}</span>
-                      <span className="phase2-card-stat stat-2">{card.skill2.skillType} {card.skill2.value}</span>
-                      <span className="phase2-card-stat stat-3">{card.skill3.skillType} {card.skill3.value}</span>
+                      <span className="phase2-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                      <span className="phase2-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                      <span className="phase2-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                       {selected && <div className="phase2-card-highlight"></div>}
                     </div>
                   );

@@ -61,6 +61,10 @@ function NineSliceBox({ src, slice, framePadding, borderScale = 1, children, cla
   );
 }
 
+function displaySkillType(type: string): string {
+  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type;
+}
+
 // --- API 응답 타입 ---
 interface CardSkill {
   skillType: string;
@@ -87,7 +91,7 @@ interface CardDetailData {
 }
 
 // --- 스킬 필터 옵션 ---
-const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEVOPS", "DESIGN"] as const;
+const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEV", "DESIGN"] as const;
 
 export default function CardListPage() {
   const { getAccessToken } = usePrivy();
@@ -338,12 +342,13 @@ export default function CardListPage() {
                         <div
                           key={card.cardId}
                           className={`cardlist-card-item ${isSelected ? 'selected' : ''}`}
+                          data-grade={card.grade}
                           onClick={() => handleCardClick(card.cardId)}
                         >
                           <img src={card.imageUrl} alt={card.name} draggable={false} />
-                          <span className="cardlist-card-stat stat-1">{card.skill1.skillType} {card.skill1.value}</span>
-                          <span className="cardlist-card-stat stat-2">{card.skill2.skillType} {card.skill2.value}</span>
-                          <span className="cardlist-card-stat stat-3">{card.skill3.skillType} {card.skill3.value}</span>
+                          <span className="cardlist-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                          <span className="cardlist-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                          <span className="cardlist-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                         </div>
                       );
                     })
@@ -379,9 +384,9 @@ export default function CardListPage() {
                 <div className="cardlist-big-card-col">
                   <div className="cardlist-big-card-wrapper">
                     <img src={selectedListCard.imageUrl} alt={selectedListCard.name} draggable={false} />
-                    <span className="cardlist-big-card-stat stat-1">{selectedListCard.skill1.skillType} {selectedListCard.skill1.value}</span>
-                    <span className="cardlist-big-card-stat stat-2">{selectedListCard.skill2.skillType} {selectedListCard.skill2.value}</span>
-                    <span className="cardlist-big-card-stat stat-3">{selectedListCard.skill3.skillType} {selectedListCard.skill3.value}</span>
+                    <span className="cardlist-big-card-stat stat-1">{displaySkillType(selectedListCard.skill1.skillType)} {selectedListCard.skill1.value}</span>
+                    <span className="cardlist-big-card-stat stat-2">{displaySkillType(selectedListCard.skill2.skillType)} {selectedListCard.skill2.value}</span>
+                    <span className="cardlist-big-card-stat stat-3">{displaySkillType(selectedListCard.skill3.skillType)} {selectedListCard.skill3.value}</span>
                   </div>
                 </div>
 
@@ -400,9 +405,9 @@ export default function CardListPage() {
                   {/* 능력치 */}
                   <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
                     <div className="cardlist-info-title">능력치</div>
-                    <div className="cardlist-info-text">{selectedListCard.skill1.skillType} +{selectedListCard.skill1.value}</div>
-                    <div className="cardlist-info-text">{selectedListCard.skill2.skillType} +{selectedListCard.skill2.value}</div>
-                    <div className="cardlist-info-text">{selectedListCard.skill3.skillType} +{selectedListCard.skill3.value}</div>
+                    <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{selectedListCard.skill1.value}</div>
+                    <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{selectedListCard.skill2.value}</div>
+                    <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{selectedListCard.skill3.value}</div>
                   </NineSliceBox>
 
                   {/* 특수 능력 */}

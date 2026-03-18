@@ -229,15 +229,77 @@
 .cardlist-card-stat.stat-2 { bottom: 16%; }
 .cardlist-card-stat.stat-3 { bottom: 5%; }
 
-.cardlist-card-item.selected::after {
+/* ============================
+   등급별 선택 테두리 + 회전 애니메이션
+   S=다이아몬드, A=금색, B=은색, C=동색, D=강철색
+   ============================ */
+
+/* 회전하는 테두리 (::before) — border 역할 */
+.cardlist-card-item.selected::before {
   content: "";
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  border: 3px solid #ffd700;
-  border-radius: 6px;
-  z-index: 2;
-  box-shadow: 0 0 10px #ffd700, inset 0 0 10px #ffd700;
+  top: -3px; left: 7px; right: 7px; bottom: -3px;
+  border-radius: 8px;
+  z-index: -1;
+  animation: borderRotate 2.5s linear infinite;
   pointer-events: none;
+}
+
+/* --- S등급: 다이아몬드 (시안~화이트 반짝임) --- */
+.cardlist-card-item.selected[data-grade="S"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+    #b9f2ff, #00e5ff, #ffffff, #76d7ff, #00e5ff, #b9f2ff);
+}
+.cardlist-card-item.selected[data-grade="S"] {
+  filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.7));
+}
+
+/* --- A등급: 금색 --- */
+.cardlist-card-item.selected[data-grade="A"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+    #ffd700, #ffec80, #b8860b, #fff4b0, #ffd700, #ffd700);
+}
+.cardlist-card-item.selected[data-grade="A"] {
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
+}
+
+/* --- B등급: 은색 --- */
+.cardlist-card-item.selected[data-grade="B"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+    #c0c0c0, #e8e8e8, #888888, #f0f0f0, #c0c0c0, #c0c0c0);
+}
+.cardlist-card-item.selected[data-grade="B"] {
+  filter: drop-shadow(0 0 8px rgba(192, 192, 192, 0.6));
+}
+
+/* --- C등급: 동색 (브론즈) --- */
+.cardlist-card-item.selected[data-grade="C"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+    #cd7f32, #e8a860, #8b4513, #daa06d, #cd7f32, #cd7f32);
+}
+.cardlist-card-item.selected[data-grade="C"] {
+  filter: drop-shadow(0 0 8px rgba(205, 127, 50, 0.5));
+}
+
+/* --- D등급: 진한 파랑색 --- */
+.cardlist-card-item.selected[data-grade="D"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+    #1a3a8a, #2b5fcf, #0d2266, #3a7af0, #1a3a8a, #1a3a8a);
+}
+.cardlist-card-item.selected[data-grade="D"] {
+  filter: drop-shadow(0 0 8px rgba(26, 58, 138, 0.6));
+}
+
+/* 테두리 회전 애니메이션 */
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes borderRotate {
+  from { --border-angle: 0deg; }
+  to   { --border-angle: 360deg; }
 }
 
 /* 스크롤바 컬럼 */
