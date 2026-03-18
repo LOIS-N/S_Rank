@@ -341,6 +341,11 @@ export default function CardListPage() {
                           onClick={() => handleCardClick(card.cardId)}
                         >
                           <img src={card.imageUrl} alt={card.name} draggable={false} />
+                          <div className="cardlist-card-stats-overlay">
+                            <span className="cardlist-card-stat">{card.skill1.skillType} {card.skill1.value}</span>
+                            <span className="cardlist-card-stat">{card.skill2.skillType} {card.skill2.value}</span>
+                            <span className="cardlist-card-stat">{card.skill3.skillType} {card.skill3.value}</span>
+                          </div>
                         </div>
                       );
                     })
@@ -374,7 +379,14 @@ export default function CardListPage() {
               <div className="cardlist-detail-split animate-detail" key={selectedListCard.cardId}>
                 {/* 큰 카드 이미지 */}
                 <div className="cardlist-big-card-col">
-                  <img src={selectedListCard.imageUrl} alt={selectedListCard.name} draggable={false} />
+                  <div className="cardlist-big-card-wrapper">
+                    <img src={selectedListCard.imageUrl} alt={selectedListCard.name} draggable={false} />
+                    <div className="cardlist-big-card-stats-overlay">
+                      <span className="cardlist-big-card-stat">{selectedListCard.skill1.skillType} {selectedListCard.skill1.value}</span>
+                      <span className="cardlist-big-card-stat">{selectedListCard.skill2.skillType} {selectedListCard.skill2.value}</span>
+                      <span className="cardlist-big-card-stat">{selectedListCard.skill3.skillType} {selectedListCard.skill3.value}</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 우측 정보 */}
