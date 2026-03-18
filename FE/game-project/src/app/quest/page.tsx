@@ -84,6 +84,10 @@ interface CardListItem {
 
 const GRADE_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
 
+function displaySkillType(type: string): string {
+  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type;
+}
+
 function sortCardsByGradeAndStat(cards: CardListItem[]): CardListItem[] {
   return [...cards].sort((a, b) => {
     const gradeA = GRADE_ORDER[a.grade] ?? 99;
@@ -655,12 +659,11 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
                 sortedCards.map((card) => {
                   const selected = selectedCards.includes(card.cardId);
                   return (
-                    <div key={card.cardId} className={`phase2-card-item ${selected ? 'selected' : ''}`} onClick={() => handleCardClick(card.cardId)}>
+                    <div key={card.cardId} className={`phase2-card-item ${selected ? 'selected' : ''}`} data-grade={card.grade} onClick={() => handleCardClick(card.cardId)}>
                       <img src={card.imageUrl} alt={card.name} draggable={false} />
-                      <span className="phase2-card-stat stat-1">{card.skill1.skillType} {card.skill1.value}</span>
-                      <span className="phase2-card-stat stat-2">{card.skill2.skillType} {card.skill2.value}</span>
-                      <span className="phase2-card-stat stat-3">{card.skill3.skillType} {card.skill3.value}</span>
-                      {selected && <div className="phase2-card-highlight"></div>}
+                      <span className="phase2-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                      <span className="phase2-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                      <span className="phase2-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                     </div>
                   );
                 })
@@ -693,29 +696,38 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
         {/* Middle: 카드 배치 현황판 */}
         <NineSliceBox src="/assets/003-02/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-drop-box">
           <div className="phase2-drop-cards">
-            {Array.from({ length: quest.cardSlotCount }).map((_, index) => {
-              const cardId = selectedCards[index];
-              const card = cardId != null ? sortedCards.find(c => c.cardId === cardId) : null;
-              if (card) {
-                const overlapOffset = quest.cardSlotCount > 3 ? -40 : 10;
-                return (
-                  <img
-                    key={card.cardId}
-                    src={card.imageUrl}
-                    alt={card.name}
-                    className="phase2-dropped-card"
-                    style={{ zIndex: index, marginLeft: index > 0 ? overlapOffset : 0 }}
-                    onClick={() => handleCardClick(card.cardId)}
-                    draggable={false}
-                  />
-                );
-              }
-              return (
-                <div key={`empty-${index}`} className="phase2-empty-slot" style={{ marginLeft: index > 0 ? 10 : 0 }}>
-                  <span>?</span>
-                </div>
-              );
-            })}
+            {selectedCards.length === 0 ? (
+              <div className="phase2-drop-empty-text">카드를 선택하세요</div>
+            ) : (
+              (() => {
+                const total = selectedCards.length;
+                const cardWidth = total <= 3 ? 110 : total === 4 ? 95 : 82;
+                const overlap = total <= 3 ? -25 : total === 4 ? -30 : -35;
+                const fanAngle = total <= 3 ? 10 : total === 4 ? 8 : 6;
+                const yMultiplier = total <= 3 ? 10 : total === 4 ? 8 : 6;
+                return selectedCards.map((cardId, index) => {
+                  const card = sortedCards.find(c => c.cardId === cardId);
+                  if (!card) return null;
+                  const angle = (index - (total - 1) / 2) * fanAngle;
+                  const yOffset = Math.abs(index - (total - 1) / 2) * yMultiplier;
+                  return (
+                    <div
+                      key={card.cardId}
+                      className="phase2-fan-card"
+                      style={{
+                        width: `${cardWidth}px`,
+                        zIndex: index,
+                        marginLeft: index > 0 ? `${overlap}px` : '0',
+                        transform: `rotate(${angle}deg) translateY(${yOffset}px)`,
+                      }}
+                      onClick={() => handleCardClick(card.cardId)}
+                    >
+                      <img src={card.imageUrl} alt={card.name} draggable={false} />
+                    </div>
+                  );
+                });
+              })()
+            )}
           </div>
         </NineSliceBox>
 
