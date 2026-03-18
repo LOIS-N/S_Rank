@@ -15,6 +15,7 @@ export const useAuth = () => {
 
   useEffect(() => {
     const loginToBackend = async () => {
+      // 인증은 되었지만 우리 서비스 로그인은 안 된 상태일 때 진행
       if (authenticated && !isAuthenticated && user && identityToken && !isprocessing.current) {
         try {
           isprocessing.current = true;
@@ -24,13 +25,17 @@ export const useAuth = () => {
           console.log("[Auth] All tokens ready. Calling backend...");
 
           // 1. 백엔드 로그인 요청 (client 사용)
+          // const response = await client.post('/api/v1/auth/login',
+          //   { identityToken },
+          //   {
+          //     headers: {
+          //       'Authorization': `Bearer ${accessToken}`,
+          //     }
+          //   }
+          // );
+
           const response = await client.post('/api/v1/auth/login',
-            { identityToken },
-            {
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-              }
-            }
+            { identityToken } // 헤더를 아예 제거하고 테스트
           );
 
           if (response.data.success) {
