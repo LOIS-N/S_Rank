@@ -58,6 +58,9 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'com.h2database:h2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.+'
+    // Sentry Spring Boot 자동 설정 라이브러리
 }
 
 tasks.named('test') {
