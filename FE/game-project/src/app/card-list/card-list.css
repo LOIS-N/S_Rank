@@ -57,7 +57,7 @@
   display: flex;
   flex: 1;
   padding: 0 24px 100px 24px;
-  gap: 20px;
+  gap: 0;
   min-height: 0;
   box-sizing: border-box;
 }
@@ -66,7 +66,7 @@
    좌측 영역: 필터 + 카드 그리드
    ============================ */
 .cardlist-left-col {
-  flex: 3;
+  flex: 3.5;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -157,6 +157,7 @@
   position: relative;
 }
 
+
 /* 좌/우측 메인 박스들을 감싸 같은 높이를 보장하는 부모 */
 .cardlist-main-row {
   display: flex;
@@ -209,6 +210,25 @@
   filter: brightness(1.1);
 }
 
+/* 카드 위 능력치 오버레이 (각 칸에 개별 배치) */
+.cardlist-card-stat {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cardlist-card-stat.stat-1 { bottom: 26%; }
+.cardlist-card-stat.stat-2 { bottom: 16%; }
+.cardlist-card-stat.stat-3 { bottom: 5%; }
+
 .cardlist-card-item.selected::after {
   content: "";
   position: absolute;
@@ -225,10 +245,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   width: 120px;
   flex-shrink: 0;
   height: 100%;
+  margin: 0px;
 }
 
 .scrollbar-track {
@@ -291,13 +312,39 @@
   min-width: 0;
 }
 
-.cardlist-big-card-col img {
+.cardlist-big-card-wrapper {
+  position: relative;
+  display: inline-block;
   max-width: 100%;
   max-height: 100%;
+}
+
+.cardlist-big-card-wrapper img {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
   object-fit: contain;
   image-rendering: pixelated;
   filter: drop-shadow(4px 4px 8px rgba(0,0,0,0.6));
 }
+
+/* 상세 카드 능력치 오버레이 (각 칸에 개별 배치) */
+.cardlist-big-card-stat {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  pointer-events: none;
+}
+
+.cardlist-big-card-stat.stat-1 { bottom: 26%; }
+.cardlist-big-card-stat.stat-2 { bottom: 15.5%; }
+.cardlist-big-card-stat.stat-3 { bottom: 5%; }
 
 .cardlist-info-col {
   flex: 1;
