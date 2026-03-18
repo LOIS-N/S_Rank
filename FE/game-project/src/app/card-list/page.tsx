@@ -4,7 +4,6 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 // [로컬 테스트용] axios 인스턴스 import - 실제 배포 시에는 주석 처리가 필요합니다.
-import api from "@/api/axios";
 import "./card-list.css";
 
 // [실제 배포용] fetch 방식 전환 시 사용 - 현재 axios 사용 중이므로 미사용

@@ -474,8 +474,8 @@ export default function QuestPage() {
         },
       });
       const json = await res.json();
-      if (json.isSuccess && json.data) {
-        const d: MainQuestData = json.data;
+      if (json.success && json.data && Array.isArray(json.data) && json.data.length > 0) {
+        const d: MainQuestData = json.data[0];
         const quest: Quest = {
           questId: d.questId,
           title: d.title,
@@ -590,7 +590,7 @@ export default function QuestPage() {
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
 
-  const CARD_HEIGHT = 66;
+  const CARD_HEIGHT = 78;
   const VISIBLE_CARDS = 4;
   const visibleHeight = CARD_HEIGHT * VISIBLE_CARDS;
 
@@ -606,8 +606,8 @@ export default function QuestPage() {
 
   const getThumbTop = useCallback(() => {
     if (!trackHeight) return 0;
-    const trackPadding = 14;
-    const thumbSize = 24;
+    const thumbSize = 18;
+    const trackPadding = thumbSize / 2; // 썸 중심이 트랙 경계와 맞도록
     const maxThumbTop = trackHeight - thumbSize - (trackPadding * 2);
     if (maxThumbTop <= 0) return trackPadding;
     return trackPadding + (scrollRatio * maxThumbTop);
@@ -627,8 +627,8 @@ export default function QuestPage() {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDraggingRef.current || !scrollTrackRef.current) return;
       const trackHeightCurrent = scrollTrackRef.current.clientHeight;
-      const trackPadding = 14;
-      const thumbSize = 24;
+      const thumbSize = 18;
+      const trackPadding = thumbSize / 2; // 썸 중심이 트랙 경계와 맞도록
       const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
       if (maxThumbTop <= 0) return;
 
@@ -656,8 +656,8 @@ export default function QuestPage() {
       const rect = scrollTrackRef.current.getBoundingClientRect();
       const clickY = e.clientY - rect.top;
       const trackHeightCurrent = rect.height;
-      const trackPadding = 14;
-      const thumbSize = 24;
+      const thumbSize = 18;
+      const trackPadding = thumbSize / 2; // 썸 중심이 트랙 경계와 맞도록
       const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
       if (maxThumbTop <= 0) return;
 
@@ -697,59 +697,59 @@ export default function QuestPage() {
       <div className={`quest-content-wrapper phase-${phase}`}>
         {/* === Phase 1: 퀘스트 목록 화면 === */}
         <div className="quest-content phase-1-content">
-          {/* ──── 좌측: 퀘스트 리스트 + 스크롤바 ──── */}
+          {/* ──── 좌측: 퀘스트 리스트 ──── */}
           <div className="quest-left-area" onWheel={handleWheel}>
-          {/* 퀘스트 리스트 */}
-          <div className="quest-list-column">
-            {/* 메인 퀘스트 (고정) */}
-            {mainQuest ? (
-              <QuestCard
-                quest={mainQuest}
-                isMain
-                isSelected={selectedQuest?.questId === mainQuest.questId && selectedQuest?.isMain}
-                onClick={() => setSelectedQuest(mainQuest)}
-              />
-            ) : (
-              <div style={{ minHeight: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif" }}>
-                {isLoading ? "로딩 중..." : "메인 퀘스트 없음"}
-              </div>
-            )}
+            <div className="quest-list-column">
+              {/* 메인 퀘스트 (고정) */}
+              {mainQuest ? (
+                <QuestCard
+                  quest={mainQuest}
+                  isMain
+                  isSelected={selectedQuest?.questId === mainQuest.questId && selectedQuest?.isMain}
+                  onClick={() => setSelectedQuest(mainQuest)}
+                />
+              ) : (
+                <div style={{ minHeight: 68, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: '18px' }}>
+                  {isLoading ? "로딩 중..." : "메인 퀘스트 없음"}
+                </div>
+              )}
 
-            {/* 서브 퀘스트 (스크롤 영역) */}
-            <div
-              className="sub-quest-scroll-area"
-              style={{ height: visibleHeight }}
-            >
+              {/* 서브 퀘스트 (스크롤 영역) */}
               <div
-                ref={subQuestListRef}
-                className="sub-quest-list"
-                style={{ transform: `translateY(-${scrollOffset}px)` }}
+                className="sub-quest-scroll-area"
+                style={{ height: visibleHeight }}
               >
-                {isLoading ? (
-                  <div style={{ padding: 20, textAlign: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif" }}>
-                    로딩 중...
-                  </div>
-                ) : subQuests.length === 0 ? (
-                  <div style={{ padding: 20, textAlign: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif" }}>
-                    서브 퀘스트가 없습니다
-                  </div>
-                ) : (
-                  subQuests.map((quest) => (
-                    <QuestCard
-                      key={quest.questId}
-                      quest={quest}
-                      isSelected={selectedQuest?.questId === quest.questId && !selectedQuest?.isMain}
-                      onClick={() => setSelectedQuest(quest)}
-                    />
-                  ))
-                )}
+                <div
+                  ref={subQuestListRef}
+                  className="sub-quest-list"
+                  style={{ transform: `translateY(-${scrollOffset}px)` }}
+                >
+                  {isLoading ? (
+                    <div style={{ padding: 20, textAlign: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: '18px' }}>
+                      로딩 중...
+                    </div>
+                  ) : subQuests.length === 0 ? (
+                    <div style={{ padding: 20, textAlign: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: '18px' }}>
+                      서브 퀘스트가 없습니다
+                    </div>
+                  ) : (
+                    subQuests.map((quest) => (
+                      <QuestCard
+                        key={quest.questId}
+                        quest={quest}
+                        isSelected={selectedQuest?.questId === quest.questId && !selectedQuest?.isMain}
+                        onClick={() => setSelectedQuest(quest)}
+                      />
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* 커스텀 스크롤바 + 새로고침 */}
+          {/* ──── 중앙: 스크롤바 + 새로고침 ──── */}
           <div className="scrollbar-column" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div className="scrollbar-spacer" style={{ height: '62px' }} />
+            <div className="scrollbar-spacer" />
 
             <div
               ref={scrollTrackRef}
@@ -780,10 +780,9 @@ export default function QuestPage() {
               />
             </button>
           </div>
-        </div>
 
-        {/* ──── 우측: 퀘스트 상세 정보 ──── */}
-        <QuestDetail quest={selectedQuest} isAccepting={isAccepting} onAccept={handleAcceptQuest} />
+          {/* ──── 우측: 퀘스트 상세 정보 ──── */}
+          <QuestDetail quest={selectedQuest} isAccepting={isAccepting} onAccept={handleAcceptQuest} />
         </div>
 
         {/* === Phase 2: 카드 배치 화면 === */}
