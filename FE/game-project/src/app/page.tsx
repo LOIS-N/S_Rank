@@ -1,10 +1,19 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
+
+function LoadingDots() {
+  const [count, setCount] = useState(1);
+  useEffect(() => {
+    const id = setInterval(() => setCount(c => c >= 3 ? 1 : c + 1), 400);
+    return () => clearInterval(id);
+  }, []);
+  return <span className="inline-block w-10 text-left">{'.'.repeat(count)}</span>;
+}
 
 const GameCanvas = dynamic(() => import("@/components/GameCanvas"), { ssr: false });
 const MainHUD = dynamic(() => import("@/components/MainHUD"), { ssr: false });
@@ -12,7 +21,7 @@ const MainHUD = dynamic(() => import("@/components/MainHUD"), { ssr: false });
 export default function Home() {
   const { login, authenticated, ready } = usePrivy();
   const { isAuthenticated, isNewUser, nickname } = useUserStore();
-  const { gameStatus, setNickname, startGame, setGameStatus } = useGameStore();
+  const { gameStatus, setNickname, startGame, setGameStatus, isHUDModalOpen } = useGameStore();
 
   // Problem 1: 인증 완료 시 게임 상태 동기화 (useUserStore 기준)
   useEffect(() => {
@@ -57,8 +66,8 @@ export default function Home() {
   // Privy SDK 초기화 전
   if (!ready) {
     return (
-      <div className="bg-black text-white h-screen flex items-center justify-center font-dot text-2xl animate-pulse">
-        LOADING...
+      <div className="bg-black text-white h-screen flex items-center justify-center font-dot text-4xl">
+        LOADING<LoadingDots />
       </div>
     );
   }
@@ -68,7 +77,7 @@ export default function Home() {
 
   return (
     <main className="absolute inset-0 overflow-hidden bg-black text-white font-dot">
-      <audio id="main-bgm" src="/assets/7번.mp3" autoPlay loop className="hidden" />
+      <audio id="main-bgm" src="/assets/7번.mp3" preload="none" loop className="hidden" />
 
       {/* 0. 게임 캔버스 (배경) */}
       <div className="absolute inset-0 z-0">
@@ -77,20 +86,14 @@ export default function Home() {
 
       {/* 1. 로그인 전 */}
       {!authenticated && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#8ea4b8]/60 p-4">
-          <div className="flex flex-col items-center justify-center text-center">
-            <h1 className="font-dot text-4xl md:text-6xl lg:text-7xl text-white mb-10 leading-tight [text-shadow:4px_4px_0px_#4a5d73]">
-              S급 개발자들이<br/>
-              <span className="text-yellow-400">나를 따르는 이유에 대하여</span>
-            </h1>
-            <button
-              onClick={() => login()}
-              className="group flex items-center gap-4 bg-white text-black px-10 py-5 border-b-8 border-r-8 border-[#6b859e] font-dot text-2xl sm:text-3xl font-bold active:border-0 active:translate-y-2 transition-all shadow-2xl hover:bg-slate-50"
-            >
-              <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-8 h-8 sm:w-10 sm:h-10" />
-              <span>GOOGLE LOGIN</span>
-            </button>
-          </div>
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-4">
+          <button
+            onClick={() => login()}
+            className="flex items-center gap-3 bg-white text-[#3c4043] px-5 py-2.5 rounded border border-[#dadce0] text-base font-semibold font-sans transition-colors shadow hover:bg-[#f8f9fa] hover:border-[#d2e3fc] active:bg-[#f1f3f4] translate-y-[115px]"
+          >
+            <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-5 h-5" />
+            <span>Google로 계속하기</span>
+          </button>
         </div>
       )}
 
@@ -100,6 +103,11 @@ export default function Home() {
           <div className="w-16 h-16 border-8 border-t-yellow-400 border-white/20 rounded-full animate-spin mb-6" />
           <p className="text-2xl animate-pulse drop-shadow-md font-bold text-yellow-100">서버와 동기화 중...</p>
         </div>
+      )}
+
+      {/* HUD 모달 오픈 시 Phaser 캔버스 클릭 차단 (fixed → root 스태킹 컨텍스트에서 canvas z-0 위에 위치) */}
+      {isHUDModalOpen && (
+        <div className="fixed inset-0 z-[35] pointer-events-auto" />
       )}
 
       {/* 3. 메인 HUD (PLAYING) */}

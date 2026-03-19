@@ -253,7 +253,7 @@ export default function GachaPage() {
     <>
       <div
         className={`gacha-action-btn${!canPull1 || isPulling ? ' btn-disabled' : ''}`}
-        style={{ backgroundImage: 'url(/assets/006/gachaButton_000.png)' }}
+        style={{ backgroundImage: 'url(/assets/006/gachaButton_000.webp)' }}
         onClick={canPull1 && !isPulling ? () => handlePull(1) : undefined}
       >
         <span>1회 뽑기</span>
@@ -261,7 +261,7 @@ export default function GachaPage() {
       </div>
       <div
         className={`gacha-action-btn btn-10pull${!canPull10 || isPulling ? ' btn-disabled' : ''}`}
-        style={{ backgroundImage: 'url(/assets/006/gachaButton_000.png)' }}
+        style={{ backgroundImage: 'url(/assets/006/gachaButton_000.webp)' }}
         onClick={canPull10 && !isPulling ? () => handlePull(10) : undefined}
       >
         <span>10회 뽑기</span>
@@ -287,7 +287,7 @@ export default function GachaPage() {
         <div className="gacha-gold-hud">
           <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
             <img
-              src="/assets/002/coin_002.png"
+              src="/assets/002/coin_002.webp"
               alt="gold"
               style={{
                 width: '5cqw',
@@ -301,7 +301,7 @@ export default function GachaPage() {
                 height: '4cqw',
                 paddingRight: '1.9cqw',
                 fontSize: '1.7cqw',
-                backgroundImage: "url('/assets/002/upperBlank_002.png')",
+                backgroundImage: "url('/assets/002/upperBlank_002.webp')",
                 backgroundSize: '100% 100%',
                 display: 'flex',
                 alignItems: 'center',

@@ -20,12 +20,12 @@ export default function DiscordModal({ onClose }: DiscordModalProps) {
         </p>
 
         <div className="flex flex-col gap-4">
-          <a shrink-0
-            href="https://discord.gg/f5YHBnyZ" 
-            target="_blank" 
+          <a
+            href="https://discord.gg/f5YHBnyZ"
+            target="_blank"
             rel="noopener noreferrer"
             onClick={onClose}
-            className="w-full block py-7 text-2xl bg-[#5865F2] text-white border-b-4 border-r-4 border-[#3c45a5] active:border-0 active:translate-y-1 transition-all"
+            className="w-full block shrink-0 py-7 text-2xl bg-[#5865F2] text-white border-b-4 border-r-4 border-[#3c45a5] active:border-0 active:translate-y-1 transition-all"
           >
             디스코드 채널로 이동하기
           </a>

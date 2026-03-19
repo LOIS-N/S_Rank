@@ -25,6 +25,7 @@
   src: url('/assets/fonts/stardust.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -32,6 +33,7 @@
   src: url('/assets/fonts/stardust_bold.ttf') format('truetype');
   font-weight: bold;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -39,6 +41,7 @@
   src: url('/assets/fonts/stardust_extrabold.ttf') format('truetype');
   font-weight: 800;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -46,6 +49,7 @@
   src: url('/assets/fonts/stardust(s).ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -53,6 +57,7 @@
   src: url('/assets/fonts/stardust(s)_bold.ttf') format('truetype');
   font-weight: bold;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -60,6 +65,7 @@
   src: url('/assets/fonts/stardust(s)_extrabold.ttf') format('truetype');
   font-weight: 800;
   font-style: normal;
+  font-display: swap;
 }
 
 /* 모바일 환경 필수 설정 */
@@ -83,8 +89,16 @@ html, body {
   -webkit-font-smoothing: none;
 }
 
+.font-dot-s-bold {
+  font-family: 'StardustS', cursive;
+  font-weight: bold;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+}
+
 /* 바깥 배경 컨테이너 - 전체 화면, 검은 배경 (레터박스 배경)
-   --avw / --avh 는 ZoomGuard.tsx 가 window.innerWidth/Height 로 설정. */
+   --avw / --avh 는 ZoomGuard.tsx 가 window.innerWidth/Height 로 설정.
+   JS 로드 전 폴백으로 100dvh / 100vw 사용. */
 .app-container {
   display: flex;
   align-items: center;

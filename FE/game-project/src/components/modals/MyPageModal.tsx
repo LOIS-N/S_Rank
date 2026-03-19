@@ -36,7 +36,7 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
     const trimmed = inputValue.trim();
     // 동일 닉네임 체크
     if (trimmed === nickname) {
-      setIsError(false);
+      setIsError(true);
       setMessage("기존 닉네임과 동일합니다.");
       return;
     }

@@ -24,15 +24,15 @@
 
 /* Background Variations */
 .gacha-bg-flyer {
-  background-image: url('/assets/006/lotto_000.png');
+  background-image: url('/assets/006/lotto_000.webp');
 }
 
 .gacha-bg-fair {
-  background-image: url('/assets/006/lotto_001.png');
+  background-image: url('/assets/006/lotto_001.webp');
 }
 
 .gacha-bg-public {
-  background-image: url('/assets/006/lotto_002.png');
+  background-image: url('/assets/006/lotto_002.webp');
 }
 
 /* --- 좌측 상단 골드 HUD --- */
@@ -105,7 +105,7 @@
   bottom: -20px;
   left: -74px;
   right: -74px;
-  border-image-source: url('/assets/006/topButton_000.png');
+  border-image-source: url('/assets/006/topButton_000.webp');
   border-image-slice: 189 501 fill;
   border-image-width: 32px 86px;
   border-image-repeat: stretch;
