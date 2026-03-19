@@ -592,6 +592,11 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const isDraggingP2Ref = useRef(false);
   const dragStartP2YRef = useRef(0);
   const dragStartP2RatioRef = useRef(0);
+  // Phase2 스와이프 스크롤
+  const swipe2StartYRef = useRef(0);
+  const swipe2StartRatioRef = useRef(0);
+  const isSwipe2Ref = useRef(false);
+  const swipe2MovedRef = useRef(false);
 
   // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
   const p2MaxScroll = Math.max(0, p2GridHeight - p2WrapperHeight);
@@ -685,7 +690,29 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       {/* ──── 좌측: 카드 목록 (card-list 레이아웃 통일) ──── */}
       <div className="phase2-left-col">
         <NineSliceBox src="/assets/003-02/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
-          <div className="phase2-card-grid-wrapper" ref={p2WrapperRef} onWheel={handleP2Wheel} style={{ flex: 1, overflow: 'hidden' }}>
+          <div
+            className="phase2-card-grid-wrapper"
+            ref={p2WrapperRef}
+            onWheel={handleP2Wheel}
+            style={{ flex: 1, overflow: 'hidden' }}
+            onPointerDown={(e) => {
+              if (p2MaxScroll <= 0) return;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              isSwipe2Ref.current = true;
+              swipe2MovedRef.current = false;
+              swipe2StartYRef.current = e.clientY;
+              swipe2StartRatioRef.current = p2ScrollRatio;
+            }}
+            onPointerMove={(e) => {
+              if (!isSwipe2Ref.current || p2MaxScroll <= 0) return;
+              const deltaY = swipe2StartYRef.current - e.clientY;
+              if (Math.abs(deltaY) > 5) swipe2MovedRef.current = true;
+              setP2ScrollRatio(Math.min(1, Math.max(0, swipe2StartRatioRef.current + deltaY / p2MaxScroll)));
+            }}
+            onPointerUp={() => { isSwipe2Ref.current = false; }}
+            onPointerCancel={() => { isSwipe2Ref.current = false; }}
+            onClickCapture={(e) => { if (swipe2MovedRef.current) { e.stopPropagation(); swipe2MovedRef.current = false; } }}
+          >
             <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
               {isInitialLoad ? (
                 <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>
@@ -988,6 +1015,11 @@ export default function QuestPage() {
   const isDraggingRef = useRef(false);
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
+  // 스와이프 스크롤
+  const swipe1StartYRef = useRef(0);
+  const swipe1StartRatioRef = useRef(0);
+  const isSwipe1Ref = useRef(false);
+  const swipe1MovedRef = useRef(false);
 
   // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
   const maxScroll = Math.max(0, questListHeight - questWrapperHeight);
@@ -1123,6 +1155,23 @@ export default function QuestPage() {
               <div
                 ref={subQuestWrapperRef}
                 className="sub-quest-scroll-area"
+                onPointerDown={(e) => {
+                  if (maxScroll <= 0) return;
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  isSwipe1Ref.current = true;
+                  swipe1MovedRef.current = false;
+                  swipe1StartYRef.current = e.clientY;
+                  swipe1StartRatioRef.current = scrollRatio;
+                }}
+                onPointerMove={(e) => {
+                  if (!isSwipe1Ref.current || maxScroll <= 0) return;
+                  const deltaY = swipe1StartYRef.current - e.clientY;
+                  if (Math.abs(deltaY) > 5) swipe1MovedRef.current = true;
+                  setScrollRatio(Math.min(1, Math.max(0, swipe1StartRatioRef.current + deltaY / maxScroll)));
+                }}
+                onPointerUp={() => { isSwipe1Ref.current = false; }}
+                onPointerCancel={() => { isSwipe1Ref.current = false; }}
+                onClickCapture={(e) => { if (swipe1MovedRef.current) { e.stopPropagation(); swipe1MovedRef.current = false; } }}
               >
                 <div
                   ref={subQuestListRef}
