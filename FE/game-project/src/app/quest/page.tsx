@@ -276,9 +276,37 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const [isCardLoading, setIsCardLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  // --- BE 책상 템플릿 ID 매핑 ---
+  const [beDeskTemplateId, setBeDeskTemplateId] = useState<number | null>(null);
+
   const getAuthToken = useCallback(async () => {
     return accessToken || await getAccessToken();
   }, [accessToken, getAccessToken]);
+
+  // selectingDeskId (0-based FE index) → BE deskTemplateId 변환
+  useEffect(() => {
+    const fetchDeskId = async () => {
+      try {
+        const token = await getAuthToken();
+        const res = await fetch(`${API_HOST}/api/v1/desks`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          const sorted = [...json.data].sort((a: { deskTemplateId: number }, b: { deskTemplateId: number }) => a.deskTemplateId - b.deskTemplateId);
+          const idx = selectingDeskId ?? 0;
+          if (sorted[idx]) {
+            setBeDeskTemplateId(sorted[idx].deskTemplateId);
+          }
+        }
+      } catch (err) {
+        console.error("책상 목록 조회 실패:", err);
+      }
+    };
+    fetchDeskId();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectingDeskId]);
 
   const fetchCards = useCallback(async (cursor?: string | null) => {
     if (isCardLoading) return;
@@ -508,7 +536,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     try {
       const token = await getAuthToken();
       const type = quest.isMain ? 'main' : 'sub';
-      const targetDeskId = selectingDeskId !== null ? selectingDeskId : 0;
+      const targetDeskId = beDeskTemplateId ?? (selectingDeskId !== null ? selectingDeskId + 1 : 1);
       const durationMinutes = estimatedTime ?? quest.durationMinutes;
 
       const now = new Date();
@@ -539,7 +567,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
         questId: quest.questId,
         isMain: quest.isMain,
       });
-      const msg = errData?.message || errData?.code || e.message || '알 수 없는 오류';
+      const msg = errData?.error?.message || errData?.error?.code || errData?.message || errData?.code || e.message || '알 수 없는 오류';
       setWarningMessage(`퀘스트 시작 실패: ${msg}`);
     } finally {
       setIsStarting(false);
