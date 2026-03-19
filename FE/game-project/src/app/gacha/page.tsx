@@ -86,7 +86,7 @@ interface GachaCardResult {
 }
 
 function displaySkillType(type: string): string {
-  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type;
+  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
 }
 
 export default function GachaPage() {
