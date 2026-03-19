@@ -46,6 +46,7 @@ public class PrivyAuthenticationFilter extends OncePerRequestFilter {
                 || uri.startsWith("/v3/api-docs")
                 || uri.startsWith("/swagger-ui")
                 || uri.equals("/swagger-ui.html");
+                || uri.startsWith("/actuator");  // 추가
 
         if (shouldSkip) {
             log.info("{} stage=filter.skip uri={}", SECURITY_FILTER_TAG, uri);
