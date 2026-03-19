@@ -50,14 +50,14 @@ public class DeskServiceImpl implements DeskService {
             throw new BusinessException(ErrorCode.DESK_ALREADY_UNLOCKED);
         }
 
-        // 3. 레벨 검증 (도메인 위임)
-        // Todo : 사용자 userLevel 가져오기
+        // 3. 레벨 검증
         int userLevel = userService.getMyInfo(userId).getLevel();
         if (!template.isUnlockable(userLevel)) {
             throw new BusinessException(ErrorCode.DESK_INSUFFICIENT_LEVEL);
         }
 
-        // 4. 골드 차감은 유저 도메인 구현 후 추가 예정
+        // 4. 골드 차감
+        userService.spendGold(userId, (long) template.getUnlockCostGold());
 
         // 5. 해금
         userDeskRepository.save(UserDesk.builder()
