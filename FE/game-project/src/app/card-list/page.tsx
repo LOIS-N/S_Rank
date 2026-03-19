@@ -229,7 +229,7 @@ export default function CardListPage() {
   const handleWheel = useCallback((e: React.WheelEvent) => {
     if (maxScroll <= 0) return;
     const delta = e.deltaY / maxScroll;
-    setScrollRatio(prev => Math.min(1, Math.max(0, prev + delta * 0.3)));
+    setScrollRatio(prev => Math.min(1, Math.max(0, prev + delta * 0.7)));
   }, [maxScroll]);
 
   const getThumbTop = useCallback(() => {

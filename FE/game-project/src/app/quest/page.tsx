@@ -609,7 +609,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const handleP2Wheel = useCallback((e: React.WheelEvent) => {
     if (p2MaxScroll <= 0) return;
     const delta = e.deltaY / p2MaxScroll;
-    setP2ScrollRatio(prev => Math.min(1, Math.max(0, prev + delta * 0.3)));
+    setP2ScrollRatio(prev => Math.min(1, Math.max(0, prev + delta * 0.7)));
   }, [p2MaxScroll]);
 
   const p2ThumbTop = useCallback(() => {
@@ -1064,7 +1064,7 @@ export default function QuestPage() {
     (e: React.WheelEvent) => {
       if (maxScroll <= 0) return;
       const delta = e.deltaY / maxScroll;
-      setScrollRatio((prev) => Math.min(1, Math.max(0, prev + delta * 0.3)));
+      setScrollRatio((prev) => Math.min(1, Math.max(0, prev + delta * 0.7)));
     },
     [maxScroll]
   );
