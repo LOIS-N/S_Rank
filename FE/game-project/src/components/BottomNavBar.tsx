@@ -45,7 +45,7 @@ export default function BottomNavBar() {
     pathname === "/"          ? "메인"     : "";
 
   return (
-    <div className="absolute bottom-0 left-0 w-full z-[80] pointer-events-none">
+    <div className="absolute left-0 w-full z-[80] pointer-events-none" style={{ bottom: "var(--game-clip-y, 0px)" }}>
       <div
         className="w-full bg-[#8ea4b8] border-t-4 border-x-2 border-b-2 border-black pointer-events-auto shadow-[0_-4px_10px_rgba(0,0,0,0.5)]"
         style={{
