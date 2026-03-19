@@ -15,5 +15,5 @@ public interface QuestFacadeService {
     void startSubQuest(Long userId, Long questId, SubQuestRequest request);
     void claimReward(Long userId, CompleteQuestRequest request);
     Set<Long> getUsedUserCardList(Long userId);
-    void completeQuest(Long userId, Long questId, QuestType type);
+    void completeQuest(Long userId, Long questId, String type);
 }
