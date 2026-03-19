@@ -22,14 +22,21 @@ function applyViewportVars() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  // 가로 모드: 높이 기준 스케일 → 전체화면 채움 (좌우 여백 없음)
-  // 세로 모드: Math.min → portrait-overlay가 가려줌
   const isLandscape = vw > vh;
-  const scale = isLandscape ? vh / GAME_H : Math.min(vw / GAME_W, vh / GAME_H);
+  // 모바일 가로 (vh < 600): 너비 기준 스케일 → 전체화면 채움
+  // 데스크탑 / 태블릿: Math.min → 레터박스
+  const isMobileLandscape = isLandscape && vh < 600;
+  const scale = isMobileLandscape
+    ? vw / GAME_W
+    : Math.min(vw / GAME_W, vh / GAME_H);
+
+  // 상하 클립 보정값 (HUD·NavBar 오프셋용)
+  const clipY = Math.max(0, (GAME_H - vh / scale) / 2);
 
   root.style.setProperty("--avw", `${vw}px`);
   root.style.setProperty("--avh", `${vh}px`);
   root.style.setProperty("--game-scale", `${scale}`);
+  root.style.setProperty("--game-clip-y", `${clipY}px`);
 }
 
 export default function ZoomGuard() {

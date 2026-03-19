@@ -356,7 +356,8 @@ export default function CardListPage() {
                 }}
                 onPointerMove={(e) => {
                   if (!isSwipingRef.current || maxScroll <= 0) return;
-                  const deltaY = swipeStartYRef.current - e.clientY;
+                  const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
+                  const deltaY = (swipeStartYRef.current - e.clientY) / gameScale;
                   if (Math.abs(deltaY) > 5) swipeMovedRef.current = true;
                   setScrollRatio(Math.min(1, Math.max(0, swipeStartRatioRef.current + deltaY / maxScroll)));
                 }}

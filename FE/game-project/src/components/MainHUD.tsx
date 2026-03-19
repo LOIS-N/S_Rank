@@ -15,7 +15,7 @@ export default function MainHUD() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   return (
-    <div className="absolute inset-0 pointer-events-none font-dot flex flex-col justify-between select-none">
+    <div className="absolute left-0 right-0 pointer-events-none font-dot flex flex-col justify-between select-none" style={{ top: "var(--game-clip-y, 0px)", bottom: "var(--game-clip-y, 0px)" }}>
 
       {/* --- 상단 바 --- */}
       <div className="w-full bg-[#8ea4b8] border-b-[3px] border-[#6b859e] pointer-events-auto shadow-md">
