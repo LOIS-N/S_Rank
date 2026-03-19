@@ -18,7 +18,7 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
   const { logout: privyLogout } = usePrivy();
   const router = useRouter();
   
-  const [inputValue, setInputValue] = useState(nickname);
+  const [inputValue, setInputValue] = useState(nickname || "");
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,6 +34,13 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
 
   const handleUpdateNickname = async () => {
     const trimmed = inputValue.trim();
+    // 동일 닉네임 체크
+    if (trimmed === nickname) {
+      setIsError(false);
+      setMessage("기존 닉네임과 동일합니다.");
+      return;
+    }
+
     if (!validateNickname(trimmed)) {
       setIsError(true);
       setMessage("2~8자의 영문, 한글, 숫자만 가능합니다. (띄어쓰기 불가)");
@@ -69,6 +76,10 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
         setNickname(trimmed); // GameStore 업데이트
         setUserStoreNickname(trimmed); // UserStore 업데이트
         finalizeOnboarding(); // Onboarding 완료 상태로 변경
+        
+        // GameStore 리소스 동기화
+        useGameStore.getState().setResources(profileRes.data.data.gold, profileRes.data.data.coin);
+
         setIsError(false);
         setMessage("변경이 완료되었습니다");
 
@@ -97,15 +108,27 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
   };
 
   const handleWithdraw = async () => {
-    // 실제 연결시 백엔드 탈퇴 로직 호출
-    await privyLogout();
-    
-    // 프론트 모킹 데이터 지우기
-    localStorage.removeItem("mock_has_nickname");
-    localStorage.removeItem("mock_nickname");
-    
-    logout();
-    clearUser();
+    try {
+      setLoading(true);
+      const response = await client.delete('/api/v1/users/me', {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+
+      if (response.data.success) {
+        await privyLogout();
+        logout();
+        clearUser();
+        onClose();
+      } else {
+        setIsError(true);
+        setMessage(response.data.error?.message || "회원 탈퇴에 실패했습니다.");
+      }
+    } catch (err: any) {
+      setIsError(true);
+      setMessage(err.response?.data?.error?.message || "서버 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
