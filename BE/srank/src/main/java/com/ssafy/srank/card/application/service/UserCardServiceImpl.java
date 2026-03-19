@@ -9,14 +9,13 @@ import com.ssafy.srank.card.repository.UserCardQueryRepository;
 import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
+import com.ssafy.srank.quest.application.service.QuestFacadeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,6 +27,7 @@ public class UserCardServiceImpl implements UserCardService {
     private final UserCardQueryRepository userCardQueryRepository;
     private final UserCardRepository userCardRepository;
     private final SpecialSkillTemplateRepository specialSkillTemplateRepository;
+    private final QuestFacadeService questFacadeService;
 
     @Transactional(readOnly = true)
     @Override
@@ -80,6 +80,11 @@ public class UserCardServiceImpl implements UserCardService {
         return userCardRepository.findByIdAndUserId(cardId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND))
                 .toResponse();
+    }
+
+    @Override
+    public Set<Long> getUsedUserCardList(Long userId) {
+        return questFacadeService.getUsedUserCardList(userId);
     }
 
     // ── specialAbility 변환 ───────────────────────────────────────────────────

@@ -2,7 +2,7 @@ package com.ssafy.srank.card.presentation.controller;
 
 import com.ssafy.srank.card.application.dto.response.CursorPageResponse;
 import com.ssafy.srank.card.application.dto.response.UserCardResponse;
-import com.ssafy.srank.card.application.service.UserCardServiceImpl;
+import com.ssafy.srank.card.application.service.UserCardService;
 import com.ssafy.srank.card.domain.enums.PositionType;
 import com.ssafy.srank.card.domain.enums.SortType;
 import com.ssafy.srank.common.response.ApiResponse;
@@ -15,12 +15,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Set;
+
 @RestController
 @RequestMapping("/api/v1/cards")
 @RequiredArgsConstructor
 public class UserCardController {
 
-    private final UserCardServiceImpl userCardServiceImpl;
+    private final UserCardService userCardService;
 
     /**
      * GET /api/v1/cards?statType={position}&cursor={token}&limit={n}
@@ -37,12 +40,17 @@ public class UserCardController {
             @RequestParam(defaultValue = "30") int limit
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                userCardServiceImpl.getUserCards(SecurityUtil.getCurrentUserId(), statType, sortType, cursor, limit)
+                userCardService.getUserCards(SecurityUtil.getCurrentUserId(), statType, sortType, cursor, limit)
         ));
     }
 
     @GetMapping("/{cardId}")
     public ResponseEntity<ApiResponse<UserCardResponse>> getUserCardDetail(@PathVariable Long cardId) {
-        return ResponseEntity.ok(ApiResponse.success(userCardServiceImpl.getUserCardDetail(SecurityUtil.getCurrentUserId(), cardId)));
+        return ResponseEntity.ok(ApiResponse.success(userCardService.getUserCardDetail(SecurityUtil.getCurrentUserId(), cardId)));
+    }
+
+    @GetMapping("/used")
+    public ResponseEntity<ApiResponse<Set<Long>>> getUsedUserCard(){
+        return ResponseEntity.ok(ApiResponse.success(userCardService.getUsedUserCardList(SecurityUtil.getCurrentUserId())));
     }
 }
