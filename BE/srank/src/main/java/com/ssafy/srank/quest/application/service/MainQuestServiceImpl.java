@@ -8,6 +8,7 @@ import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.domain.entity.MainQuestTemplate;
 import com.ssafy.srank.quest.repository.MainQuestTemplateRepository;
 import com.ssafy.srank.quest.repository.UserMainQuestRepository;
+import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,10 +26,11 @@ public class MainQuestServiceImpl implements MainQuestService {
 
     private final MainQuestTemplateRepository mainQuestTemplateRepository;
     private final UserMainQuestRepository userMainQuestRepository;
+    private final UserService userService;
 
     public List<MainQuestResponse> getMainQuestList(Long userId) {
-        // TODO: 하드코딩 변경 - 사용자 현재 챕터 번호 가져오기
-        int chapter = 1;
+        // TODO: 사용자 현재 챕터 번호 가져오기
+        int chapter = userService.getMyInfo(userId).getLevel();
 
         List<MainQuestTemplate> templates = mainQuestTemplateRepository.findByChapterNo(chapter);
 
