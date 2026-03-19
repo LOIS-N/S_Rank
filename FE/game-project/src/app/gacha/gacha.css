@@ -380,7 +380,7 @@
 .gacha-detail-big-card::before {
   content: "";
   position: absolute;
-  top: -3px; left: 7px; right: 7px; bottom: -3px;
+  top: -3px; left: -3px; right: -3px; bottom: -3px;
   border-radius: 8px;
   z-index: -1;
   animation: gachaBorderRotate 2.5s linear infinite;
@@ -543,6 +543,24 @@
 }
 
 /* ============================
+   10회 뽑기 결과 — 중앙 그리드
+   ============================ */
+.gacha-result-10-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  padding: 0 40px;
+}
+
+.gacha-result-10-centered .gacha-result-grid {
+  width: 100%;
+  max-width: 900px;
+}
+
+/* ============================
    1회 뽑기 결과 — 중앙 세로 레이아웃
    ============================ */
 .gacha-single-result-center {
@@ -557,7 +575,7 @@
 
 .gacha-single-big-card {
   position: relative;
-  width: 240px;
+  width: 360px;
   animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
@@ -570,14 +588,14 @@
 
 /* 1회 큰 카드 스탯 폰트 더 크게 */
 .gacha-single-big-card .gacha-card-stat {
-  font-size: 18px;
+  font-size: 21px;
 }
 
 /* 등급별 glow/border — 기존 클래스와 동일 패턴 */
 .gacha-single-big-card::before {
   content: "";
   position: absolute;
-  top: -3px; left: 7px; right: 7px; bottom: -3px;
+  top: -3px; left: -3px; right: -3px; bottom: -3px;
   border-radius: 8px;
   z-index: -1;
   animation: gachaBorderRotate 2.5s linear infinite;
