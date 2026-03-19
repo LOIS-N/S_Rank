@@ -85,7 +85,13 @@ interface CardListItem {
 const GRADE_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
 
 function displaySkillType(type: string): string {
-  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type;
+  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
+}
+
+// DEV / Dev / DEVOPS / DevOps 를 모두 동일 타입으로 정규화
+function normalizeSkillType(type: string): string {
+  const upper = type.toUpperCase();
+  return upper === 'DEV' || upper === 'DEVOPS' ? 'DEVOPS' : upper;
 }
 
 function sortCardsByGradeAndStat(cards: CardListItem[]): CardListItem[] {
@@ -363,10 +369,11 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
   // --- 특정 스킬타입에 대한 선택된 카드들의 총합 스탯 ---
   const getStatTotal = useCallback((skillType: string): number => {
+    const normalized = normalizeSkillType(skillType);
     return selectedCardData.reduce((sum, card) => {
-      if (card.skill1.skillType === skillType) sum += card.skill1.value;
-      if (card.skill2.skillType === skillType) sum += card.skill2.value;
-      if (card.skill3.skillType === skillType) sum += card.skill3.value;
+      if (normalizeSkillType(card.skill1.skillType) === normalized) sum += card.skill1.value;
+      if (normalizeSkillType(card.skill2.skillType) === normalized) sum += card.skill2.value;
+      if (normalizeSkillType(card.skill3.skillType) === normalized) sum += card.skill3.value;
       return sum;
     }, 0);
   }, [selectedCardData]);
@@ -386,10 +393,11 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
     // 카드별 각 포지션 스탯 추출
     const getCardStatForType = (card: CardListItem, type: string): number => {
+      const normalized = normalizeSkillType(type);
       let total = 0;
-      if (card.skill1.skillType === type) total += card.skill1.value;
-      if (card.skill2.skillType === type) total += card.skill2.value;
-      if (card.skill3.skillType === type) total += card.skill3.value;
+      if (normalizeSkillType(card.skill1.skillType) === normalized) total += card.skill1.value;
+      if (normalizeSkillType(card.skill2.skillType) === normalized) total += card.skill2.value;
+      if (normalizeSkillType(card.skill3.skillType) === normalized) total += card.skill3.value;
       return total;
     };
 
@@ -559,7 +567,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       startQuest(targetDeskId, durationMinutes * 60, rewardInfo.reward);
       router.push('/');
     } catch (err: unknown) {
-      const e = err as { response?: { status?: number; data?: { message?: string; code?: string } }; message?: string };
+      const e = err as { response?: { status?: number; data?: { message?: string; code?: string; error?: { message?: string; code?: string } } }; message?: string };
       const errData = e.response?.data;
       console.error("퀘스트 시작 실패:", e.response?.status, errData, {
         deskId: selectingDeskId,

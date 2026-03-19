@@ -62,7 +62,7 @@ function NineSliceBox({ src, slice, framePadding, borderScale = 1, children, cla
 }
 
 function displaySkillType(type: string): string {
-  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type;
+  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
 }
 
 // --- API 응답 타입 ---
