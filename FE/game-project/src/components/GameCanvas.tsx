@@ -38,7 +38,7 @@ export default function GameCanvas() {
         scene: {
           preload: function (this: Phaser.Scene) {
             // 배경 이미지
-            this.load.image("city_bg", "/assets/001/city_bg.png");
+            this.load.image("city_bg", "/assets/001/city_bg.jpg");
             this.load.image("bg_001", "/assets/002/background_001.png");
             this.load.image("bg_002", "/assets/002/background_002.png");
             this.load.image("bg_003", "/assets/002/background_003.png");

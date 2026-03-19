@@ -79,16 +79,16 @@ export default function Home() {
       {!authenticated && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#8ea4b8]/60 p-4">
           <div className="flex flex-col items-center justify-center text-center">
-            <h1 className="font-dot text-4xl md:text-6xl lg:text-7xl text-white mb-10 leading-tight [text-shadow:4px_4px_0px_#4a5d73]">
+            <h1 className="font-dot-s-bold text-5xl md:text-7xl lg:text-8xl text-white mb-10 leading-tight [text-shadow:4px_4px_0px_#4a5d73]">
               S급 개발자들이<br/>
               <span className="text-yellow-400">나를 따르는 이유에 대하여</span>
             </h1>
             <button
               onClick={() => login()}
-              className="group flex items-center gap-4 bg-white text-black px-10 py-5 border-b-8 border-r-8 border-[#6b859e] font-dot text-2xl sm:text-3xl font-bold active:border-0 active:translate-y-2 transition-all shadow-2xl hover:bg-slate-50"
+              className="group flex items-center gap-4 bg-white text-black px-10 py-5 border-b-8 border-r-8 border-[#6b859e] text-3xl sm:text-4xl font-bold active:border-0 active:translate-y-2 transition-all shadow-2xl hover:bg-slate-50"
             >
               <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-8 h-8 sm:w-10 sm:h-10" />
-              <span>GOOGLE LOGIN</span>
+              <span className="font-sans">GOOGLE LOGIN</span>
             </button>
           </div>
         </div>

@@ -73,6 +73,20 @@ export const useAuth = () => {
                 useGameStore.getState().setResources(gold, coin);
                 useGameStore.getState().setNickname(nickname);
               }
+
+              // /desks API 호출 → 책상 잠금 상태 동기화
+              try {
+                const desksRes = await client.get('/api/v1/desks', {
+                  headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                console.log('[Desks] API response:', desksRes.data);
+                if (desksRes.data.success) {
+                  useGameStore.getState().setDesksFromApi(desksRes.data.data);
+                }
+              } catch (desksError) {
+                console.error('[Desks] API error:', desksError);
+              }
+
               // Problem 2: '/main' → '/' 수정
               router.push('/');
             }
@@ -95,6 +109,16 @@ export const useAuth = () => {
                 const { gold, coin, nickname } = profileRes.data.data;
                 useGameStore.getState().setResources(gold, coin);
                 useGameStore.getState().setNickname(nickname);
+
+                // /desks API 테스트 호출
+                try {
+                  const desksRes = await client.get('/api/v1/desks', {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                  });
+                  console.log('[Desks] API response:', desksRes.data);
+                } catch (desksError) {
+                  console.error('[Desks] API error:', desksError);
+                }
 
                 router.push('/');
               }

@@ -41,6 +41,7 @@ interface GameState {
   unlockQuestSlot: (id: number) => void;
   setUnlockConfirm: (id: number | null) => void;
   closeRewardModal: () => void;
+  setDesksFromApi: (desks: Array<{ deskTemplateId: number; unlocked: boolean }>) => void;
   openComingSoonModal: (text?: string) => void;
   closeComingSoonModal: () => void;
   setResources: (gold: number, coffee: number) => void;
@@ -131,4 +132,12 @@ export const useGameStore = create<GameState>((set) => ({
   }),
   closeComingSoonModal: () => set({ comingSoonModal: null }),
   setResources: (gold, coffee) => set({ gold, coffee }),
+  setDesksFromApi: (desks) => set((state) => {
+    const updated = state.quests.map(q => {
+      const desk = desks.find(d => d.deskTemplateId === q.id + 1);
+      if (desk) return { ...q, isLocked: !desk.unlocked };
+      return q;
+    });
+    return { quests: updated };
+  }),
 }));

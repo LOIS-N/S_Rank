@@ -11,7 +11,7 @@ import AchievementModal from "./modals/AchievementModal";
 // cqw 기준: game-wrapper 너비의 1% (1280px 기준 → 12.8px = 1cqw)
 
 export default function MainHUD() {
-  const { gold, coffee, unreadNotifications, nickname } = useGameStore();
+  const { gold, coffee, unreadNotifications, nickname, openComingSoonModal } = useGameStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   return (
@@ -83,21 +83,22 @@ export default function MainHUD() {
           {/* 오른쪽: 아이콘 버튼들 */}
           <div className="flex" style={{ gap: "1.25cqw", paddingRight: "1.25cqw" }}>
             {[
-              { id: "mypage",       icon: "/assets/002/mypage_002.png",   label: "마이페이지" },
-              { id: "ranking",      icon: "/assets/002/ranking_002.png",  label: "랭킹" },
-              { id: "discord",      icon: "/assets/002/discord_002.png",  label: "디스코드" },
-              { id: "notification", icon: "/assets/002/message_002.png",  label: "알림" },
-              { id: "achievement",  icon: "/assets/002/awards_002.png",   label: "업적" },
+              { id: "mypage",       icon: "/assets/002/mypage_002.png",   label: "마이페이지", comingSoon: false },
+              { id: "ranking",      icon: "/assets/002/ranking_002.png",  label: "랭킹",       comingSoon: false },
+              { id: "discord",      icon: "/assets/002/discord_002.png",  label: "디스코드",   comingSoon: false },
+              { id: "notification", icon: "/assets/002/message_002.png",  label: "알림",       comingSoon: true  },
+              { id: "achievement",  icon: "/assets/002/awards_002.png",   label: "업적",       comingSoon: true  },
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveModal(item.id)}
+                onClick={() => item.comingSoon ? openComingSoonModal() : setActiveModal(item.id)}
                 className="relative flex items-center justify-center shadow-[1px_1px_0px_#000] active:translate-y-0.5 transition-all hover:brightness-110"
                 style={{
                   width: "5cqw",
                   height: "5cqw",
                   backgroundImage: "url('/assets/002/upperButton_002.png')",
                   backgroundSize: "100% 100%",
+                  filter: item.comingSoon ? "brightness(0.8)" : undefined,
                 }}
                 title={item.label}
               >

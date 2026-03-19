@@ -80,6 +80,13 @@ html, body {
   -webkit-font-smoothing: none;
 }
 
+.font-dot-s-bold {
+  font-family: 'StardustS', cursive;
+  font-weight: bold;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+}
+
 /* 바깥 배경 컨테이너 - 전체 화면, 검은 배경 */
 .app-container {
   display: flex;
