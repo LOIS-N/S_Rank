@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.time.LocalDateTime;
+
 @Getter
 @AllArgsConstructor
 @Builder
@@ -19,14 +21,19 @@ public class InProcessQuestResponse {
     private String title;
     private int difficulty;
     private int rewardGold;
+    private LocalDateTime startedAt;
+    private LocalDateTime endAt;
 
     public static InProcessQuestResponse from(UserDeskQuest quest, QuestDetailResponse detail){
         return InProcessQuestResponse.builder()
                 .deskId(quest.getUserDeskId())
+                .title(detail.getTitle())
                 .questId(quest.getQuestId())
                 .questType(quest.getQuestType())
                 .difficulty(detail.getDifficulty())
                 .rewardGold(detail.getRewardGold())
+                .startedAt(detail.getStartedAt())
+                .endAt(detail.getEndAt())
                 .build();
     }
 }

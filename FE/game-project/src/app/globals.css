@@ -76,8 +76,11 @@ html, body {
   padding: 0;
   overflow: hidden;
   position: fixed; /* 스크롤 튕김 방지 */
-  touch-action: manipulation; /* 더블탭 줌 방지, 스크롤은 허용 */
+  touch-action: none; /* 브라우저 기본 터치 동작 비활성화 (Phaser·커스텀 이벤트가 처리) */
   -webkit-text-size-adjust: 100%; /* iOS 텍스트 크기 자동조정 방지 */
+  -webkit-tap-highlight-color: transparent; /* 모바일 탭 하이라이트 제거 */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .font-dot {
@@ -93,7 +96,7 @@ html, body {
   -webkit-font-smoothing: none;
 }
 
-/* 바깥 배경 컨테이너 - 전체 화면, 검은 배경
+/* 바깥 배경 컨테이너 - 전체 화면, 검은 배경 (레터박스 배경)
    --avw / --avh 는 ZoomGuard.tsx 가 window.innerWidth/Height 로 설정.
    JS 로드 전 폴백으로 100dvh / 100vw 사용. */
 .app-container {
@@ -103,16 +106,21 @@ html, body {
   width: var(--avw, 100vw);
   height: var(--avh, 100dvh);
   background-color: black;
+  overflow: hidden;
 }
 
-/* 16:9 비율 유지하며 화면에 꽉 채우는 래퍼 (letterbox)
-   CSS 변수 기반으로 계산하여 페이지 이동 시 cqw 기준이 흔들리지 않도록 함 */
+/* 16:9 고정 해상도(1280×720) 래퍼.
+   --game-scale 로 중앙 기준 균일 스케일 → 폰트·이미지 모두 비례 조절.
+   내부는 항상 1280px 기준 → 1cqw = 12.8px 고정. */
 .game-wrapper {
-  position: relative;
-  width: min(var(--avw, 100vw), calc(var(--avh, 100dvh) * 16 / 9));
-  height: min(var(--avh, 100dvh), calc(var(--avw, 100vw) * 9 / 16));
+  flex-shrink: 0;
+  width: 1280px;
+  height: 720px;
+  transform-origin: center center;
+  transform: scale(var(--game-scale, 1));
   background-color: black;
   overflow: hidden;
+  touch-action: none; /* 내부 Phaser 캔버스 및 커스텀 스크롤이 모든 터치 처리 */
   /* CSS Container Query: 자식 요소들이 cqw 단위로 game-wrapper 너비 기준 비율 크기 사용 가능 */
   container-type: inline-size;
   container-name: game;
@@ -139,5 +147,40 @@ html, body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #ffd700;
+}
+
+/* ── 세로 모드(portrait) 회전 안내 오버레이 ── */
+.portrait-overlay {
+  display: none;
+}
+
+@media (orientation: portrait) {
+  .portrait-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #0f172a;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    color: #fff;
+    font-family: 'StardustS', 'Stardust', sans-serif;
+    font-size: 22px;
+    text-align: center;
+    padding: 32px;
+  }
+
+  .portrait-overlay .rotate-icon {
+    font-size: 64px;
+    animation: rotateHint 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes rotateHint {
+  0%, 100% { transform: rotate(0deg); }
+  40%       { transform: rotate(90deg); }
+  60%       { transform: rotate(90deg); }
 }
 

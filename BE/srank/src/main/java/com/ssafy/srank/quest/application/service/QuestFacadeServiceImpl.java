@@ -54,15 +54,11 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         List<InProcessQuestResponse> list = InProcessQuestIdList.stream().map((q) -> {
             if (q.getQuestType().equals(QuestType.MAIN)) {
                 //메인 가지고 오기 -> InProcessQuestResponse
-                log.warn("log : {}",q.toString());
                 InProcessQuestResponse from = InProcessQuestResponse.from(q, mainService.getUserMainQuestDetail(userId, q.getQuestId()));
-                log.warn("getInProcessQuestList-main : {} ", from.toString());
                 return from;
             } else {
                 //서브 가지고 오기
-                log.warn("log : {}",q.toString());
                 InProcessQuestResponse from = InProcessQuestResponse.from(q, subService.getUserSubQuestDetail(userId, q.getQuestId()));
-                log.warn("getInProcessQuestList-sub : {} ", from.toString());
                 return from;
             }
         }).toList();

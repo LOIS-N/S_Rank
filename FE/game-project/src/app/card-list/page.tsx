@@ -204,18 +204,22 @@ export default function CardListPage() {
   // --- 스크롤 관련 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0);
   const [trackHeight, setTrackHeight] = useState(0);
-  const [wrapperHeight, setWrapperHeight] = useState(0); // 추가
+  const [wrapperHeight, setWrapperHeight] = useState(0);
+  const [gridHeight, setGridHeight] = useState(0);
   const gridRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null); // 추가
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
+  // 스와이프 스크롤
+  const swipeStartYRef = useRef(0);
+  const swipeStartRatioRef = useRef(0);
+  const isSwipingRef = useRef(false);
+  const swipeMovedRef = useRef(false);
 
-  const ROW_HEIGHT = 360;
-  const totalRows = Math.ceil(sortedCards.length / 3);
-  const totalContentHeight = totalRows * ROW_HEIGHT + 260;
-  const maxScroll = Math.max(0, totalContentHeight - wrapperHeight); // visibleHeight -> wrapperHeight
+  // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
+  const maxScroll = Math.max(0, gridHeight - wrapperHeight);
   const scrollOffset = scrollRatio * maxScroll;
 
   // --- 스크롤 하단 도달 시 다음 페이지 로드 ---
@@ -229,7 +233,7 @@ export default function CardListPage() {
   const handleWheel = useCallback((e: React.WheelEvent) => {
     if (maxScroll <= 0) return;
     const delta = e.deltaY / maxScroll;
-    setScrollRatio(prev => Math.min(1, Math.max(0, prev + delta * 0.3)));
+    setScrollRatio(prev => Math.min(1, Math.max(0, prev + delta * 0.7)));
   }, [maxScroll]);
 
   const getThumbTop = useCallback(() => {
@@ -245,9 +249,9 @@ export default function CardListPage() {
     const measure = () => {
       if (trackRef.current) setTrackHeight(trackRef.current.clientHeight);
       if (wrapperRef.current) setWrapperHeight(wrapperRef.current.clientHeight);
+      if (gridRef.current) setGridHeight(gridRef.current.scrollHeight);
     };
     measure();
-    // 초기 로드 시 렌더링 완료 후 재측정 (폰트/이미지 등)
     window.addEventListener('resize', measure);
     const timer = setTimeout(measure, 100);
     return () => {
@@ -256,15 +260,16 @@ export default function CardListPage() {
     };
   }, [sortedCards]);
 
-  const handleThumbMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleThumbPointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     isDraggingRef.current = true;
     dragStartYRef.current = e.clientY;
     dragStartRatioRef.current = scrollRatio;
   }, [scrollRatio]);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!isDraggingRef.current || !trackRef.current) return;
       const trackHeightCurrent = trackRef.current.clientHeight;
       const trackPadding = 14;
@@ -275,12 +280,12 @@ export default function CardListPage() {
       const newRatio = Math.min(1, Math.max(0, dragStartRatioRef.current + deltaY / maxThumbTop));
       setScrollRatio(newRatio);
     };
-    const handleMouseUp = () => { isDraggingRef.current = false; };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    const handlePointerUp = () => { isDraggingRef.current = false; };
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
     };
   }, []);
 
@@ -336,7 +341,30 @@ export default function CardListPage() {
 
             {/* 카드 리스트 박스 */}
             <NineSliceBox src="/assets/008/questInf_000.webp" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
-              <div className="cardlist-grid-wrapper" ref={wrapperRef} onWheel={handleWheel} style={{ flex: 1, overflow: 'hidden' }}>
+              <div
+                className="cardlist-grid-wrapper"
+                ref={wrapperRef}
+                onWheel={handleWheel}
+                style={{ flex: 1, overflow: 'hidden' }}
+                onPointerDown={(e) => {
+                  if (maxScroll <= 0) return;
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  isSwipingRef.current = true;
+                  swipeMovedRef.current = false;
+                  swipeStartYRef.current = e.clientY;
+                  swipeStartRatioRef.current = scrollRatio;
+                }}
+                onPointerMove={(e) => {
+                  if (!isSwipingRef.current || maxScroll <= 0) return;
+                  const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
+                  const deltaY = (swipeStartYRef.current - e.clientY) / gameScale;
+                  if (Math.abs(deltaY) > 5) swipeMovedRef.current = true;
+                  setScrollRatio(Math.min(1, Math.max(0, swipeStartRatioRef.current + deltaY / maxScroll)));
+                }}
+                onPointerUp={() => { isSwipingRef.current = false; }}
+                onPointerCancel={() => { isSwipingRef.current = false; }}
+                onClickCapture={(e) => { if (swipeMovedRef.current) { e.stopPropagation(); swipeMovedRef.current = false; } }}
+              >
                 <div className="cardlist-grid" ref={gridRef} style={{ transform: `translateY(-${scrollOffset}px)` }}>
                   {isInitialLoad ? (
                     <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>
@@ -377,7 +405,7 @@ export default function CardListPage() {
           {/* ──── 중앙: 스크롤바 ──── */}
           <div className="cardlist-scrollbar-column">
             <div ref={trackRef} className="scrollbar-track" onClick={handleTrackClick}>
-              <div className="scrollbar-thumb" style={{ top: getThumbTop() }} onMouseDown={handleThumbMouseDown} />
+              <div className="scrollbar-thumb" style={{ top: getThumbTop() }} onPointerDown={handleThumbPointerDown} />
             </div>
           </div>
 

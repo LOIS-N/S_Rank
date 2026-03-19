@@ -89,17 +89,17 @@ public class User extends BaseEntity {
     }
 
     public void increaseGold(Long gold){
-        if (gold == null || gold <= 0) {
+        if (gold == null || gold < 0) {
             throw new BusinessException(ErrorCode.GOLD_INVALID_AMOUNT);
         }
         this.gold += gold;
     }
 
     public void decreaseGold(Long gold){
-        if (gold == null || gold <= 0) {
+        if (gold == null || gold < 0) {
             throw new BusinessException(ErrorCode.GOLD_INVALID_AMOUNT);
         }
         if(this.gold - gold < 0) throw new BusinessException(ErrorCode.GOLD_INSUFFICIENT);
-        this.gold += gold;
+        this.gold -= gold;
     }
 }

@@ -1,7 +1,7 @@
 {
-  "name": "Phaser Quest",
-  "short_name": "PhaserQuest",
-  "description": "A Great Phaser Game with Next.js",
+  "name": "S급 개발자들이 나를 따르는 이유",
+  "short_name": "S급개발자",
+  "description": "최고의 스타트업을 만들어보세요.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "landscape",

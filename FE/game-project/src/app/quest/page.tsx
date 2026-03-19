@@ -622,17 +622,21 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
   const [p2ScrollRatio, setP2ScrollRatio] = useState(0);
   const [p2TrackHeight, setP2TrackHeight] = useState(0);
   const [p2WrapperHeight, setP2WrapperHeight] = useState(0);
+  const [p2GridHeight, setP2GridHeight] = useState(0);
   const p2GridRef = useRef<HTMLDivElement>(null);
   const p2TrackRef = useRef<HTMLDivElement>(null);
   const p2WrapperRef = useRef<HTMLDivElement>(null);
   const isDraggingP2Ref = useRef(false);
   const dragStartP2YRef = useRef(0);
   const dragStartP2RatioRef = useRef(0);
+  // Phase2 스와이프 스크롤
+  const swipe2StartYRef = useRef(0);
+  const swipe2StartRatioRef = useRef(0);
+  const isSwipe2Ref = useRef(false);
+  const swipe2MovedRef = useRef(false);
 
-  const ROW_HEIGHT = 360;
-  const totalRows = Math.ceil(sortedCards.length / 3);
-  const p2TotalContentHeight = totalRows * ROW_HEIGHT + 260;
-  const p2MaxScroll = Math.max(0, p2TotalContentHeight - p2WrapperHeight);
+  // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
+  const p2MaxScroll = Math.max(0, p2GridHeight - p2WrapperHeight);
   const p2ScrollOffset = p2ScrollRatio * p2MaxScroll;
 
   // 스크롤 하단 도달 시 다음 페이지 로드
@@ -646,7 +650,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
   const handleP2Wheel = useCallback((e: React.WheelEvent) => {
     if (p2MaxScroll <= 0) return;
     const delta = e.deltaY / p2MaxScroll;
-    setP2ScrollRatio(prev => Math.min(1, Math.max(0, prev + delta * 0.3)));
+    setP2ScrollRatio(prev => Math.min(1, Math.max(0, prev + delta * 0.7)));
   }, [p2MaxScroll]);
 
   const p2ThumbTop = useCallback(() => {
@@ -662,22 +666,27 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
     const measure = () => {
       if (p2TrackRef.current) setP2TrackHeight(p2TrackRef.current.clientHeight);
       if (p2WrapperRef.current) setP2WrapperHeight(p2WrapperRef.current.clientHeight);
+      if (p2GridRef.current) setP2GridHeight(p2GridRef.current.scrollHeight);
     };
     measure();
-    // Phase2 슬라이드 애니메이션 완료 후 재측정
-    const timer = setTimeout(measure, 450);
-    return () => clearTimeout(timer);
-  }, []);
+    window.addEventListener('resize', measure);
+    const timer = setTimeout(measure, 100);
+    return () => {
+      window.removeEventListener('resize', measure);
+      clearTimeout(timer);
+    };
+  }, [cards]); // cards 로드/추가 시 재측정
 
-  const handleP2ThumbMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleP2ThumbPointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     isDraggingP2Ref.current = true;
     dragStartP2YRef.current = e.clientY;
     dragStartP2RatioRef.current = p2ScrollRatio;
   }, [p2ScrollRatio]);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!isDraggingP2Ref.current || !p2TrackRef.current) return;
       const trackHeightCurrent = p2TrackRef.current.clientHeight;
       const trackPadding = 14;
@@ -688,12 +697,12 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       const newRatio = Math.min(1, Math.max(0, dragStartP2RatioRef.current + deltaY / maxThumbTop));
       setP2ScrollRatio(newRatio);
     };
-    const handleMouseUp = () => { isDraggingP2Ref.current = false; };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    const handlePointerUp = () => { isDraggingP2Ref.current = false; };
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
     };
   }, []);
 
@@ -718,7 +727,30 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       {/* ──── 좌측: 카드 목록 (card-list 레이아웃 통일) ──── */}
       <div className="phase2-left-col">
         <NineSliceBox src="/assets/003-02/questInf_000.webp" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
-          <div className="phase2-card-grid-wrapper" ref={p2WrapperRef} onWheel={handleP2Wheel} style={{ flex: 1, overflow: 'hidden' }}>
+          <div
+            className="phase2-card-grid-wrapper"
+            ref={p2WrapperRef}
+            onWheel={handleP2Wheel}
+            style={{ flex: 1, overflow: 'hidden' }}
+            onPointerDown={(e) => {
+              if (p2MaxScroll <= 0) return;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              isSwipe2Ref.current = true;
+              swipe2MovedRef.current = false;
+              swipe2StartYRef.current = e.clientY;
+              swipe2StartRatioRef.current = p2ScrollRatio;
+            }}
+            onPointerMove={(e) => {
+              if (!isSwipe2Ref.current || p2MaxScroll <= 0) return;
+              const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
+              const deltaY = (swipe2StartYRef.current - e.clientY) / gameScale;
+              if (Math.abs(deltaY) > 5) swipe2MovedRef.current = true;
+              setP2ScrollRatio(Math.min(1, Math.max(0, swipe2StartRatioRef.current + deltaY / p2MaxScroll)));
+            }}
+            onPointerUp={() => { isSwipe2Ref.current = false; }}
+            onPointerCancel={() => { isSwipe2Ref.current = false; }}
+            onClickCapture={(e) => { if (swipe2MovedRef.current) { e.stopPropagation(); swipe2MovedRef.current = false; } }}
+          >
             <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
               {isInitialLoad ? (
                 <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>
@@ -761,7 +793,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       {/* ──── 중간: 스크롤바 ──── */}
       <div className="scrollbar-column phase2-scrollbar-column">
         <div ref={p2TrackRef} className="scrollbar-track" onClick={handleP2TrackClick}>
-           <div className="scrollbar-thumb" style={{ top: p2ThumbTop() }} onMouseDown={handleP2ThumbMouseDown} />
+           <div className="scrollbar-thumb" style={{ top: p2ThumbTop() }} onPointerDown={handleP2ThumbPointerDown} />
         </div>
       </div>
 
@@ -1025,25 +1057,38 @@ export default function QuestPage() {
   // --- 커스텀 스크롤바 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0);
   const [trackHeight, setTrackHeight] = useState(0);
+  const [questListHeight, setQuestListHeight] = useState(0);
+  const [questWrapperHeight, setQuestWrapperHeight] = useState(0);
   const subQuestListRef = useRef<HTMLDivElement>(null);
+  const subQuestWrapperRef = useRef<HTMLDivElement>(null);
   const scrollTrackRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
+  // 스와이프 스크롤
+  const swipe1StartYRef = useRef(0);
+  const swipe1StartRatioRef = useRef(0);
+  const isSwipe1Ref = useRef(false);
+  const swipe1MovedRef = useRef(false);
 
-  const CARD_HEIGHT = 78;
-  const VISIBLE_CARDS = 4;
-  const visibleHeight = CARD_HEIGHT * VISIBLE_CARDS;
-
-  const totalContentHeight = subQuests.length * CARD_HEIGHT;
-  const maxScroll = Math.max(0, totalContentHeight - visibleHeight);
+  // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
+  const maxScroll = Math.max(0, questListHeight - questWrapperHeight);
   const scrollOffset = scrollRatio * maxScroll;
 
   useEffect(() => {
-    if (scrollTrackRef.current) {
-      setTrackHeight(scrollTrackRef.current.clientHeight);
-    }
-  }, []);
+    const measure = () => {
+      if (scrollTrackRef.current) setTrackHeight(scrollTrackRef.current.clientHeight);
+      if (subQuestListRef.current) setQuestListHeight(subQuestListRef.current.scrollHeight);
+      if (subQuestWrapperRef.current) setQuestWrapperHeight(subQuestWrapperRef.current.clientHeight);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    const timer = setTimeout(measure, 100);
+    return () => {
+      window.removeEventListener('resize', measure);
+      clearTimeout(timer);
+    };
+  }, [subQuests]);
 
   const getThumbTop = useCallback(() => {
     if (!trackHeight) return 0;
@@ -1054,9 +1099,10 @@ export default function QuestPage() {
     return trackPadding + (scrollRatio * maxThumbTop);
   }, [scrollRatio, trackHeight]);
 
-  const handleThumbMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  const handleThumbPointerDown = useCallback(
+    (e: React.PointerEvent) => {
       e.preventDefault();
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
       isDraggingRef.current = true;
       dragStartYRef.current = e.clientY;
       dragStartRatioRef.current = scrollRatio;
@@ -1065,7 +1111,7 @@ export default function QuestPage() {
   );
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!isDraggingRef.current || !scrollTrackRef.current) return;
       const trackHeightCurrent = scrollTrackRef.current.clientHeight;
       const thumbSize = 100;
@@ -1079,15 +1125,15 @@ export default function QuestPage() {
       setScrollRatio(newRatio);
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
       isDraggingRef.current = false;
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
     };
   }, []);
 
@@ -1113,7 +1159,7 @@ export default function QuestPage() {
     (e: React.WheelEvent) => {
       if (maxScroll <= 0) return;
       const delta = e.deltaY / maxScroll;
-      setScrollRatio((prev) => Math.min(1, Math.max(0, prev + delta * 0.3)));
+      setScrollRatio((prev) => Math.min(1, Math.max(0, prev + delta * 0.7)));
     },
     [maxScroll]
   );
@@ -1157,8 +1203,26 @@ export default function QuestPage() {
 
               {/* 서브 퀘스트 (스크롤 영역) */}
               <div
+                ref={subQuestWrapperRef}
                 className="sub-quest-scroll-area"
-                style={{ height: visibleHeight }}
+                onPointerDown={(e) => {
+                  if (maxScroll <= 0) return;
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  isSwipe1Ref.current = true;
+                  swipe1MovedRef.current = false;
+                  swipe1StartYRef.current = e.clientY;
+                  swipe1StartRatioRef.current = scrollRatio;
+                }}
+                onPointerMove={(e) => {
+                  if (!isSwipe1Ref.current || maxScroll <= 0) return;
+                  const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
+                  const deltaY = (swipe1StartYRef.current - e.clientY) / gameScale;
+                  if (Math.abs(deltaY) > 5) swipe1MovedRef.current = true;
+                  setScrollRatio(Math.min(1, Math.max(0, swipe1StartRatioRef.current + deltaY / maxScroll)));
+                }}
+                onPointerUp={() => { isSwipe1Ref.current = false; }}
+                onPointerCancel={() => { isSwipe1Ref.current = false; }}
+                onClickCapture={(e) => { if (swipe1MovedRef.current) { e.stopPropagation(); swipe1MovedRef.current = false; } }}
               >
                 <div
                   ref={subQuestListRef}
@@ -1200,7 +1264,7 @@ export default function QuestPage() {
               <div
                 className="scrollbar-thumb"
                 style={{ top: getThumbTop() }}
-                onMouseDown={handleThumbMouseDown}
+                onPointerDown={handleThumbPointerDown}
               />
             </div>
 
