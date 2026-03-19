@@ -255,15 +255,16 @@ export default function CardListPage() {
     };
   }, [sortedCards]);
 
-  const handleThumbMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleThumbPointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     isDraggingRef.current = true;
     dragStartYRef.current = e.clientY;
     dragStartRatioRef.current = scrollRatio;
   }, [scrollRatio]);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!isDraggingRef.current || !trackRef.current) return;
       const trackHeightCurrent = trackRef.current.clientHeight;
       const trackPadding = 14;
@@ -274,12 +275,12 @@ export default function CardListPage() {
       const newRatio = Math.min(1, Math.max(0, dragStartRatioRef.current + deltaY / maxThumbTop));
       setScrollRatio(newRatio);
     };
-    const handleMouseUp = () => { isDraggingRef.current = false; };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    const handlePointerUp = () => { isDraggingRef.current = false; };
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
     };
   }, []);
 
@@ -376,7 +377,7 @@ export default function CardListPage() {
           {/* ──── 중앙: 스크롤바 ──── */}
           <div className="cardlist-scrollbar-column">
             <div ref={trackRef} className="scrollbar-track" onClick={handleTrackClick}>
-              <div className="scrollbar-thumb" style={{ top: getThumbTop() }} onMouseDown={handleThumbMouseDown} />
+              <div className="scrollbar-thumb" style={{ top: getThumbTop() }} onPointerDown={handleThumbPointerDown} />
             </div>
           </div>
 
