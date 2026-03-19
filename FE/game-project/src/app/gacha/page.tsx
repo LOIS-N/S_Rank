@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import "./gacha.css";
@@ -56,6 +56,7 @@ function NineSliceBox({ src, slice, framePadding, borderScale = 1, children, cla
 // --- Types ---
 type TabType = 'flyer' | 'fair' | 'public';
 type PhaseType = 'select' | 'result_1' | 'result_10';
+type EffectGrade = 'A' | 'S';
 
 const TAB_TO_TYPE_ID: Record<TabType, string> = {
   flyer: 'FLYER',
@@ -89,86 +90,178 @@ function displaySkillType(type: string): string {
   return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
 }
 
+// --- Phaser Particle Effect Overlay ---
+// A등급: 1초, S등급: 2초 파티클 연출
+function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const el = containerRef.current;
+    const duration = grade === 'S' ? 2000 : 1000;
+    let game: { destroy: (b: boolean) => void } | null = null;
+    let mounted = true;
+
+    (async () => {
+      const Phaser = (await import('phaser')).default;
+      if (!mounted || !el) return;
+
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const mainColor = grade === 'S' ? 0x00e5ff : 0xffd700;
+      const subColor  = grade === 'S' ? 0xffffff : 0xffec80;
+      const qty       = grade === 'S' ? 8 : 5;
+      const emitDur   = duration - 200;
+      const gradeLocal = grade;
+
+      game = new Phaser.Game({
+        type: Phaser.CANVAS,
+        width: w,
+        height: h,
+        transparent: true,
+        parent: el,
+        banner: false,
+        audio: { noAudio: true },
+        scene: {
+          create(this: Phaser.Scene) {
+            // 흰 원 텍스처 생성
+            const gfx = this.make.graphics({ x: 0, y: 0 });
+            gfx.fillStyle(0xffffff, 1);
+            gfx.fillCircle(8, 8, 8);
+            gfx.generateTexture('gachaDot', 16, 16);
+            gfx.destroy();
+
+            const cx = w / 2;
+            const cy = h / 2;
+
+            // 중앙 버스트
+            this.add.particles(cx, cy, 'gachaDot', {
+              speed: { min: 150, max: 500 },
+              angle: { min: 0, max: 360 },
+              scale: { start: 1.2, end: 0 },
+              alpha: { start: 1, end: 0 },
+              lifespan: { min: 600, max: duration },
+              quantity: qty,
+              frequency: 40,
+              tint: [mainColor, subColor],
+              gravityY: 100,
+              duration: emitDur,
+            });
+
+            // S등급: 네 모서리 추가 버스트
+            if (gradeLocal === 'S') {
+              const corners: [number, number][] = [
+                [w * 0.1, h * 0.2],
+                [w * 0.9, h * 0.2],
+                [w * 0.1, h * 0.8],
+                [w * 0.9, h * 0.8],
+              ];
+              for (const [px, py] of corners) {
+                this.add.particles(px, py, 'gachaDot', {
+                  speed: { min: 80, max: 250 },
+                  angle: { min: 0, max: 360 },
+                  scale: { start: 0.7, end: 0 },
+                  alpha: { start: 1, end: 0 },
+                  lifespan: { min: 400, max: 1200 },
+                  quantity: 3,
+                  frequency: 80,
+                  tint: [mainColor, subColor],
+                  gravityY: 60,
+                  duration: emitDur,
+                });
+              }
+            }
+          }
+        }
+      });
+    })();
+
+    const timer = setTimeout(() => {
+      onDoneRef.current();
+    }, duration + 300);
+
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+      game?.destroy(true);
+    };
+  // grade가 바뀌면 재실행
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grade]);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: 'fixed',
+        top: 0, left: 0,
+        width: '100vw', height: '100vh',
+        zIndex: 9999,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      }}
+    />
+  );
+}
+
+// --- Main Page ---
 export default function GachaPage() {
   const [currentTab, setCurrentTab] = useState<TabType>('flyer');
   const [phase, setPhase] = useState<PhaseType>('select');
-  const { gold, increaseGold, openComingSoonModal, accessToken } = useGameStore();
+  const { gold, coffee, setResources, increaseGold, openComingSoonModal, accessToken } = useGameStore();
   const { getAccessToken } = usePrivy();
   const [drawnCards, setDrawnCards] = useState<GachaCardResult[]>([]);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const [isPulling, setIsPulling] = useState(false);
+  const [gachaEffect, setGachaEffect] = useState<EffectGrade | null>(null);
 
-  const canPull1 = gold >= GACHA_COSTS[currentTab].single;
+  const canPull1  = gold >= GACHA_COSTS[currentTab].single;
   const canPull10 = gold >= GACHA_COSTS[currentTab].ten;
 
   const getAuthToken = useCallback(async () => {
     return accessToken || await getAccessToken();
   }, [accessToken, getAccessToken]);
 
-  // --- DEV: Mock 데이터로 결과 미리보기 (골드 차감 없음) ---
-  const USE_MOCK = true; // TODO: 실제 배포 시 false로 변경
-  const MOCK_CARDS: GachaCardResult[] = [
-    { cardId: 1, grade: 'S', name: '천재 개발자 김사장', imageUrl: '/assets/006/SCardImage_000.png', skill1: { skillType: 'BE', value: 95 }, skill2: { skillType: 'FE', value: 88 }, skill3: { skillType: 'AI', value: 92 }, specialAbility: { name: '풀스택 마스터', description: '모든 능력치 +10%', effects: '' } },
-    { cardId: 2, grade: 'A', name: '분위기 메이커 박과장', imageUrl: '/assets/006/SCardImage_001.png', skill1: { skillType: 'DBA', value: 78 }, skill2: { skillType: 'BE', value: 65 }, skill3: { skillType: 'DEV', value: 60 }, specialAbility: null },
-    { cardId: 3, grade: 'B', name: '야근킹 이대리', imageUrl: '/assets/006/SCardImage_002.png', skill1: { skillType: 'FE', value: 55 }, skill2: { skillType: 'DESIGN', value: 50 }, skill3: { skillType: 'BE', value: 48 }, specialAbility: null },
-    { cardId: 4, grade: 'A', name: '갓생사는 최대리', imageUrl: '/assets/006/SCardImage_003.png', skill1: { skillType: 'DESIGN', value: 72 }, skill2: { skillType: 'FE', value: 70 }, skill3: { skillType: 'AI', value: 61 }, specialAbility: null },
-    { cardId: 5, grade: 'C', name: '점심러 한사원', imageUrl: '/assets/006/SCardImage_004.png', skill1: { skillType: 'BE', value: 35 }, skill2: { skillType: 'DBA', value: 30 }, skill3: { skillType: 'DEV', value: 28 }, specialAbility: null },
-    { cardId: 6, grade: 'D', name: '신입 오인턴', imageUrl: '/assets/006/SCardImage_005.png', skill1: { skillType: 'FE', value: 20 }, skill2: { skillType: 'BE', value: 18 }, skill3: { skillType: 'AI', value: 15 }, specialAbility: null },
-    { cardId: 7, grade: 'B', name: '커피중독 정과장', imageUrl: '/assets/006/SCardImage_006.png', skill1: { skillType: 'AI', value: 58 }, skill2: { skillType: 'DBA', value: 52 }, skill3: { skillType: 'DESIGN', value: 45 }, specialAbility: null },
-    { cardId: 8, grade: 'A', name: '알고리즘 왕 유팀장', imageUrl: '/assets/006/SCardImage_007.png', skill1: { skillType: 'BE', value: 80 }, skill2: { skillType: 'AI', value: 75 }, skill3: { skillType: 'FE', value: 68 }, specialAbility: null },
-    { cardId: 9, grade: 'C', name: '디자인감각 송대리', imageUrl: '/assets/006/SCardImage_008.png', skill1: { skillType: 'DESIGN', value: 42 }, skill2: { skillType: 'FE', value: 38 }, skill3: { skillType: 'DEV', value: 33 }, specialAbility: null },
-    { cardId: 10, grade: 'S', name: '전설의 CTO 나부장', imageUrl: '/assets/006/SCardImage_009.png', skill1: { skillType: 'BE', value: 98 }, skill2: { skillType: 'AI', value: 95 }, skill3: { skillType: 'DBA', value: 90 }, specialAbility: { name: '기술 리더십', description: '팀 전체 능력치 +15%', effects: '' } },
-  ];
-
-  // API 뽑기
+  // --- 뽑기 API 호출 ---
   const handlePull = async (count: 1 | 10) => {
     if (isPulling) return;
-
-    // Mock 모드: API 호출 없이 바로 결과 표시
-    if (USE_MOCK) {
-      setIsPulling(true);
-      await new Promise(r => setTimeout(r, 300)); // 살짝 딜레이
-      if (count === 1) {
-        setDrawnCards([MOCK_CARDS[Math.floor(Math.random() * MOCK_CARDS.length)]]);
-      } else {
-        const picked = Array.from({ length: 10 }, () => MOCK_CARDS[Math.floor(Math.random() * MOCK_CARDS.length)]);
-        setDrawnCards(picked);
-      }
-      setSelectedCardIndex(null);
-      setPhase(count === 1 ? 'result_1' : 'result_10');
-      setIsPulling(false);
-      return;
-    }
-
     const cost = count === 1 ? GACHA_COSTS[currentTab].single : GACHA_COSTS[currentTab].ten;
     if (gold < cost) return;
+
     setIsPulling(true);
     try {
       const token = await getAuthToken();
-      const typeId = TAB_TO_TYPE_ID[currentTab];
-      const body = { type: typeId, count };
-      console.log("가챠 요청:", body);
       const res = await fetch('/api/v1/gacha/draws', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ type: TAB_TO_TYPE_ID[currentTab], count }),
       });
+
       if (!res.ok) {
-        const errorBody = await res.json().catch(() => null);
-        const msg = errorBody?.error?.message || errorBody?.message || `오류 (${res.status})`;
-        console.error("가챠 실패:", res.status, msg);
+        const errorText = await res.text().catch(() => '');
+        let msg = `오류 (${res.status})`;
+        try {
+          const errorBody = JSON.parse(errorText);
+          msg = errorBody?.error?.message || errorBody?.message || msg;
+        } catch {
+          // non-JSON body (e.g. nginx 502)
+        }
+        console.error(`[가챠] ${count}회 뽑기 실패 — HTTP ${res.status}`, errorText);
         alert(msg);
-        setIsPulling(false);
         return;
       }
+
       const resData = await res.json();
       const drawData = resData.data ?? resData;
+
       if (drawData?.cards) {
-        // BE 응답의 skill 필드가 { type, value } 형식 → { skillType, value }로 정규화
-        const normalizedCards: GachaCardResult[] = drawData.cards.map((c: Record<string, unknown>) => {
+        // skill 필드 정규화 (type → skillType 대응)
+        const normalized: GachaCardResult[] = drawData.cards.map((c: Record<string, unknown>) => {
           const s1 = c.skill1 as Record<string, unknown>;
           const s2 = c.skill2 as Record<string, unknown>;
           const s3 = c.skill3 as Record<string, unknown>;
@@ -179,26 +272,28 @@ export default function GachaPage() {
             skill3: { skillType: (s3?.skillType || s3?.type) as string, value: s3?.value as number },
           };
         });
-        // BE가 차감 후 잔액을 알려주면 그걸 사용, 아니면 FE에서 차감
+
+        // 골드 갱신 — BE가 남은 골드를 주면 그것을 직접 세팅
         if (drawData.remainingGold != null) {
-          const diff = gold - (drawData.remainingGold as number);
-          if (diff > 0) increaseGold(-diff);
+          setResources(drawData.remainingGold as number, coffee);
         } else {
           increaseGold(-cost);
         }
-        setDrawnCards(normalizedCards);
+
+        setDrawnCards(normalized);
         setSelectedCardIndex(null);
         setPhase(count === 1 ? 'result_1' : 'result_10');
+
+        // A/S 등급 파티클 효과 트리거 (S 우선)
+        const hasS = normalized.some(c => c.grade === 'S');
+        const hasA = normalized.some(c => c.grade === 'A');
+        if (hasS) setGachaEffect('S');
+        else if (hasA) setGachaEffect('A');
       }
     } catch (err: unknown) {
-      const e = err as { response?: { status?: number; data?: unknown }; message?: string; config?: { url?: string; data?: string } };
-      console.error("가챠 실패 status:", e.response?.status);
-      console.error("가챠 실패 data:", JSON.stringify(e.response?.data));
-      console.error("가챠 실패 url:", e.config?.url);
-      console.error("가챠 실패 body:", e.config?.data);
-      console.error("가챠 실패 message:", e.message);
+      const e = err as { response?: { data?: unknown }; message?: string };
       const errData = e.response?.data as Record<string, unknown> | undefined;
-      alert((errData?.message as string) || (errData?.error as string) || e.message || '뽑기에 실패했습니다.');
+      alert((errData?.message as string) || e.message || '뽑기에 실패했습니다.');
     } finally {
       setIsPulling(false);
     }
@@ -212,7 +307,7 @@ export default function GachaPage() {
 
   const selectedCard = selectedCardIndex != null ? drawnCards[selectedCardIndex] : null;
 
-  // 뽑기 버튼 컴포넌트
+  // 뽑기 버튼 (1회 / 10회)
   const PullButtons = () => (
     <>
       <div
@@ -236,6 +331,15 @@ export default function GachaPage() {
 
   return (
     <div className="gacha-page-container">
+
+      {/* Phaser 파티클 효과 오버레이 (A/S 등급 시) */}
+      {gachaEffect && (
+        <GachaEffectOverlay
+          grade={gachaEffect}
+          onDone={() => setGachaEffect(null)}
+        />
+      )}
+
       <div className={`gacha-content gacha-bg-${currentTab}`}>
 
         {/* 좌측 상단 골드 HUD */}
@@ -308,7 +412,7 @@ export default function GachaPage() {
           </div>
         </div>
 
-        {/* 초기 화면 - 뽑기 버튼 */}
+        {/* 초기 화면 — 뽑기 버튼 */}
         <div className="gacha-main-area">
           {phase === 'select' && (
             <div className="gacha-bottom-area">
@@ -317,43 +421,57 @@ export default function GachaPage() {
           )}
         </div>
 
-        {/* --- 1회 뽑기 결과 --- */}
+        {/* ============================
+            1회 뽑기 결과
+            ============================ */}
         {phase === 'result_1' && drawnCards.length > 0 && (
           <div className="gacha-result-container" onClick={handleReturn}>
-            <div className="gacha-result-layout" onClick={(e) => e.stopPropagation()}>
-              {/* 카드 이미지 */}
-              <div className="gacha-result-card-col">
-                <div className="gacha-result-single-card" data-grade={drawnCards[0].grade}>
-                  <img src={drawnCards[0].imageUrl} alt={drawnCards[0].name} draggable={false} />
-                  <span className="gacha-card-stat stat-1">{displaySkillType(drawnCards[0].skill1.skillType)} {drawnCards[0].skill1.value}</span>
-                  <span className="gacha-card-stat stat-2">{displaySkillType(drawnCards[0].skill2.skillType)} {drawnCards[0].skill2.value}</span>
-                  <span className="gacha-card-stat stat-3">{displaySkillType(drawnCards[0].skill3.skillType)} {drawnCards[0].skill3.value}</span>
-                </div>
-              </div>
-              {/* 카드 정보 */}
-              <div className="gacha-result-info-col">
-                <NineSliceBox src="/assets/006/gachaInf_000.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="gacha-result-info-box">
-                  <div className="gacha-result-name">{drawnCards[0].name}</div>
-                  <div className="gacha-result-grade">등급: {drawnCards[0].grade}</div>
-                  <div className="gacha-result-stats">
-                    <div>{displaySkillType(drawnCards[0].skill1.skillType)}: {drawnCards[0].skill1.value}</div>
-                    <div>{displaySkillType(drawnCards[0].skill2.skillType)}: {drawnCards[0].skill2.value}</div>
-                    <div>{displaySkillType(drawnCards[0].skill3.skillType)}: {drawnCards[0].skill3.value}</div>
-                  </div>
-                  {drawnCards[0].specialAbility && (
-                    <div className="gacha-result-special">특수 능력: {typeof drawnCards[0].specialAbility === 'string' ? drawnCards[0].specialAbility : drawnCards[0].specialAbility.name}</div>
-                  )}
-                </NineSliceBox>
-              </div>
-            </div>
+            {/* 바깥 클릭 시 닫힘 — 안쪽 클릭은 전파 차단 */}
+            <div className="gacha-single-result-center" onClick={(e) => e.stopPropagation()}>
 
-            <div className="gacha-bottom-buttons" onClick={(e) => e.stopPropagation()}>
-              <PullButtons />
+              {/* 카드 크게 */}
+              <div className="gacha-single-big-card" data-grade={drawnCards[0].grade}>
+                <img src={drawnCards[0].imageUrl} alt={drawnCards[0].name} draggable={false} />
+                <span className="gacha-card-stat stat-1">{displaySkillType(drawnCards[0].skill1.skillType)} {drawnCards[0].skill1.value}</span>
+                <span className="gacha-card-stat stat-2">{displaySkillType(drawnCards[0].skill2.skillType)} {drawnCards[0].skill2.value}</span>
+                <span className="gacha-card-stat stat-3">{displaySkillType(drawnCards[0].skill3.skillType)} {drawnCards[0].skill3.value}</span>
+              </div>
+
+              {/* 카드 정보 */}
+              <NineSliceBox
+                src="/assets/006/gachaInf_000.png"
+                slice={[108, 260, 129, 340]}
+                framePadding={14}
+                borderScale={0.35}
+                className="gacha-single-info-box"
+              >
+                <div className="gacha-result-name">{drawnCards[0].name}</div>
+                <div className="gacha-result-grade">등급: {drawnCards[0].grade}</div>
+                <div className="gacha-result-stats">
+                  <div>{displaySkillType(drawnCards[0].skill1.skillType)}: {drawnCards[0].skill1.value}</div>
+                  <div>{displaySkillType(drawnCards[0].skill2.skillType)}: {drawnCards[0].skill2.value}</div>
+                  <div>{displaySkillType(drawnCards[0].skill3.skillType)}: {drawnCards[0].skill3.value}</div>
+                </div>
+                {drawnCards[0].specialAbility && (
+                  <div className="gacha-result-special">
+                    특수 능력: {typeof drawnCards[0].specialAbility === 'string'
+                      ? drawnCards[0].specialAbility
+                      : drawnCards[0].specialAbility.name}
+                  </div>
+                )}
+              </NineSliceBox>
+
+              {/* 바로 아래 뽑기 버튼 */}
+              <div className="gacha-single-pull-buttons">
+                <PullButtons />
+              </div>
             </div>
           </div>
         )}
 
-        {/* --- 10회 뽑기 결과 --- */}
+        {/* ============================
+            10회 뽑기 결과
+            ============================ */}
         {phase === 'result_10' && drawnCards.length > 0 && (
           <div className="gacha-result-container" onClick={handleReturn}>
             <div className="gacha-result-layout gacha-result-10" onClick={(e) => e.stopPropagation()}>
@@ -385,11 +503,26 @@ export default function GachaPage() {
                       <span className="gacha-card-stat stat-2">{displaySkillType(selectedCard.skill2.skillType)} {selectedCard.skill2.value}</span>
                       <span className="gacha-card-stat stat-3">{displaySkillType(selectedCard.skill3.skillType)} {selectedCard.skill3.value}</span>
                     </div>
-                    <NineSliceBox src="/assets/006/gachaInf_000.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="gacha-detail-info-box">
+                    <NineSliceBox
+                      src="/assets/006/gachaInf_000.png"
+                      slice={[108, 260, 129, 340]}
+                      framePadding={14}
+                      borderScale={0.35}
+                      className="gacha-detail-info-box"
+                    >
                       <div className="gacha-result-name">{selectedCard.name}</div>
                       <div className="gacha-result-grade">등급: {selectedCard.grade}</div>
+                      <div className="gacha-result-stats">
+                        <div>{displaySkillType(selectedCard.skill1.skillType)}: {selectedCard.skill1.value}</div>
+                        <div>{displaySkillType(selectedCard.skill2.skillType)}: {selectedCard.skill2.value}</div>
+                        <div>{displaySkillType(selectedCard.skill3.skillType)}: {selectedCard.skill3.value}</div>
+                      </div>
                       {selectedCard.specialAbility && (
-                        <div className="gacha-result-special">특수 능력: {typeof selectedCard.specialAbility === 'string' ? selectedCard.specialAbility : selectedCard.specialAbility.name}</div>
+                        <div className="gacha-result-special">
+                          특수 능력: {typeof selectedCard.specialAbility === 'string'
+                            ? selectedCard.specialAbility
+                            : selectedCard.specialAbility.name}
+                        </div>
                       )}
                     </NineSliceBox>
                   </div>
