@@ -212,6 +212,11 @@ export default function CardListPage() {
   const isDraggingRef = useRef(false);
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
+  // 스와이프 스크롤
+  const swipeStartYRef = useRef(0);
+  const swipeStartRatioRef = useRef(0);
+  const isSwipingRef = useRef(false);
+  const swipeMovedRef = useRef(false);
 
   // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
   const maxScroll = Math.max(0, gridHeight - wrapperHeight);
@@ -336,7 +341,29 @@ export default function CardListPage() {
 
             {/* 카드 리스트 박스 */}
             <NineSliceBox src="/assets/008/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
-              <div className="cardlist-grid-wrapper" ref={wrapperRef} onWheel={handleWheel} style={{ flex: 1, overflow: 'hidden' }}>
+              <div
+                className="cardlist-grid-wrapper"
+                ref={wrapperRef}
+                onWheel={handleWheel}
+                style={{ flex: 1, overflow: 'hidden' }}
+                onPointerDown={(e) => {
+                  if (maxScroll <= 0) return;
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  isSwipingRef.current = true;
+                  swipeMovedRef.current = false;
+                  swipeStartYRef.current = e.clientY;
+                  swipeStartRatioRef.current = scrollRatio;
+                }}
+                onPointerMove={(e) => {
+                  if (!isSwipingRef.current || maxScroll <= 0) return;
+                  const deltaY = swipeStartYRef.current - e.clientY;
+                  if (Math.abs(deltaY) > 5) swipeMovedRef.current = true;
+                  setScrollRatio(Math.min(1, Math.max(0, swipeStartRatioRef.current + deltaY / maxScroll)));
+                }}
+                onPointerUp={() => { isSwipingRef.current = false; }}
+                onPointerCancel={() => { isSwipingRef.current = false; }}
+                onClickCapture={(e) => { if (swipeMovedRef.current) { e.stopPropagation(); swipeMovedRef.current = false; } }}
+              >
                 <div className="cardlist-grid" ref={gridRef} style={{ transform: `translateY(-${scrollOffset}px)` }}>
                   {isInitialLoad ? (
                     <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>

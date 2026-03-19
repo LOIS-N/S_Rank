@@ -54,6 +54,12 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ZoomGuard />
+        {/* 세로 모드 회전 안내 — portrait 에서만 CSS로 표시 */}
+        <div className="portrait-overlay">
+          <span className="rotate-icon">📱</span>
+          <span>화면을 가로로 돌려주세요</span>
+          <span style={{ fontSize: "16px", opacity: 0.7 }}>Please rotate your device</span>
+        </div>
         <div className="app-container">
           <div className="game-wrapper">
             <PrivyProviderWrapper>

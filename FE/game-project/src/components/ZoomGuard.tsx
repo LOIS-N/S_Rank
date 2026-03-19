@@ -22,8 +22,10 @@ function applyViewportVars() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  // 16:9 고정 해상도(1280×720)를 뷰포트에 맞게 균일 스케일
-  const scale = Math.min(vw / GAME_W, vh / GAME_H);
+  // 가로 모드: 높이 기준 스케일 → 전체화면 채움 (좌우 여백 없음)
+  // 세로 모드: Math.min → portrait-overlay가 가려줌
+  const isLandscape = vw > vh;
+  const scale = isLandscape ? vh / GAME_H : Math.min(vw / GAME_W, vh / GAME_H);
 
   root.style.setProperty("--avw", `${vw}px`);
   root.style.setProperty("--avh", `${vh}px`);

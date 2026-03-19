@@ -135,3 +135,38 @@ html, body {
   background-color: #ffd700;
 }
 
+/* ── 세로 모드(portrait) 회전 안내 오버레이 ── */
+.portrait-overlay {
+  display: none;
+}
+
+@media (orientation: portrait) {
+  .portrait-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #0f172a;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    color: #fff;
+    font-family: 'StardustS', 'Stardust', sans-serif;
+    font-size: 22px;
+    text-align: center;
+    padding: 32px;
+  }
+
+  .portrait-overlay .rotate-icon {
+    font-size: 64px;
+    animation: rotateHint 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes rotateHint {
+  0%, 100% { transform: rotate(0deg); }
+  40%       { transform: rotate(90deg); }
+  60%       { transform: rotate(90deg); }
+}
+
