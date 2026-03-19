@@ -38,7 +38,3 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-
-# 이미지 깃에 업로드 x
-public/assets/
-next-env.d.ts

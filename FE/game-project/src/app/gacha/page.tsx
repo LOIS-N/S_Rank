@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
+import { GachaRevealCard } from "./GachaRevealCard";
 import "./gacha.css";
 
 // --- Types ---
@@ -36,10 +37,6 @@ interface GachaCardResult {
   skill2: CardSkill;
   skill3: CardSkill;
   specialAbility: { name: string; description: string; effects: string } | null;
-}
-
-function displaySkillType(type: string): string {
-  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
 }
 
 // --- Phaser Particle Effect Overlay ---
@@ -78,7 +75,6 @@ function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () 
         audio: { noAudio: true },
         scene: {
           create(this: Phaser.Scene) {
-            // 흰 원 텍스처 생성
             const gfx = this.make.graphics({ x: 0, y: 0 });
             gfx.fillStyle(0xffffff, 1);
             gfx.fillCircle(8, 8, 8);
@@ -88,7 +84,6 @@ function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () 
             const cx = w / 2;
             const cy = h / 2;
 
-            // 중앙 버스트
             this.add.particles(cx, cy, 'gachaDot', {
               speed: { min: 150, max: 500 },
               angle: { min: 0, max: 360 },
@@ -102,7 +97,6 @@ function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () 
               duration: emitDur,
             });
 
-            // S등급: 네 모서리 추가 버스트
             if (gradeLocal === 'S') {
               const corners: [number, number][] = [
                 [w * 0.1, h * 0.2],
@@ -139,7 +133,6 @@ function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () 
       clearTimeout(timer);
       game?.destroy(true);
     };
-    // grade가 바뀌면 재실행
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grade]);
 
@@ -212,7 +205,6 @@ export default function GachaPage() {
       const drawData = resData.data ?? resData;
 
       if (drawData?.cards) {
-        // skill 필드 정규화 (type → skillType 대응)
         const normalized: GachaCardResult[] = drawData.cards.map((c: Record<string, unknown>) => {
           const s1 = c.skill1 as Record<string, unknown>;
           const s2 = c.skill2 as Record<string, unknown>;
@@ -225,7 +217,6 @@ export default function GachaPage() {
           };
         });
 
-        // 골드 갱신 — BE가 남은 골드를 주면 그것을 직접 세팅
         if (drawData.remainingGold != null) {
           setResources(drawData.remainingGold as number, coffee);
         } else {
@@ -236,7 +227,7 @@ export default function GachaPage() {
         setSelectedCardIndex(null);
         setPhase(count === 1 ? 'result_1' : 'result_10');
 
-        // A/S 등급 파티클 효과 트리거 (S 우선)
+        // A/S 등급 Phaser 파티클 효과 (S 우선)
         const hasS = normalized.some(c => c.grade === 'S');
         const hasA = normalized.some(c => c.grade === 'A');
         if (hasS) setGachaEffect('S');
@@ -371,18 +362,18 @@ export default function GachaPage() {
             ============================ */}
         {phase === 'result_1' && drawnCards.length > 0 && (
           <div className="gacha-result-container" onClick={handleReturn}>
-            {/* 바깥 클릭 시 닫힘 — 안쪽 클릭은 전파 차단 */}
             <div className="gacha-single-result-center" onClick={(e) => e.stopPropagation()}>
 
-              {/* 카드 크게 */}
-              <div className="gacha-single-big-card" data-grade={drawnCards[0].grade}>
-                <img src={drawnCards[0].imageUrl} alt={drawnCards[0].name} draggable={false} />
-                <span className="gacha-card-stat stat-1">{displaySkillType(drawnCards[0].skill1.skillType)} {drawnCards[0].skill1.value}</span>
-                <span className="gacha-card-stat stat-2">{displaySkillType(drawnCards[0].skill2.skillType)} {drawnCards[0].skill2.value}</span>
-                <span className="gacha-card-stat stat-3">{displaySkillType(drawnCards[0].skill3.skillType)} {drawnCards[0].skill3.value}</span>
+              {/* 카드 플립 리빌 */}
+              <div className="gacha-single-big-card">
+                <GachaRevealCard
+                  card={drawnCards[0]}
+                  revealDelay={0}
+                  statFontSize={21}
+                />
               </div>
 
-              {/* 바로 아래 뽑기 버튼 */}
+              {/* 뽑기 버튼 */}
               <div className="gacha-single-pull-buttons">
                 <PullButtons />
               </div>
@@ -404,10 +395,11 @@ export default function GachaPage() {
                     data-grade={card.grade}
                     onClick={() => setSelectedCardIndex(selectedCardIndex === idx ? null : idx)}
                   >
-                    <img src={card.imageUrl} alt={card.name} draggable={false} />
-                    <span className="gacha-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                    <span className="gacha-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                    <span className="gacha-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                    <GachaRevealCard
+                      card={card}
+                      revealDelay={idx * 150}
+                      statFontSize={12}
+                    />
                   </div>
                 ))}
               </div>
