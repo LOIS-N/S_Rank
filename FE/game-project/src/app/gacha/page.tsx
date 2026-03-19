@@ -63,9 +63,9 @@ function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () 
       const w = window.innerWidth;
       const h = window.innerHeight;
       const mainColor = grade === 'S' ? 0x00e5ff : 0xffd700;
-      const subColor  = grade === 'S' ? 0xffffff : 0xffec80;
-      const qty       = grade === 'S' ? 8 : 5;
-      const emitDur   = duration - 200;
+      const subColor = grade === 'S' ? 0xffffff : 0xffec80;
+      const qty = grade === 'S' ? 8 : 5;
+      const emitDur = duration - 200;
       const gradeLocal = grade;
 
       game = new Phaser.Game({
@@ -139,8 +139,8 @@ function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () 
       clearTimeout(timer);
       game?.destroy(true);
     };
-  // grade가 바뀌면 재실행
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // grade가 바뀌면 재실행
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grade]);
 
   return (
@@ -169,7 +169,7 @@ export default function GachaPage() {
   const [isPulling, setIsPulling] = useState(false);
   const [gachaEffect, setGachaEffect] = useState<EffectGrade | null>(null);
 
-  const canPull1  = gold >= GACHA_COSTS[currentTab].single;
+  const canPull1 = gold >= GACHA_COSTS[currentTab].single;
   const canPull10 = gold >= GACHA_COSTS[currentTab].ten;
 
   const getAuthToken = useCallback(async () => {
@@ -294,12 +294,20 @@ export default function GachaPage() {
 
         {/* 좌측 상단 골드 HUD */}
         <div className="gacha-gold-hud">
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '4.7cqw', width: '17.5cqw' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <img
+              src="/assets/002/coin_002.png"
+              alt="gold"
+              style={{
+                width: '5cqw',
+                height: '5cqw',
+                imageRendering: 'pixelated',
+              }}
+            />
             <div
               style={{
-                position: 'absolute',
-                right: 0, top: 0, bottom: 0,
-                left: '2.5cqw',
+                width: '15cqw',
+                height: '4cqw',
                 paddingRight: '1.9cqw',
                 fontSize: '1.7cqw',
                 backgroundImage: "url('/assets/002/upperBlank_002.png')",
@@ -315,19 +323,6 @@ export default function GachaPage() {
               <span style={{ fontVariantNumeric: 'tabular-nums' }}>{gold.toLocaleString()}</span>
               <span style={{ marginLeft: '0.4cqw', fontSize: '1.4cqw' }}>G</span>
             </div>
-            <img
-              src="/assets/002/coin_002.png"
-              alt="gold"
-              style={{
-                position: 'absolute',
-                zIndex: 10,
-                left: '-1.9cqw',
-                top: '0.3cqw',
-                width: '5cqw',
-                height: '5cqw',
-                imageRendering: 'pixelated',
-              }}
-            />
           </div>
         </div>
 

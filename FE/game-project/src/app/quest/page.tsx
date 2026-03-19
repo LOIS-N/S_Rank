@@ -998,8 +998,8 @@ export default function QuestPage() {
 
   const getThumbTop = useCallback(() => {
     if (!trackHeight) return 0;
-    const thumbSize = 18;
-    const trackPadding = thumbSize / 2; // 썸 중심이 트랙 경계와 맞도록
+    const thumbSize = 100;
+    const trackPadding = 14; 
     const maxThumbTop = trackHeight - thumbSize - (trackPadding * 2);
     if (maxThumbTop <= 0) return trackPadding;
     return trackPadding + (scrollRatio * maxThumbTop);
@@ -1019,8 +1019,8 @@ export default function QuestPage() {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDraggingRef.current || !scrollTrackRef.current) return;
       const trackHeightCurrent = scrollTrackRef.current.clientHeight;
-      const thumbSize = 18;
-      const trackPadding = thumbSize / 2; // 썸 중심이 트랙 경계와 맞도록
+      const thumbSize = 100;
+      const trackPadding = 14;
       const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
       if (maxThumbTop <= 0) return;
 
@@ -1048,8 +1048,8 @@ export default function QuestPage() {
       const rect = scrollTrackRef.current.getBoundingClientRect();
       const clickY = e.clientY - rect.top;
       const trackHeightCurrent = rect.height;
-      const thumbSize = 18;
-      const trackPadding = thumbSize / 2; // 썸 중심이 트랙 경계와 맞도록
+      const thumbSize = 100;
+      const trackPadding = 14;
       const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
       if (maxThumbTop <= 0) return;
 

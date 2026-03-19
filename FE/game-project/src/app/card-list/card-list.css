@@ -318,12 +318,14 @@
   width: 80px;
   flex: 1;
   min-height: 80px;
-  background-image: url('/assets/008/scrollBar_000.png');
+  max-height: none; /* 추가: Phase2와 동일하게 제한 해제 */
+  background-image: url('/assets/003-02/scrollBar_000.png'); /* 008 -> 003-02 */
   background-size: 518% 108%;
   background-position: 50% 50%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
   position: relative;
+  overflow: visible; /* 추가: 썸이 삐져나올 수 있게 */
 }
 
 .scrollbar-thumb {
@@ -332,7 +334,7 @@
   transform: translateX(-50%);
   width: 100px;
   height: 100px;
-  background-image: url('/assets/008/scrollButton_000.png');
+  background-image: url('/assets/003-02/scrollButton_000.png'); /* 008 -> 003-02 */
   background-size: 84% 48%;
   background-position: 50% 49%;
   background-repeat: no-repeat;
@@ -414,6 +416,7 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  justify-content: center;
 }
 
 /* 정보 상자 체계 고정 크기 할당 */
@@ -430,12 +433,12 @@
 }
 
 .cardlist-info-stats-box {
-  flex: 1; /* 능력치 창을 가변적으로 설정 (소개창과 1:1 분할) */
+  flex: 0 0 calc((100% - 86px) / 2); /* 헤더(54px) + 간격(32px) 제외 후 절반 고정 */
 }
 
 /* S등급 추가 설명 란 */
 .cardlist-s-grade-desc {
-  flex: 1; /* 남은 하단 공간 모두 차지 (가장 큰 박스) */
+  flex: 0 0 calc((100% - 86px) / 2); /* 능력치 박스와 동일 크기 고정 */
 }
 
 /* 내부 콘텐츠 중앙 정렬 공통 */
