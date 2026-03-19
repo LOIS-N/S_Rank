@@ -6,7 +6,7 @@ export interface DeskQuest {
   id: number;
   status: QuestStatus;
   isLocked: boolean;
-  endTime: number | null; 
+  endTime: number | null;
   reward: number;
 }
 
@@ -17,7 +17,7 @@ interface GameState {
   nickname: string;
   walletAddress: string | null;
   gameStatus: 'IDLE' | 'NICKNAME_INPUT' | 'PLAYING';
-  accessToken: string | null; 
+  accessToken: string | null;
   unreadNotifications: number;
   quests: DeskQuest[];
   selectingDeskId: number | null;
@@ -43,6 +43,7 @@ interface GameState {
   closeRewardModal: () => void;
   openComingSoonModal: (text?: string) => void;
   closeComingSoonModal: () => void;
+  setResources: (gold: number, coffee: number) => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -53,19 +54,19 @@ export const useGameStore = create<GameState>((set) => ({
   walletAddress: null,
   gameStatus: 'IDLE',
   accessToken: null,
-  unreadNotifications: 1, 
+  unreadNotifications: 1,
   quests: [
     { id: 0, status: 'IDLE', isLocked: false, endTime: null, reward: 100 },
-    { id: 1, status: 'IDLE', isLocked: true,  endTime: null, reward: 200 },
-    { id: 2, status: 'IDLE', isLocked: true,  endTime: null, reward: 300 },
-    { id: 3, status: 'IDLE', isLocked: true,  endTime: null, reward: 400 },
-    { id: 4, status: 'IDLE', isLocked: true,  endTime: null, reward: 500 },
+    { id: 1, status: 'IDLE', isLocked: true, endTime: null, reward: 200 },
+    { id: 2, status: 'IDLE', isLocked: true, endTime: null, reward: 300 },
+    { id: 3, status: 'IDLE', isLocked: true, endTime: null, reward: 400 },
+    { id: 4, status: 'IDLE', isLocked: true, endTime: null, reward: 500 },
   ],
   selectingDeskId: null,
   activeRewardModal: null,
   activeUnlockConfirm: null,
   comingSoonModal: null,
-  
+
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
   increaseGold: (by) => set((state) => ({ gold: state.gold + by })),
@@ -75,18 +76,18 @@ export const useGameStore = create<GameState>((set) => ({
   setNickname: (name) => set({ nickname: name }),
   setGameStatus: (status) => set({ gameStatus: status }),
   startGame: () => set({ gameStatus: 'PLAYING' }),
-  logout: () => set({ 
-    gameStatus: 'IDLE', 
-    nickname: '', 
-    accessToken: null, 
-    walletAddress: null 
+  logout: () => set({
+    gameStatus: 'IDLE',
+    nickname: '',
+    accessToken: null,
+    walletAddress: null
   }),
   setSelectingDeskId: (id) => set({ selectingDeskId: id }),
   startQuest: (id: number, durationSeconds: number, reward: number) => set((state) => {
-    const updated = state.quests.map(q => 
-      q.id === id ? { 
-        ...q, 
-        status: 'IN_PROGRESS' as QuestStatus, 
+    const updated = state.quests.map(q =>
+      q.id === id ? {
+        ...q,
+        status: 'IN_PROGRESS' as QuestStatus,
         endTime: Date.now() + (durationSeconds * 1000),
         reward: reward
       } : q
@@ -94,7 +95,7 @@ export const useGameStore = create<GameState>((set) => ({
     return { quests: updated, selectingDeskId: null };
   }),
   finishQuestTimer: (id: number) => set((state) => {
-    const updated = state.quests.map(q => 
+    const updated = state.quests.map(q =>
       q.id === id && q.status === 'IN_PROGRESS' ? { ...q, status: 'COMPLETED' as QuestStatus } : q
     );
     return { quests: updated };
@@ -108,25 +109,26 @@ export const useGameStore = create<GameState>((set) => ({
       }
       return q;
     });
-    return { 
-      quests: updated, 
+    return {
+      quests: updated,
       gold: state.gold + rewardAcc,
       activeRewardModal: { isOpen: true, title: "퀘스트 완료", text: `${rewardAcc.toLocaleString()} 골드를 획득하였습니다.` }
     };
   }),
   unlockQuestSlot: (id: number) => set((state) => {
     if (state.gold < 50000) return state;
-    const updated = state.quests.map(q => 
+    const updated = state.quests.map(q =>
       q.id === id ? { ...q, isLocked: false } : q
     );
     return { gold: state.gold - 50000, quests: updated, activeUnlockConfirm: null };
   }),
-  setUnlockConfirm: (id: number | null) => set({ 
-    activeUnlockConfirm: id !== null ? { isOpen: true, deskId: id } : null 
+  setUnlockConfirm: (id: number | null) => set({
+    activeUnlockConfirm: id !== null ? { isOpen: true, deskId: id } : null
   }),
   closeRewardModal: () => set({ activeRewardModal: null }),
-  openComingSoonModal: (text) => set({ 
-    comingSoonModal: { isOpen: true, text: text || "[2차 배포 후 이용 가능한 콘텐츠입니다]" } 
+  openComingSoonModal: (text) => set({
+    comingSoonModal: { isOpen: true, text: text || "[2차 배포 후 이용 가능한 콘텐츠입니다]" }
   }),
   closeComingSoonModal: () => set({ comingSoonModal: null }),
+  setResources: (gold, coffee) => set({ gold, coffee }),
 }));

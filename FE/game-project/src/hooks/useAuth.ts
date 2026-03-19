@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { usePrivy, useIdentityToken } from '@privy-io/react-auth';
 import { useUserStore } from '@/store/useUserStore';
+import { useGameStore } from '@/store/useGameStore';
 import client from '@/lib/axios';
 import { useRouter } from 'next/navigation';
 
@@ -67,6 +68,10 @@ export const useAuth = () => {
 
               if (profileRes.data.success) {
                 setProfile(profileRes.data.data);
+                // GameStore 리소스 동기화 (gold -> gold, coin -> coffee)
+                const { gold, coin, nickname } = profileRes.data.data;
+                useGameStore.getState().setResources(gold, coin);
+                useGameStore.getState().setNickname(nickname);
               }
               // Problem 2: '/main' → '/' 수정
               router.push('/');
@@ -85,6 +90,12 @@ export const useAuth = () => {
               if (profileRes.data.success) {
                 setAuth(accessToken, { isNewUser: false, nickname: profileRes.data.data.nickname });
                 setProfile(profileRes.data.data);
+
+                // GameStore 리소스 동기화
+                const { gold, coin, nickname } = profileRes.data.data;
+                useGameStore.getState().setResources(gold, coin);
+                useGameStore.getState().setNickname(nickname);
+
                 router.push('/');
               }
             } catch (profileError) {
