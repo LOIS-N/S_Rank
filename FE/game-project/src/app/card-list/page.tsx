@@ -204,18 +204,18 @@ export default function CardListPage() {
   // --- 스크롤 관련 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0);
   const [trackHeight, setTrackHeight] = useState(0);
+  const [wrapperHeight, setWrapperHeight] = useState(0); // 추가
   const gridRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null); // 추가
   const isDraggingRef = useRef(false);
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
 
   const ROW_HEIGHT = 360;
-  const VISIBLE_ROWS = 2;
   const totalRows = Math.ceil(sortedCards.length / 3);
   const totalContentHeight = totalRows * ROW_HEIGHT + 260;
-  const visibleHeight = VISIBLE_ROWS * ROW_HEIGHT;
-  const maxScroll = Math.max(0, totalContentHeight - visibleHeight);
+  const maxScroll = Math.max(0, totalContentHeight - wrapperHeight); // visibleHeight -> wrapperHeight
   const scrollOffset = scrollRatio * maxScroll;
 
   // --- 스크롤 하단 도달 시 다음 페이지 로드 ---
@@ -242,7 +242,18 @@ export default function CardListPage() {
   }, [scrollRatio, trackHeight]);
 
   useEffect(() => {
-    if (trackRef.current) setTrackHeight(trackRef.current.clientHeight);
+    const measure = () => {
+      if (trackRef.current) setTrackHeight(trackRef.current.clientHeight);
+      if (wrapperRef.current) setWrapperHeight(wrapperRef.current.clientHeight);
+    };
+    measure();
+    // 초기 로드 시 렌더링 완료 후 재측정 (폰트/이미지 등)
+    window.addEventListener('resize', measure);
+    const timer = setTimeout(measure, 100);
+    return () => {
+      window.removeEventListener('resize', measure);
+      clearTimeout(timer);
+    };
   }, [sortedCards]);
 
   const handleThumbMouseDown = useCallback((e: React.MouseEvent) => {
@@ -325,7 +336,7 @@ export default function CardListPage() {
 
             {/* 카드 리스트 박스 */}
             <NineSliceBox src="/assets/008/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
-              <div className="cardlist-grid-wrapper" onWheel={handleWheel} style={{ height: visibleHeight }}>
+              <div className="cardlist-grid-wrapper" ref={wrapperRef} onWheel={handleWheel} style={{ flex: 1, overflow: 'hidden' }}>
                 <div className="cardlist-grid" ref={gridRef} style={{ transform: `translateY(-${scrollOffset}px)` }}>
                   {isInitialLoad ? (
                     <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>

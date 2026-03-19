@@ -318,12 +318,14 @@
   width: 80px;
   flex: 1;
   min-height: 80px;
-  background-image: url('/assets/008/scrollBar_000.png');
+  max-height: none; /* 추가: Phase2와 동일하게 제한 해제 */
+  background-image: url('/assets/003-02/scrollBar_000.png'); /* 008 -> 003-02 */
   background-size: 518% 108%;
   background-position: 50% 50%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
   position: relative;
+  overflow: visible; /* 추가: 썸이 삐져나올 수 있게 */
 }
 
 .scrollbar-thumb {
@@ -332,7 +334,7 @@
   transform: translateX(-50%);
   width: 100px;
   height: 100px;
-  background-image: url('/assets/008/scrollButton_000.png');
+  background-image: url('/assets/003-02/scrollButton_000.png'); /* 008 -> 003-02 */
   background-size: 84% 48%;
   background-position: 50% 49%;
   background-repeat: no-repeat;
