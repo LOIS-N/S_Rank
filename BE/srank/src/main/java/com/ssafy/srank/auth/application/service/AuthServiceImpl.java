@@ -4,6 +4,7 @@ import com.ssafy.srank.auth.application.dto.request.LoginRequest;
 import com.ssafy.srank.auth.application.dto.response.LoginResponse;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.desk.application.service.DeskService;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,9 @@ public class AuthServiceImpl implements AuthService {
 
     private final PrivyTokenService privyTokenService;
     private final UserRepository userRepository;
+    private final DeskService deskService;
+
+    private static final long SIGNUP_BONUS_GOLD = 300_000L;
 
     @Override
     @Transactional
@@ -59,11 +63,15 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             log.info("{} stage=service.user-save.attempt privyId={}", AUTH_LOGIN_TAG, identity.privyId());
-            userRepository.save(User.builder()
+            User savedUser = userRepository.save(User.builder()
                     .privyId(identity.privyId())
                     .email(identity.email())
                     .walletAddress(identity.walletAddress())
+                    .gold(SIGNUP_BONUS_GOLD)
                     .build());
+
+            deskService.unlockDesk(savedUser.getUserId(), 1L);
+
             log.info("{} stage=service.user-save.success privyId={}", AUTH_LOGIN_TAG, identity.privyId());
             return new LoginResponse(true);
         } catch (DataIntegrityViolationException e) {
