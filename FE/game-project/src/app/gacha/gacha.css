@@ -543,6 +543,24 @@
 }
 
 /* ============================
+   10회 뽑기 결과 — 중앙 그리드
+   ============================ */
+.gacha-result-10-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  padding: 0 40px;
+}
+
+.gacha-result-10-centered .gacha-result-grid {
+  width: 100%;
+  max-width: 680px;
+}
+
+/* ============================
    1회 뽑기 결과 — 중앙 세로 레이아웃
    ============================ */
 .gacha-single-result-center {
@@ -557,7 +575,7 @@
 
 .gacha-single-big-card {
   position: relative;
-  width: 240px;
+  width: 360px;
   animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 

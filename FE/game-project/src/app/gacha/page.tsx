@@ -5,54 +5,6 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import "./gacha.css";
 
-// --- NineSliceBox Component ---
-interface NineSliceBoxProps {
-  src: string;
-  slice: [number, number, number, number];
-  framePadding: number;
-  borderScale?: number;
-  children?: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  onClick?: () => void;
-}
-
-function NineSliceBox({ src, slice, framePadding, borderScale = 1, children, className, style, onClick }: NineSliceBoxProps) {
-  const t = Math.round(slice[0] * borderScale);
-  const r = Math.round(slice[1] * borderScale);
-  const b = Math.round(slice[2] * borderScale);
-  const l = Math.round(slice[3] * borderScale);
-
-  return (
-    <div
-      className={`relative ${className || ''}`}
-      style={{ padding: `${framePadding}px`, boxSizing: 'border-box', ...style }}
-      onClick={onClick}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          top: 0, left: 0, right: 0, bottom: 0,
-          borderStyle: 'solid',
-          borderWidth: `${t}px ${r}px ${b}px ${l}px`,
-          borderImageSource: `url(${src})`,
-          borderImageSlice: `${slice[0]} ${slice[1]} ${slice[2]} ${slice[3]} fill`,
-          borderImageRepeat: 'stretch',
-          imageRendering: 'pixelated',
-          transform: 'translateZ(0) scale(1.0001)',
-          backfaceVisibility: 'hidden',
-          clipPath: 'inset(0)',
-          zIndex: 0,
-          pointerEvents: 'none'
-        } as React.CSSProperties}
-      />
-      <div className="nineslice-content" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
 // --- Types ---
 type TabType = 'flyer' | 'fair' | 'public';
 type PhaseType = 'select' | 'result_1' | 'result_10';
@@ -305,8 +257,6 @@ export default function GachaPage() {
     setPhase('select');
   };
 
-  const selectedCard = selectedCardIndex != null ? drawnCards[selectedCardIndex] : null;
-
   // 뽑기 버튼 (1회 / 10회)
   const PullButtons = () => (
     <>
@@ -437,30 +387,6 @@ export default function GachaPage() {
                 <span className="gacha-card-stat stat-3">{displaySkillType(drawnCards[0].skill3.skillType)} {drawnCards[0].skill3.value}</span>
               </div>
 
-              {/* 카드 정보 */}
-              <NineSliceBox
-                src="/assets/006/gachaInf_000.png"
-                slice={[108, 260, 129, 340]}
-                framePadding={14}
-                borderScale={0.35}
-                className="gacha-single-info-box"
-              >
-                <div className="gacha-result-name">{drawnCards[0].name}</div>
-                <div className="gacha-result-grade">등급: {drawnCards[0].grade}</div>
-                <div className="gacha-result-stats">
-                  <div>{displaySkillType(drawnCards[0].skill1.skillType)}: {drawnCards[0].skill1.value}</div>
-                  <div>{displaySkillType(drawnCards[0].skill2.skillType)}: {drawnCards[0].skill2.value}</div>
-                  <div>{displaySkillType(drawnCards[0].skill3.skillType)}: {drawnCards[0].skill3.value}</div>
-                </div>
-                {drawnCards[0].specialAbility && (
-                  <div className="gacha-result-special">
-                    특수 능력: {typeof drawnCards[0].specialAbility === 'string'
-                      ? drawnCards[0].specialAbility
-                      : drawnCards[0].specialAbility.name}
-                  </div>
-                )}
-              </NineSliceBox>
-
               {/* 바로 아래 뽑기 버튼 */}
               <div className="gacha-single-pull-buttons">
                 <PullButtons />
@@ -470,65 +396,25 @@ export default function GachaPage() {
         )}
 
         {/* ============================
-            10회 뽑기 결과
+            10회 뽑기 결과 — 중앙 그리드
             ============================ */}
         {phase === 'result_10' && drawnCards.length > 0 && (
           <div className="gacha-result-container" onClick={handleReturn}>
-            <div className="gacha-result-layout gacha-result-10" onClick={(e) => e.stopPropagation()}>
-              {/* 좌측: 카드 그리드 */}
-              <div className="gacha-result-grid-col">
-                <div className="gacha-result-grid">
-                  {drawnCards.map((card, idx) => (
-                    <div
-                      key={idx}
-                      className={`gacha-grid-card ${selectedCardIndex === idx ? 'selected' : ''}`}
-                      data-grade={card.grade}
-                      onClick={() => setSelectedCardIndex(idx)}
-                    >
-                      <img src={card.imageUrl} alt={card.name} draggable={false} />
-                      <span className="gacha-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                      <span className="gacha-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                      <span className="gacha-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* 우측: 선택된 카드 상세 */}
-              <div className="gacha-result-detail-col">
-                {selectedCard ? (
-                  <div className="gacha-result-detail">
-                    <div className="gacha-detail-big-card" data-grade={selectedCard.grade}>
-                      <img src={selectedCard.imageUrl} alt={selectedCard.name} draggable={false} />
-                      <span className="gacha-card-stat stat-1">{displaySkillType(selectedCard.skill1.skillType)} {selectedCard.skill1.value}</span>
-                      <span className="gacha-card-stat stat-2">{displaySkillType(selectedCard.skill2.skillType)} {selectedCard.skill2.value}</span>
-                      <span className="gacha-card-stat stat-3">{displaySkillType(selectedCard.skill3.skillType)} {selectedCard.skill3.value}</span>
-                    </div>
-                    <NineSliceBox
-                      src="/assets/006/gachaInf_000.png"
-                      slice={[108, 260, 129, 340]}
-                      framePadding={14}
-                      borderScale={0.35}
-                      className="gacha-detail-info-box"
-                    >
-                      <div className="gacha-result-name">{selectedCard.name}</div>
-                      <div className="gacha-result-grade">등급: {selectedCard.grade}</div>
-                      <div className="gacha-result-stats">
-                        <div>{displaySkillType(selectedCard.skill1.skillType)}: {selectedCard.skill1.value}</div>
-                        <div>{displaySkillType(selectedCard.skill2.skillType)}: {selectedCard.skill2.value}</div>
-                        <div>{displaySkillType(selectedCard.skill3.skillType)}: {selectedCard.skill3.value}</div>
-                      </div>
-                      {selectedCard.specialAbility && (
-                        <div className="gacha-result-special">
-                          특수 능력: {typeof selectedCard.specialAbility === 'string'
-                            ? selectedCard.specialAbility
-                            : selectedCard.specialAbility.name}
-                        </div>
-                      )}
-                    </NineSliceBox>
+            <div className="gacha-result-10-centered" onClick={(e) => e.stopPropagation()}>
+              <div className="gacha-result-grid">
+                {drawnCards.map((card, idx) => (
+                  <div
+                    key={idx}
+                    className={`gacha-grid-card ${selectedCardIndex === idx ? 'selected' : ''}`}
+                    data-grade={card.grade}
+                    onClick={() => setSelectedCardIndex(selectedCardIndex === idx ? null : idx)}
+                  >
+                    <img src={card.imageUrl} alt={card.name} draggable={false} />
+                    <span className="gacha-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                    <span className="gacha-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                    <span className="gacha-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                   </div>
-                ) : (
-                  <div className="gacha-detail-empty">카드를 선택하세요</div>
-                )}
+                ))}
               </div>
             </div>
 
