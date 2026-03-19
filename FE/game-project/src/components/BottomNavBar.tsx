@@ -48,7 +48,11 @@ export default function BottomNavBar() {
     <div className="absolute bottom-0 left-0 w-full z-[80] pointer-events-none">
       <div
         className="w-full bg-[#8ea4b8] border-t-4 border-x-2 border-b-2 border-black pointer-events-auto shadow-[0_-4px_10px_rgba(0,0,0,0.5)]"
-        style={{ paddingTop: "0.6cqw", paddingBottom: "0.6cqw" }}
+        style={{
+          paddingTop: "0.6cqw",
+          // iOS PWA 홈 인디케이터 영역 확보 (viewport-fit=cover 필요 — layout.tsx에 설정됨)
+          paddingBottom: "calc(0.6cqw + env(safe-area-inset-bottom, 0px))",
+        }}
       >
         <div className="w-full flex justify-center" style={{ paddingLeft: "0.6cqw", paddingRight: "0.6cqw" }}>
           <div className="flex flex-nowrap justify-center w-full overflow-x-auto no-scrollbar"

@@ -39,7 +39,7 @@
 .gacha-gold-hud {
   position: absolute;
   top: 100px;
-  left: 24px;
+  left: 60px; /* 24px -> 60px : 왼쪽 여백 추가 */
   z-index: 15;
 }
 
@@ -205,10 +205,10 @@
 }
 
 .btn-subtitle {
-  font-size: 13px;
-  font-weight: normal;
-  font-family: 'Stardust', sans-serif;
-  margin-top: 1px;
+  font-size: 23px;
+  font-weight: 800;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  margin-top: 2px;
 }
 
 /* ============================
