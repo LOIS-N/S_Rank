@@ -1,7 +1,10 @@
 package com.ssafy.srank.log.domain.entity;
 
+import com.ssafy.srank.log.domain.enums.QuestLogStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -33,8 +36,9 @@ public class UserMainQuestLog {
     @Column(name = "main_quest_template_id", nullable = false)
     private Long mainQuestTemplateId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private QuestLogStatus status;
 
     @Column(name = "started_at")
     private LocalDateTime startedAt;
