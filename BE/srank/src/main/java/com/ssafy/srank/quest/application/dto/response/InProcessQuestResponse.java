@@ -27,6 +27,7 @@ public class InProcessQuestResponse {
     public static InProcessQuestResponse from(UserDeskQuest quest, QuestDetailResponse detail){
         return InProcessQuestResponse.builder()
                 .deskId(quest.getUserDeskId())
+                .title(detail.getTitle())
                 .questId(quest.getQuestId())
                 .questType(quest.getQuestType())
                 .difficulty(detail.getDifficulty())
