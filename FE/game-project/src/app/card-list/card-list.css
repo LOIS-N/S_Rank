@@ -14,6 +14,7 @@
   flex-direction: column;
   z-index: 1;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .cardlist-page-container::before {

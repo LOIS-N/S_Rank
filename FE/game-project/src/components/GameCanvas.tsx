@@ -338,5 +338,18 @@ export default function GameCanvas() {
     }
   }, [gameStatus]);
 
-  return <div id="game-container" className="absolute inset-0 w-full h-full touch-none" />;
+  return (
+    <div
+      id="game-container"
+      style={{
+        position: 'absolute',
+        width: 'var(--vp-w, 1280px)',
+        height: 'var(--vp-h, 720px)',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        touchAction: 'none',
+      }}
+    />
+  );
 }
