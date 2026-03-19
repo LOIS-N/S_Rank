@@ -45,6 +45,8 @@ interface GameState {
   openComingSoonModal: (text?: string) => void;
   closeComingSoonModal: () => void;
   setResources: (gold: number, coffee: number) => void;
+  isHUDModalOpen: boolean;
+  setHUDModalOpen: (open: boolean) => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -67,6 +69,7 @@ export const useGameStore = create<GameState>((set) => ({
   activeRewardModal: null,
   activeUnlockConfirm: null,
   comingSoonModal: null,
+  isHUDModalOpen: false,
 
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
@@ -132,6 +135,7 @@ export const useGameStore = create<GameState>((set) => ({
   }),
   closeComingSoonModal: () => set({ comingSoonModal: null }),
   setResources: (gold, coffee) => set({ gold, coffee }),
+  setHUDModalOpen: (open) => set({ isHUDModalOpen: open }),
   setDesksFromApi: (desks) => set((state) => {
     const updated = state.quests.map(q => {
       const desk = desks.find(d => d.deskTemplateId === q.id + 1);

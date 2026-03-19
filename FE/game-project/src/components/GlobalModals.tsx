@@ -12,16 +12,13 @@ export default function GlobalModals() {
     comingSoonModal, closeComingSoonModal,
     activeRewardModal, closeRewardModal,
     activeUnlockConfirm, setUnlockConfirm, unlockQuestSlot,
-    quests,
   } = useGameStore();
   const { accessToken } = useUserStore();
 
   const handleUnlock = async () => {
-    // 잠긴 책상 중 id 순서(1→2→3→4→5)로 가장 앞 책상을 해금
-    const firstLocked = [...quests].sort((a, b) => a.id - b.id).find(q => q.isLocked);
-    if (!firstLocked) return;
-
-    const deskTemplateId = firstLocked.id + 1;
+    if (!activeUnlockConfirm) return;
+    const deskId = activeUnlockConfirm.deskId;
+    const deskTemplateId = deskId + 1;
 
     setIsUnlocking(true);
     setUnlockError(null);
@@ -29,7 +26,7 @@ export default function GlobalModals() {
       await client.post(`/api/v1/desks/${deskTemplateId}/unlock`, {}, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      unlockQuestSlot(firstLocked.id);
+      unlockQuestSlot(deskId);
     } catch (error: any) {
       const message = error?.response?.data?.error?.message ?? '해금 중 오류가 발생했습니다.';
       setUnlockError(message);

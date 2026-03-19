@@ -11,8 +11,18 @@ import AchievementModal from "./modals/AchievementModal";
 // cqw 기준: game-wrapper 너비의 1% (1280px 기준 → 12.8px = 1cqw)
 
 export default function MainHUD() {
-  const { gold, coffee, unreadNotifications, nickname, openComingSoonModal } = useGameStore();
+  const { gold, coffee, unreadNotifications, nickname, openComingSoonModal, setHUDModalOpen } = useGameStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
+
+  const openModal = (id: string) => {
+    setActiveModal(id);
+    setHUDModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+    setHUDModalOpen(false);
+  };
 
   return (
     <div className="absolute inset-0 pointer-events-none font-dot flex flex-col justify-between select-none">
@@ -33,55 +43,55 @@ export default function MainHUD() {
               </span>
             </div>
 
-            {/* Gold Container — 너비 10% 축소: 17.5 → 15.75cqw, 아이콘 20% 축소: 5 → 4cqw */}
+            {/* Gold Container — 20% 축소 */}
             <div className="relative flex items-center"
-              style={{ height: "4.7cqw", width: "15.75cqw" }}>
+              style={{ height: "3.76cqw", width: "12.6cqw" }}>
               <div
                 className="absolute right-0 top-0 bottom-0 text-black font-bold flex items-center justify-end"
                 style={{
-                  left: "2.5cqw",
-                  paddingRight: "1.9cqw",
-                  fontSize: "1.7cqw",
+                  left: "2.0cqw",
+                  paddingRight: "1.52cqw",
+                  fontSize: "1.36cqw",
                   backgroundImage: "url('/assets/002/upperBlank_002.png')",
                   backgroundSize: "100% 100%",
                 }}
               >
                 <span className="tabular-nums">{gold.toLocaleString()}</span>
-                <span style={{ marginLeft: "0.4cqw", fontSize: "1.4cqw" }}>G</span>
+                <span style={{ marginLeft: "0.32cqw", fontSize: "1.12cqw" }}>G</span>
               </div>
               <img
                 src="/assets/002/coin_002.png" alt="gold"
                 className="absolute z-10"
-                style={{ left: "-1.5cqw", top: "0.5cqw", width: "4cqw", height: "4cqw", imageRendering: "pixelated" }}
+                style={{ left: "-1.2cqw", top: "0.4cqw", width: "3.2cqw", height: "3.2cqw", imageRendering: "pixelated" }}
               />
             </div>
 
-            {/* Coffee Container — 너비 10% 축소: 17.5 → 15.75cqw, 아이콘 20% 축소: 5 → 4cqw */}
+            {/* Coffee Container — 20% 축소 */}
             <div className="relative flex items-center"
-              style={{ height: "4.7cqw", width: "15.75cqw", marginLeft: "1.25cqw" }}>
+              style={{ height: "3.76cqw", width: "12.6cqw", marginLeft: "1.0cqw" }}>
               <div
                 className="absolute right-0 top-0 bottom-0 text-black font-bold flex items-center justify-end"
                 style={{
-                  left: "2.5cqw",
-                  paddingRight: "1.9cqw",
-                  fontSize: "1.7cqw",
+                  left: "2.0cqw",
+                  paddingRight: "1.52cqw",
+                  fontSize: "1.36cqw",
                   backgroundImage: "url('/assets/002/upperBlank_002.png')",
                   backgroundSize: "100% 100%",
                 }}
               >
                 <span className="tabular-nums">{coffee.toLocaleString()}</span>
-                <span style={{ marginLeft: "0.4cqw", fontSize: "1.4cqw" }}>잔</span>
+                <span style={{ marginLeft: "0.32cqw", fontSize: "1.12cqw" }}>잔</span>
               </div>
               <img
                 src="/assets/002/coffee_002.png" alt="coffee"
                 className="absolute z-10"
-                style={{ left: "-1.5cqw", top: "0.5cqw", width: "4cqw", height: "4cqw", imageRendering: "pixelated" }}
+                style={{ left: "-1.2cqw", top: "0.4cqw", width: "3.2cqw", height: "3.2cqw", imageRendering: "pixelated" }}
               />
             </div>
           </div>
 
-          {/* 오른쪽: 아이콘 버튼들 */}
-          <div className="flex" style={{ gap: "1.25cqw", paddingRight: "1.25cqw" }}>
+          {/* 오른쪽: 아이콘 버튼들 — 20% 축소, shadow 제거 */}
+          <div className="flex" style={{ gap: "1.0cqw", paddingRight: "1.0cqw" }}>
             {[
               { id: "mypage",       icon: "/assets/002/mypage_002.png",   label: "마이페이지", comingSoon: false },
               { id: "ranking",      icon: "/assets/002/ranking_002.png",  label: "랭킹",       comingSoon: false },
@@ -91,11 +101,11 @@ export default function MainHUD() {
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => item.comingSoon ? openComingSoonModal() : setActiveModal(item.id)}
-                className="relative flex items-center justify-center shadow-[1px_1px_0px_#000] active:translate-y-0.5 transition-all hover:brightness-110"
+                onClick={() => item.comingSoon ? openComingSoonModal() : openModal(item.id)}
+                className="relative flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110"
                 style={{
-                  width: "5cqw",
-                  height: "5cqw",
+                  width: "4cqw",
+                  height: "4cqw",
                   backgroundImage: "url('/assets/002/upperButton_002.png')",
                   backgroundSize: "100% 100%",
                   filter: item.comingSoon ? "brightness(0.8)" : undefined,
@@ -104,12 +114,12 @@ export default function MainHUD() {
               >
                 <img
                   src={item.icon} alt={item.label}
-                  style={{ width: "3.1cqw", height: "3.1cqw", imageRendering: "pixelated" }}
+                  style={{ width: "2.48cqw", height: "2.48cqw", imageRendering: "pixelated" }}
                 />
                 {item.id === "notification" && unreadNotifications > 0 && (
                   <div
                     className="absolute bg-red-600 rounded-full border-2 border-[#b0c4de]"
-                    style={{ top: "-0.3cqw", right: "-0.3cqw", width: "1.6cqw", height: "1.6cqw" }}
+                    style={{ top: "-0.24cqw", right: "-0.24cqw", width: "1.28cqw", height: "1.28cqw" }}
                   />
                 )}
               </button>
@@ -118,15 +128,14 @@ export default function MainHUD() {
         </div>
       </div>
 
-      {/* --- 모달 영역 ---
-          activeModal이 열려있을 때 inset-0 full 오버레이로 canvas 클릭 차단 */}
+      {/* --- 모달 영역 --- */}
       {activeModal && (
         <div className="absolute inset-0 z-[90] pointer-events-auto">
-          {activeModal === "mypage"        && <MyPageModal        onClose={() => setActiveModal(null)} />}
-          {activeModal === "ranking"       && <RankingModal       onClose={() => setActiveModal(null)} />}
-          {activeModal === "discord"       && <DiscordModal       onClose={() => setActiveModal(null)} />}
-          {activeModal === "notification"  && <NotificationModal  onClose={() => setActiveModal(null)} />}
-          {activeModal === "achievement"   && <AchievementModal   onClose={() => setActiveModal(null)} />}
+          {activeModal === "mypage"        && <MyPageModal        onClose={closeModal} />}
+          {activeModal === "ranking"       && <RankingModal       onClose={closeModal} />}
+          {activeModal === "discord"       && <DiscordModal       onClose={closeModal} />}
+          {activeModal === "notification"  && <NotificationModal  onClose={closeModal} />}
+          {activeModal === "achievement"   && <AchievementModal   onClose={closeModal} />}
         </div>
       )}
 

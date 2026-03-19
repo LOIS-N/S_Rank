@@ -85,9 +85,9 @@ export default function Home() {
             </h1>
             <button
               onClick={() => login()}
-              className="group flex items-center gap-4 bg-white text-black px-10 py-5 border-b-8 border-r-8 border-[#6b859e] text-3xl sm:text-4xl font-bold active:border-0 active:translate-y-2 transition-all shadow-2xl hover:bg-slate-50"
+              className="group flex items-center gap-3 bg-white text-black px-7 py-3 border-b-[6px] border-r-[6px] border-[#6b859e] text-xl sm:text-2xl font-bold active:border-0 active:translate-y-2 transition-all shadow-2xl hover:bg-slate-50"
             >
-              <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-8 h-8 sm:w-10 sm:h-10" />
+              <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-6 h-6 sm:w-7 sm:h-7" />
               <span className="font-sans">GOOGLE LOGIN</span>
             </button>
           </div>
