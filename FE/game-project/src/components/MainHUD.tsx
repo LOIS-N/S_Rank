@@ -9,10 +9,9 @@ import NotificationModal from "./modals/NotificationModal";
 import AchievementModal from "./modals/AchievementModal";
 
 // cqw 기준: game-wrapper 너비의 1% (1280px 기준 → 12.8px = 1cqw)
-// 예) 22px / 1280 * 100 = 1.72cqw
 
 export default function MainHUD() {
-  const { gold, coffee, unreadNotifications } = useGameStore();
+  const { gold, coffee, unreadNotifications, nickname } = useGameStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   return (
@@ -23,16 +22,20 @@ export default function MainHUD() {
         <div className="w-full mx-auto flex flex-row justify-between items-center bg-[#b0c4de]/40"
           style={{ padding: "0.9cqw" }}>
 
-          {/* 왼쪽: 타이틀 + 골드/커피 */}
+          {/* 왼쪽: 타이틀 + 닉네임 + 골드/커피 */}
           <div className="flex items-center" style={{ paddingLeft: "1.25cqw" }}>
-            <div className="font-bold text-white drop-shadow-[2px_2px_0px_#000]"
+            <div className="font-bold text-white drop-shadow-[2px_2px_0px_#000] flex items-center gap-2"
               style={{ fontSize: "1.7cqw", marginRight: "1.9cqw" }}>
-              S급 개발자들이 나를 따르는 이유
+              <span>S급 개발자들이 나를 따르는 이유</span>
+              <span className="text-yellow-400 mx-2">|</span>
+              <span className="text-white bg-black/20 px-3 py-1 rounded border border-white/30">
+                {nickname || "유저"}
+              </span>
             </div>
 
-            {/* Gold Container */}
+            {/* Gold Container — 너비 10% 축소: 17.5 → 15.75cqw, 아이콘 20% 축소: 5 → 4cqw */}
             <div className="relative flex items-center"
-              style={{ height: "4.7cqw", width: "17.5cqw" }}>
+              style={{ height: "4.7cqw", width: "15.75cqw" }}>
               <div
                 className="absolute right-0 top-0 bottom-0 text-black font-bold flex items-center justify-end"
                 style={{
@@ -49,13 +52,13 @@ export default function MainHUD() {
               <img
                 src="/assets/002/coin_002.png" alt="gold"
                 className="absolute z-10"
-                style={{ left: "-1.9cqw", top: "0.3cqw", width: "5cqw", height: "5cqw", imageRendering: "pixelated" }}
+                style={{ left: "-1.5cqw", top: "0.5cqw", width: "4cqw", height: "4cqw", imageRendering: "pixelated" }}
               />
             </div>
 
-            {/* Coffee Container */}
+            {/* Coffee Container — 너비 10% 축소: 17.5 → 15.75cqw, 아이콘 20% 축소: 5 → 4cqw */}
             <div className="relative flex items-center"
-              style={{ height: "4.7cqw", width: "17.5cqw", marginLeft: "1.25cqw" }}>
+              style={{ height: "4.7cqw", width: "15.75cqw", marginLeft: "1.25cqw" }}>
               <div
                 className="absolute right-0 top-0 bottom-0 text-black font-bold flex items-center justify-end"
                 style={{
@@ -72,7 +75,7 @@ export default function MainHUD() {
               <img
                 src="/assets/002/coffee_002.png" alt="coffee"
                 className="absolute z-10"
-                style={{ left: "-1.9cqw", top: "0.3cqw", width: "5cqw", height: "5cqw", imageRendering: "pixelated" }}
+                style={{ left: "-1.5cqw", top: "0.5cqw", width: "4cqw", height: "4cqw", imageRendering: "pixelated" }}
               />
             </div>
           </div>
@@ -114,12 +117,17 @@ export default function MainHUD() {
         </div>
       </div>
 
-      {/* --- 모달 영역 --- */}
-      {activeModal === "mypage"        && <MyPageModal        onClose={() => setActiveModal(null)} />}
-      {activeModal === "ranking"       && <RankingModal       onClose={() => setActiveModal(null)} />}
-      {activeModal === "discord"       && <DiscordModal       onClose={() => setActiveModal(null)} />}
-      {activeModal === "notification"  && <NotificationModal  onClose={() => setActiveModal(null)} />}
-      {activeModal === "achievement"   && <AchievementModal   onClose={() => setActiveModal(null)} />}
+      {/* --- 모달 영역 ---
+          activeModal이 열려있을 때 inset-0 full 오버레이로 canvas 클릭 차단 */}
+      {activeModal && (
+        <div className="absolute inset-0 z-[90] pointer-events-auto">
+          {activeModal === "mypage"        && <MyPageModal        onClose={() => setActiveModal(null)} />}
+          {activeModal === "ranking"       && <RankingModal       onClose={() => setActiveModal(null)} />}
+          {activeModal === "discord"       && <DiscordModal       onClose={() => setActiveModal(null)} />}
+          {activeModal === "notification"  && <NotificationModal  onClose={() => setActiveModal(null)} />}
+          {activeModal === "achievement"   && <AchievementModal   onClose={() => setActiveModal(null)} />}
+        </div>
+      )}
 
       <div className="flex-1" />
     </div>
