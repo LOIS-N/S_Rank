@@ -80,9 +80,8 @@ html, body {
   -webkit-font-smoothing: none;
 }
 
-/* 바깥 배경 컨테이너 - 전체 화면, 검은 배경
-   --avw / --avh 는 ZoomGuard.tsx 가 window.innerWidth/Height 로 설정.
-   JS 로드 전 폴백으로 100dvh / 100vw 사용. */
+/* 바깥 배경 컨테이너 - 전체 화면, 검은 배경 (레터박스 배경)
+   --avw / --avh 는 ZoomGuard.tsx 가 window.innerWidth/Height 로 설정. */
 .app-container {
   display: flex;
   align-items: center;
@@ -90,14 +89,18 @@ html, body {
   width: var(--avw, 100vw);
   height: var(--avh, 100dvh);
   background-color: black;
+  overflow: hidden;
 }
 
-/* 16:9 비율 유지하며 화면에 꽉 채우는 래퍼 (letterbox)
-   CSS 변수 기반으로 계산하여 페이지 이동 시 cqw 기준이 흔들리지 않도록 함 */
+/* 16:9 고정 해상도(1280×720) 래퍼.
+   --game-scale 로 중앙 기준 균일 스케일 → 폰트·이미지 모두 비례 조절.
+   내부는 항상 1280px 기준 → 1cqw = 12.8px 고정. */
 .game-wrapper {
-  position: relative;
-  width: min(var(--avw, 100vw), calc(var(--avh, 100dvh) * 16 / 9));
-  height: min(var(--avh, 100dvh), calc(var(--avw, 100vw) * 9 / 16));
+  flex-shrink: 0;
+  width: 1280px;
+  height: 720px;
+  transform-origin: center center;
+  transform: scale(var(--game-scale, 1));
   background-color: black;
   overflow: hidden;
   /* CSS Container Query: 자식 요소들이 cqw 단위로 game-wrapper 너비 기준 비율 크기 사용 가능 */

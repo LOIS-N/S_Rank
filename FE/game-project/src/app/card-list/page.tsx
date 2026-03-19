@@ -204,18 +204,17 @@ export default function CardListPage() {
   // --- 스크롤 관련 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0);
   const [trackHeight, setTrackHeight] = useState(0);
-  const [wrapperHeight, setWrapperHeight] = useState(0); // 추가
+  const [wrapperHeight, setWrapperHeight] = useState(0);
+  const [gridHeight, setGridHeight] = useState(0);
   const gridRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null); // 추가
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
 
-  const ROW_HEIGHT = 360;
-  const totalRows = Math.ceil(sortedCards.length / 3);
-  const totalContentHeight = totalRows * ROW_HEIGHT + 260;
-  const maxScroll = Math.max(0, totalContentHeight - wrapperHeight); // visibleHeight -> wrapperHeight
+  // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
+  const maxScroll = Math.max(0, gridHeight - wrapperHeight);
   const scrollOffset = scrollRatio * maxScroll;
 
   // --- 스크롤 하단 도달 시 다음 페이지 로드 ---
@@ -245,9 +244,9 @@ export default function CardListPage() {
     const measure = () => {
       if (trackRef.current) setTrackHeight(trackRef.current.clientHeight);
       if (wrapperRef.current) setWrapperHeight(wrapperRef.current.clientHeight);
+      if (gridRef.current) setGridHeight(gridRef.current.scrollHeight);
     };
     measure();
-    // 초기 로드 시 렌더링 완료 후 재측정 (폰트/이미지 등)
     window.addEventListener('resize', measure);
     const timer = setTimeout(measure, 100);
     return () => {

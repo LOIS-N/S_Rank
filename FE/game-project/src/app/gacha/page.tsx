@@ -57,8 +57,8 @@ function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () 
       const Phaser = (await import('phaser')).default;
       if (!mounted || !el) return;
 
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const w = 1280;
+      const h = 720;
       const mainColor = grade === 'S' ? 0x00e5ff : 0xffd700;
       const subColor = grade === 'S' ? 0xffffff : 0xffec80;
       const qty = grade === 'S' ? 8 : 5;
@@ -140,9 +140,9 @@ function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () 
     <div
       ref={containerRef}
       style={{
-        position: 'fixed',
+        position: 'absolute',
         top: 0, left: 0,
-        width: '100vw', height: '100vh',
+        width: '100%', height: '100%',
         zIndex: 9999,
         pointerEvents: 'none',
         overflow: 'hidden',
