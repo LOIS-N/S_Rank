@@ -100,6 +100,6 @@ public class User extends BaseEntity {
             throw new BusinessException(ErrorCode.GOLD_INVALID_AMOUNT);
         }
         if(this.gold - gold < 0) throw new BusinessException(ErrorCode.GOLD_INSUFFICIENT);
-        this.gold += gold;
+        this.gold -= gold;
     }
 }

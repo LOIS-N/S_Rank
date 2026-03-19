@@ -63,7 +63,6 @@ public class UserServiceImpl implements UserService {
     }
 
     private User getActiveUser(Long userId) {
-        System.out.println(userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
