@@ -7,6 +7,8 @@ import com.ssafy.srank.quest.domain.entity.UserSubQuest;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Builder
 public class QuestDetailResponse {
@@ -29,6 +31,9 @@ public class QuestDetailResponse {
     private int durationMinutes;
     private int cardSlotCount;
     private int rewardGold;
+
+    private LocalDateTime startedAt;
+    private LocalDateTime endAt;
 
     private String status;
 
@@ -80,6 +85,8 @@ public class QuestDetailResponse {
         return QuestDetailResponse.builder()
                 .title(quest.getMainQuestTemplate().getTitle())
                 .rewardGold(quest.getMainQuestTemplate().getRewardGold())
+                .startedAt(quest.getStartedAt())
+                .endAt(quest.getEndAt())
                 .build();
     }
 
@@ -87,6 +94,8 @@ public class QuestDetailResponse {
         return QuestDetailResponse.builder()
                 .title(quest.getSubQuestTemplate().getTitle())
                 .rewardGold(quest.getSubQuestTemplate().getRewardGold())
+                .startedAt(quest.getStartedAt())
+                .endAt(quest.getEndAt())
                 .build();
     }
 
