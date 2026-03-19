@@ -635,15 +635,16 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     };
   }, [cards]); // cards 로드/추가 시 재측정
 
-  const handleP2ThumbMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleP2ThumbPointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     isDraggingP2Ref.current = true;
     dragStartP2YRef.current = e.clientY;
     dragStartP2RatioRef.current = p2ScrollRatio;
   }, [p2ScrollRatio]);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!isDraggingP2Ref.current || !p2TrackRef.current) return;
       const trackHeightCurrent = p2TrackRef.current.clientHeight;
       const trackPadding = 14;
@@ -654,12 +655,12 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       const newRatio = Math.min(1, Math.max(0, dragStartP2RatioRef.current + deltaY / maxThumbTop));
       setP2ScrollRatio(newRatio);
     };
-    const handleMouseUp = () => { isDraggingP2Ref.current = false; };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    const handlePointerUp = () => { isDraggingP2Ref.current = false; };
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
     };
   }, []);
 
@@ -720,7 +721,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       {/* ──── 중간: 스크롤바 ──── */}
       <div className="scrollbar-column phase2-scrollbar-column">
         <div ref={p2TrackRef} className="scrollbar-track" onClick={handleP2TrackClick}>
-           <div className="scrollbar-thumb" style={{ top: p2ThumbTop() }} onMouseDown={handleP2ThumbMouseDown} />
+           <div className="scrollbar-thumb" style={{ top: p2ThumbTop() }} onPointerDown={handleP2ThumbPointerDown} />
         </div>
       </div>
 
@@ -1016,9 +1017,10 @@ export default function QuestPage() {
     return trackPadding + (scrollRatio * maxThumbTop);
   }, [scrollRatio, trackHeight]);
 
-  const handleThumbMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  const handleThumbPointerDown = useCallback(
+    (e: React.PointerEvent) => {
       e.preventDefault();
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
       isDraggingRef.current = true;
       dragStartYRef.current = e.clientY;
       dragStartRatioRef.current = scrollRatio;
@@ -1027,7 +1029,7 @@ export default function QuestPage() {
   );
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!isDraggingRef.current || !scrollTrackRef.current) return;
       const trackHeightCurrent = scrollTrackRef.current.clientHeight;
       const thumbSize = 100;
@@ -1041,15 +1043,15 @@ export default function QuestPage() {
       setScrollRatio(newRatio);
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
       isDraggingRef.current = false;
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
     };
   }, []);
 
@@ -1162,7 +1164,7 @@ export default function QuestPage() {
               <div
                 className="scrollbar-thumb"
                 style={{ top: getThumbTop() }}
-                onMouseDown={handleThumbMouseDown}
+                onPointerDown={handleThumbPointerDown}
               />
             </div>
 
