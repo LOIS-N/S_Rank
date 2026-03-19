@@ -380,7 +380,7 @@
 .gacha-detail-big-card::before {
   content: "";
   position: absolute;
-  top: -3px; left: 7px; right: 7px; bottom: -3px;
+  top: -3px; left: -3px; right: -3px; bottom: -3px;
   border-radius: 8px;
   z-index: -1;
   animation: gachaBorderRotate 2.5s linear infinite;
@@ -557,7 +557,7 @@
 
 .gacha-result-10-centered .gacha-result-grid {
   width: 100%;
-  max-width: 680px;
+  max-width: 900px;
 }
 
 /* ============================
@@ -588,14 +588,14 @@
 
 /* 1회 큰 카드 스탯 폰트 더 크게 */
 .gacha-single-big-card .gacha-card-stat {
-  font-size: 18px;
+  font-size: 21px;
 }
 
 /* 등급별 glow/border — 기존 클래스와 동일 패턴 */
 .gacha-single-big-card::before {
   content: "";
   position: absolute;
-  top: -3px; left: 7px; right: 7px; bottom: -3px;
+  top: -3px; left: -3px; right: -3px; bottom: -3px;
   border-radius: 8px;
   z-index: -1;
   animation: gachaBorderRotate 2.5s linear infinite;
