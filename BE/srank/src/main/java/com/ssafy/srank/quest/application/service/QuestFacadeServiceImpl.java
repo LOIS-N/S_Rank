@@ -14,6 +14,7 @@ import com.ssafy.srank.quest.repository.*;
 import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,8 +28,12 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Slf4j
 public class QuestFacadeServiceImpl implements QuestFacadeService{
+
+    private final RedisTemplate<String, Object> redisTemplate;
+
     private final MainQuestService mainService;
     private final SubQuestService subService;
+
 
     //Todo : 분리해서 service가 담당하게 하기
     private final UserDeskQuestRepository deskQuestRepository;
@@ -121,6 +126,9 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
                         .questType(QuestType.MAIN)
                         .questId(userQuestId.getId())
                         .build());
+
+        //레디스 TTL 추가
+//        redisTemplate.opsForValue()
     }
 
     @Transactional
@@ -177,7 +185,7 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
 
     @Transactional
     @Override
-    public void completeQuest(Long userId, CompleteQuestRequest request) {
+    public void claimReward(Long userId, CompleteQuestRequest request) {
 
         long gold;
 
@@ -200,8 +208,6 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         }
         userDeskQuestRepository.deleteByUserIdAndQuestId(userId,request.questId());
 
-        //Todo : 보상 증가
-        
         userService.rewardGold(userId, gold);
     }
     public Set<Long> getUsedUserCardList(Long userId){
@@ -223,7 +229,23 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         return result;
     }
 
-// ============ 검증 메소드들 ============
+    @Transactional
+    @Override
+    public void completeQuest(Long userId, Long questId, QuestType type) {
+        //COMPLETED
+        if(type.equals(QuestType.MAIN)){
+            UserMainQuest quest = userMainQuestRepository.findByIdAndUserId(userId, questId).orElseThrow(
+                    () -> new BusinessException(ErrorCode.QUEST_NOT_FOUND));
+            quest.completeStatus();
+        }else{
+            UserSubQuest quest = userSubQuestRepository.findByIdAndUserId(userId, questId).orElseThrow(
+                    () -> new BusinessException(ErrorCode.QUEST_NOT_FOUND));
+            quest.completeStatus();
+        }
+    }
+
+
+    // ============ 검증 메소드들 ============
 
     /**
      * 카드 개수 검증 (3~5장)

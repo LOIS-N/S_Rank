@@ -29,7 +29,6 @@ public class MainQuestServiceImpl implements MainQuestService {
     private final UserService userService;
 
     public List<MainQuestResponse> getMainQuestList(Long userId) {
-        // TODO: 사용자 현재 챕터 번호 가져오기
         int chapter = userService.getMyInfo(userId).getLevel();
 
         List<MainQuestTemplate> templates = mainQuestTemplateRepository.findByChapterNo(chapter);
