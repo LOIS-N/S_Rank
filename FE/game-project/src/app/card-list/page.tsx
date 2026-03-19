@@ -421,18 +421,14 @@ export default function CardListPage() {
                     <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{selectedListCard.skill3.value}</div>
                   </NineSliceBox>
 
-                  {/* 특수 능력 */}
-                  <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
-                    {selectedListCard.specialAbility ? (
+                  {/* 특수 능력 (있을 때만 표시) */}
+                  {selectedListCard.specialAbility && (
+                    <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
                       <div className="cardlist-info-text">
                         능력 : {selectedListCard.specialAbility.name}
                       </div>
-                    ) : (
-                      <div className="cardlist-info-text" style={{ color: '#888' }}>
-                        특수 능력 없음
-                      </div>
-                    )}
-                  </NineSliceBox>
+                    </NineSliceBox>
+                  )}
                 </div>
               </div>
             ) : (

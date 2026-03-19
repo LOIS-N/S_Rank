@@ -416,6 +416,7 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  justify-content: center;
 }
 
 /* 정보 상자 체계 고정 크기 할당 */
@@ -432,12 +433,12 @@
 }
 
 .cardlist-info-stats-box {
-  flex: 1; /* 능력치 창을 가변적으로 설정 (소개창과 1:1 분할) */
+  flex: 0 0 calc((100% - 86px) / 2); /* 헤더(54px) + 간격(32px) 제외 후 절반 고정 */
 }
 
 /* S등급 추가 설명 란 */
 .cardlist-s-grade-desc {
-  flex: 1; /* 남은 하단 공간 모두 차지 (가장 큰 박스) */
+  flex: 0 0 calc((100% - 86px) / 2); /* 능력치 박스와 동일 크기 고정 */
 }
 
 /* 내부 콘텐츠 중앙 정렬 공통 */
