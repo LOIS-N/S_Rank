@@ -25,7 +25,7 @@ export default function MainHUD() {
           {/* 왼쪽: 타이틀 + 닉네임 + 골드/커피 */}
           <div className="flex items-center" style={{ paddingLeft: "1.25cqw" }}>
             <div className="font-bold text-white drop-shadow-[2px_2px_0px_#000] flex items-center gap-2"
-              style={{ fontSize: "1.7cqw", marginRight: "1.9cqw" }}>
+              style={{ fontSize: "1.36cqw", marginRight: "1.9cqw" }}>
               <span>S급 개발자들이 나를 따르는 이유</span>
               <span className="text-yellow-400 mx-2">|</span>
               <span className="text-white bg-black/20 px-3 py-1 rounded border border-white/30">
@@ -41,13 +41,13 @@ export default function MainHUD() {
                 style={{
                   left: "2.5cqw",
                   paddingRight: "1.9cqw",
-                  fontSize: "1.7cqw",
+                  fontSize: "1.36cqw",
                   backgroundImage: "url('/assets/002/upperBlank_002.png')",
                   backgroundSize: "100% 100%",
                 }}
               >
                 <span className="tabular-nums">{gold.toLocaleString()}</span>
-                <span style={{ marginLeft: "0.4cqw", fontSize: "1.4cqw" }}>G</span>
+                <span style={{ marginLeft: "0.4cqw", fontSize: "1.12cqw" }}>G</span>
               </div>
               <img
                 src="/assets/002/coin_002.png" alt="gold"
@@ -64,13 +64,13 @@ export default function MainHUD() {
                 style={{
                   left: "2.5cqw",
                   paddingRight: "1.9cqw",
-                  fontSize: "1.7cqw",
+                  fontSize: "1.36cqw",
                   backgroundImage: "url('/assets/002/upperBlank_002.png')",
                   backgroundSize: "100% 100%",
                 }}
               >
                 <span className="tabular-nums">{coffee.toLocaleString()}</span>
-                <span style={{ marginLeft: "0.4cqw", fontSize: "1.4cqw" }}>잔</span>
+                <span style={{ marginLeft: "0.4cqw", fontSize: "1.12cqw" }}>잔</span>
               </div>
               <img
                 src="/assets/002/coffee_002.png" alt="coffee"

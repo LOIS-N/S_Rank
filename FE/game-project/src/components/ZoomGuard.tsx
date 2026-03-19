@@ -14,10 +14,20 @@ import { useEffect } from "react";
  *       resize/orientationchange 시만 갱신(debounce 150ms)하여
  *       소프트 키보드 등에 의한 불필요한 리사이즈는 무시한다.
  */
+const GAME_W = 1280;
+const GAME_H = 720;
+
 function applyViewportVars() {
   const root = document.documentElement;
-  root.style.setProperty("--avw", `${window.innerWidth}px`);
-  root.style.setProperty("--avh", `${window.innerHeight}px`);
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // 16:9 고정 해상도(1280×720)를 뷰포트에 맞게 균일 스케일
+  const scale = Math.min(vw / GAME_W, vh / GAME_H);
+
+  root.style.setProperty("--avw", `${vw}px`);
+  root.style.setProperty("--avh", `${vh}px`);
+  root.style.setProperty("--game-scale", `${scale}`);
 }
 
 export default function ZoomGuard() {

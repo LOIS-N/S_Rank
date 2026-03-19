@@ -65,7 +65,7 @@ export default function BottomNavBar() {
                 style={{
                   width: "12.5cqw",
                   height: "4.7cqw",
-                  fontSize: "1.6cqw",
+                  fontSize: "1.28cqw",
                   backgroundImage: "url('/assets/002/lowerButton_001.png')",
                   backgroundSize: "100% 100%",
                   imageRendering: "pixelated",

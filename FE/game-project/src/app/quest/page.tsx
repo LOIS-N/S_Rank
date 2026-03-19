@@ -585,6 +585,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const [p2ScrollRatio, setP2ScrollRatio] = useState(0);
   const [p2TrackHeight, setP2TrackHeight] = useState(0);
   const [p2WrapperHeight, setP2WrapperHeight] = useState(0);
+  const [p2GridHeight, setP2GridHeight] = useState(0);
   const p2GridRef = useRef<HTMLDivElement>(null);
   const p2TrackRef = useRef<HTMLDivElement>(null);
   const p2WrapperRef = useRef<HTMLDivElement>(null);
@@ -592,10 +593,8 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const dragStartP2YRef = useRef(0);
   const dragStartP2RatioRef = useRef(0);
 
-  const ROW_HEIGHT = 360;
-  const totalRows = Math.ceil(sortedCards.length / 3);
-  const p2TotalContentHeight = totalRows * ROW_HEIGHT + 260;
-  const p2MaxScroll = Math.max(0, p2TotalContentHeight - p2WrapperHeight);
+  // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
+  const p2MaxScroll = Math.max(0, p2GridHeight - p2WrapperHeight);
   const p2ScrollOffset = p2ScrollRatio * p2MaxScroll;
 
   // 스크롤 하단 도달 시 다음 페이지 로드
@@ -609,7 +608,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const handleP2Wheel = useCallback((e: React.WheelEvent) => {
     if (p2MaxScroll <= 0) return;
     const delta = e.deltaY / p2MaxScroll;
-    setP2ScrollRatio(prev => Math.min(1, Math.max(0, prev + delta * 0.3)));
+    setP2ScrollRatio(prev => Math.min(1, Math.max(0, prev + delta * 0.7)));
   }, [p2MaxScroll]);
 
   const p2ThumbTop = useCallback(() => {
@@ -625,12 +624,16 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     const measure = () => {
       if (p2TrackRef.current) setP2TrackHeight(p2TrackRef.current.clientHeight);
       if (p2WrapperRef.current) setP2WrapperHeight(p2WrapperRef.current.clientHeight);
+      if (p2GridRef.current) setP2GridHeight(p2GridRef.current.scrollHeight);
     };
     measure();
-    // Phase2 슬라이드 애니메이션 완료 후 재측정
-    const timer = setTimeout(measure, 450);
-    return () => clearTimeout(timer);
-  }, []);
+    window.addEventListener('resize', measure);
+    const timer = setTimeout(measure, 100);
+    return () => {
+      window.removeEventListener('resize', measure);
+      clearTimeout(timer);
+    };
+  }, [cards]); // cards 로드/추가 시 재측정
 
   const handleP2ThumbMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -976,25 +979,33 @@ export default function QuestPage() {
   // --- 커스텀 스크롤바 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0);
   const [trackHeight, setTrackHeight] = useState(0);
+  const [questListHeight, setQuestListHeight] = useState(0);
+  const [questWrapperHeight, setQuestWrapperHeight] = useState(0);
   const subQuestListRef = useRef<HTMLDivElement>(null);
+  const subQuestWrapperRef = useRef<HTMLDivElement>(null);
   const scrollTrackRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
 
-  const CARD_HEIGHT = 78;
-  const VISIBLE_CARDS = 4;
-  const visibleHeight = CARD_HEIGHT * VISIBLE_CARDS;
-
-  const totalContentHeight = subQuests.length * CARD_HEIGHT;
-  const maxScroll = Math.max(0, totalContentHeight - visibleHeight);
+  // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
+  const maxScroll = Math.max(0, questListHeight - questWrapperHeight);
   const scrollOffset = scrollRatio * maxScroll;
 
   useEffect(() => {
-    if (scrollTrackRef.current) {
-      setTrackHeight(scrollTrackRef.current.clientHeight);
-    }
-  }, []);
+    const measure = () => {
+      if (scrollTrackRef.current) setTrackHeight(scrollTrackRef.current.clientHeight);
+      if (subQuestListRef.current) setQuestListHeight(subQuestListRef.current.scrollHeight);
+      if (subQuestWrapperRef.current) setQuestWrapperHeight(subQuestWrapperRef.current.clientHeight);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    const timer = setTimeout(measure, 100);
+    return () => {
+      window.removeEventListener('resize', measure);
+      clearTimeout(timer);
+    };
+  }, [subQuests]);
 
   const getThumbTop = useCallback(() => {
     if (!trackHeight) return 0;
@@ -1064,7 +1075,7 @@ export default function QuestPage() {
     (e: React.WheelEvent) => {
       if (maxScroll <= 0) return;
       const delta = e.deltaY / maxScroll;
-      setScrollRatio((prev) => Math.min(1, Math.max(0, prev + delta * 0.3)));
+      setScrollRatio((prev) => Math.min(1, Math.max(0, prev + delta * 0.7)));
     },
     [maxScroll]
   );
@@ -1108,8 +1119,8 @@ export default function QuestPage() {
 
               {/* 서브 퀘스트 (스크롤 영역) */}
               <div
+                ref={subQuestWrapperRef}
                 className="sub-quest-scroll-area"
-                style={{ height: visibleHeight }}
               >
                 <div
                   ref={subQuestListRef}
