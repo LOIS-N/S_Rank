@@ -7,6 +7,7 @@ import com.ssafy.srank.desk.domain.entity.DeskTemplate;
 import com.ssafy.srank.desk.domain.entity.UserDesk;
 import com.ssafy.srank.desk.repository.DeskTemplateRepository;
 import com.ssafy.srank.desk.repository.UserDeskRepository;
+import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ public class DeskServiceImpl implements DeskService {
 
     private final DeskTemplateRepository deskTemplateRepository;
     private final UserDeskRepository userDeskRepository;
+    private final UserService userService;
 
     @Override
     @Transactional(readOnly = true)
@@ -50,7 +52,7 @@ public class DeskServiceImpl implements DeskService {
 
         // 3. 레벨 검증 (도메인 위임)
         // Todo : 사용자 userLevel 가져오기
-        int userLevel = 1;
+        int userLevel = userService.getMyInfo(userId).getLevel();
         if (!template.isUnlockable(userLevel)) {
             throw new BusinessException(ErrorCode.DESK_INSUFFICIENT_LEVEL);
         }
