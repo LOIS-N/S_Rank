@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import client from "@/lib/axios";
@@ -12,7 +12,79 @@ export default function GlobalModals() {
     comingSoonModal, closeComingSoonModal,
     activeRewardModal, closeRewardModal,
     activeUnlockConfirm, setUnlockConfirm, unlockQuestSlot,
+    questInfoModal, setQuestInfoModal,
+    questFetchTrigger, setQuestFetchTrigger,
+    completeQuestTrigger, setCompleteQuestTrigger,
   } = useGameStore();
+
+  useEffect(() => {
+    if (!questFetchTrigger) return;
+    const { questId, questType, remainMs, endAt } = questFetchTrigger;
+    setQuestFetchTrigger(null);
+
+    const fetchQuestInfo = async () => {
+      try {
+        const token = useUserStore.getState().accessToken;
+        const type = questType.toLowerCase();
+        const res = await client.get(`/api/v1/quests/${type}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          data: { questId, type },
+        });
+        if (res.data.success && Array.isArray(res.data.data)) {
+          const quest = res.data.data.find((q: any) => q.questId === questId);
+          if (quest) {
+            setQuestInfoModal({ questTitle: quest.title, rewardGold: quest.rewardGold, remainMs, endAt });
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('[QuestInfo] fetch error:', e);
+      }
+      setQuestInfoModal({ questTitle: '퀘스트 진행 중', rewardGold: 0, remainMs, endAt });
+    };
+
+    fetchQuestInfo();
+  }, [questFetchTrigger]);
+
+  useEffect(() => {
+    if (!completeQuestTrigger) return;
+    const { deskId, questId, questType } = completeQuestTrigger;
+    setCompleteQuestTrigger(null);
+
+    const doComplete = async () => {
+      try {
+        const token = useUserStore.getState().accessToken;
+        await client.post('/api/v1/quests/complete',
+          { questId, questType },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (e) {
+        console.error('[CompleteQuest] API error:', e);
+      }
+      useGameStore.getState().completeQuest(deskId);
+    };
+
+    doComplete();
+  }, [completeQuestTrigger]);
+
+  const formatEndAt = (endAt: string | null): string => {
+    if (!endAt) return '';
+    const d = new Date(endAt);
+    const month = d.getMonth() + 1;
+    const day = d.getDate();
+    const hour = d.getHours();
+    const min = d.getMinutes().toString().padStart(2, '0');
+    return `${month}월 ${day}일 ${hour}시 ${min}분 완료`;
+  };
+
+  const formatRemainTime = (ms: number): string => {
+    if (ms <= 0) return '완료';
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
+    const s = (totalSec % 60).toString().padStart(2, '0');
+    return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
+  };
   const { accessToken } = useUserStore();
 
   const handleUnlock = async () => {
@@ -68,6 +140,43 @@ export default function GlobalModals() {
           </div>
         </div>
       )}
+
+      {/* --- Quest Info Modal (캐릭터 클릭 시) --- */}
+      {questInfoModal && (() => {
+        const isCompleted = questInfoModal.endAt
+          ? new Date(questInfoModal.endAt).getTime() <= Date.now()
+          : questInfoModal.remainMs <= 0;
+        return (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 font-dot pointer-events-auto">
+            <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]">
+              <h2 className="text-3xl mb-4 text-slate-900 font-bold">
+                [{questInfoModal.questTitle}]
+              </h2>
+              {!isCompleted && questInfoModal.remainMs > 0 && (
+                <p className="text-2xl mb-2 text-blue-700 font-bold">
+                  남은 시간: {formatRemainTime(questInfoModal.remainMs)}
+                </p>
+              )}
+              {questInfoModal.endAt && (
+                <p className="text-xl mb-2 text-slate-600 font-bold">
+                  {formatEndAt(questInfoModal.endAt)}
+                </p>
+              )}
+              {questInfoModal.rewardGold > 0 && (
+                <p className="text-2xl mb-8 text-yellow-600 font-bold">
+                  예상 보상: {questInfoModal.rewardGold.toLocaleString()} 골드
+                </p>
+              )}
+              <button
+                onClick={() => setQuestInfoModal(null)}
+                className="w-full py-5 bg-[#ffcc00] text-black border-b-4 border-r-4 border-[#cc9900] active:border-0 active:translate-y-1 transition-all text-2xl font-bold"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* --- Unlock Confirm Modal --- */}
       {activeUnlockConfirm?.isOpen && (

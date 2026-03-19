@@ -18,7 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -205,6 +208,25 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         
         userService.rewardGold(userId, gold);
     }
+    public Set<Long> getUsedUserCardList(Long userId){
+        List<InProcessQuestResponse> inProcessQuestList = getInProcessQuestList(userId);
+
+        List<Long> mainCardIds = userMainQuestCardRepository.findByUserIdAndUserMainQuestIn(
+                userId, inProcessQuestList.stream()
+                        .map((q) -> {
+                            return UserMainQuest.builder().id(q.getQuestId()).build();
+                        }).toList()).stream().map(UserMainQuestCard::getUserCardId).toList();
+
+        List<Long> subCardIds = userSubQuestCardRepository.findByUserIdAndUserSubQuestIn(userId, inProcessQuestList.stream()
+                .map((q) -> {
+                    return UserSubQuest.builder().id(q.getQuestId()).build();
+                }).toList()).stream().map(UserSubQuestCard::getUserCardId).toList();
+
+        Set<Long> result = new HashSet<>(mainCardIds);
+        result.addAll(subCardIds);
+        return result;
+    }
+
 // ============ 검증 메소드들 ============
 
     /**

@@ -45,24 +45,28 @@ export default function BottomNavBar() {
     pathname === "/"          ? "메인"     : "";
 
   return (
-    <div className="absolute bottom-0 left-0 w-full z-[80] pointer-events-none">
+    <div className="absolute bottom-0 left-0 w-full z-[80] pointer-events-none overflow-hidden">
       <div
         className="w-full bg-[#8ea4b8] border-t-4 border-x-2 border-b-2 border-black pointer-events-auto shadow-[0_-4px_10px_rgba(0,0,0,0.5)]"
-        style={{ paddingTop: "0.6cqw", paddingBottom: "0.6cqw" }}
+        style={{
+          paddingTop: "0.6cqw",
+          // iOS PWA 홈 인디케이터 영역 확보 (viewport-fit=cover 필요 — layout.tsx에 설정됨)
+          paddingBottom: "calc(0.6cqw + env(safe-area-inset-bottom, 0px))",
+        }}
       >
         <div className="w-full flex justify-center" style={{ paddingLeft: "0.6cqw", paddingRight: "0.6cqw" }}>
-          <div className="flex flex-nowrap justify-center w-full overflow-x-auto no-scrollbar"
+          <div className="flex flex-nowrap justify-center w-full overflow-x-hidden"
             style={{ gap: "0.4cqw" }}>
             {menuItems.map((item) => (
               <button
                 key={item.name}
                 onClick={() => handleMenuClick(item.name, item.disabled)}
-                className="flex items-center justify-center text-black font-bold drop-shadow-md transition-all active:translate-x-0.5 active:translate-y-0.5 hover:brightness-110 flex-shrink-0"
+                className="flex items-center justify-center text-black font-bold drop-shadow-md hover:brightness-110 flex-shrink-0"
                 style={{
                   width: "12.5cqw",
                   height: "4.7cqw",
                   fontSize: "1.6cqw",
-                  backgroundImage: "url('/assets/002/lowerButton_001.png')",
+                  backgroundImage: "url('/assets/002/lowerButton_001.webp')",
                   backgroundSize: "100% 100%",
                   imageRendering: "pixelated",
                   filter: (item.disabled || item.name === activeItem) ? "brightness(0.75)" : undefined,

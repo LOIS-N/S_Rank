@@ -20,7 +20,7 @@
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-image: url('/assets/003-01/questMain_000.png');
+  background-image: url('/assets/003-01/questMain_000.webp');
   background-size: cover;
   background-position: center;
   opacity: 0.4; /* 배경 투명도 조정 */
@@ -177,7 +177,7 @@
 .quest-star {
   width: 20px;
   height: 20px;
-  background-image: url('/assets/003-01/levelStar_000.png');
+  background-image: url('/assets/003-01/levelStar_000.webp');
   background-size: 458.71% 255.37%;
   background-position: 50% 48.15%;
   background-repeat: no-repeat;
@@ -216,7 +216,7 @@
   flex-direction: column;
   align-items: center;
   gap: 4px; /* 트랙과 버튼 사이 간격 */
-  width: 56px; /* 36px -> 56px */
+  width: 120px; /* 56px -> 120px (Phase2와 통일) */
   flex-shrink: 0;
 }
 
@@ -226,30 +226,31 @@
   flex-shrink: 0;
 }
 
-/* 스크롤바 트랙 */
+/* 스크롤바 트랙 - Phase2 스타일로 통일 */
 .scrollbar-track {
-  width: 36px; /* 18px -> 36px */
+  width: 80px; /* 36px -> 80px */
   flex: 1;
-  max-height: calc(100% - 200px); /* 새로고침 버튼 공간 확보를 위해 끝 부분 제한 */
-  background-image: url('/assets/003-01/scrollBar_000.png');
-  background-size: 100% 100%;
+  max-height: calc(100% - 200px); /* Phase1 특유의 하단 버튼 공간 확보 유지 */
+  background-image: url('/assets/003-02/scrollBar_000.webp'); /* Phase2 자산 사용 */
+  background-size: 518% 108%;
+  background-position: 50% 50%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
-  min-height: 80px; /* card-list와 맞춤 (기존 60px) */
+  min-height: 80px;
   position: relative;
-  overflow: hidden; /* 썸이 트랙 밖으로 절대 나가지 않도록 */
+  overflow: visible; /* Phase2와 동일하게 썸이 삐져나올 수 있게 */
 }
 
-/* 스크롤바 썸 (움직이는 손잡이) */
+/* 스크롤바 썸 (움직이는 손잡이) - Phase2 스타일로 통일 */
 .scrollbar-thumb {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  width: 36px; /* 18px -> 36px */
-  height: 36px; /* 18px -> 36px */
-  background-image: url('/assets/003-01/scrollButton_000.png');
-  background-size: contain;
-  background-position: center;
+  width: 100px; /* 36px -> 100px */
+  height: 100px; /* 36px -> 100px */
+  background-image: url('/assets/003-02/scrollButton_000.webp'); /* Phase2 자산 사용 */
+  background-size: 84% 48%;
+  background-position: 50% 49%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
   cursor: grab;
@@ -771,7 +772,7 @@
   width: 80px;
   max-height: none;        /* Phase1 제한 해제 */
   overflow: visible;       /* Phase1 overflow:hidden 해제 */
-  background-image: url('/assets/003-02/scrollBar_000.png');
+  background-image: url('/assets/003-02/scrollBar_000.webp');
   background-size: 518% 108%;
   background-position: 50% 50%;
   background-repeat: no-repeat;
@@ -779,7 +780,7 @@
 .phase2-scrollbar-column .scrollbar-thumb {
   width: 100px;
   height: 100px;
-  background-image: url('/assets/003-02/scrollButton_000.png');
+  background-image: url('/assets/003-02/scrollButton_000.webp');
   background-size: 84% 48%;
   background-position: 50% 49%;
   background-repeat: no-repeat;

@@ -79,7 +79,6 @@ export const useAuth = () => {
                 const desksRes = await client.get('/api/v1/desks', {
                   headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
-                console.log('[Desks] API response:', desksRes.data);
                 if (desksRes.data.success) {
                   useGameStore.getState().setDesksFromApi(desksRes.data.data);
                 }
@@ -87,7 +86,18 @@ export const useAuth = () => {
                 console.error('[Desks] API error:', desksError);
               }
 
-              // Problem 2: '/main' → '/' 수정
+              // /quests/active API 호출 → 진행 중 퀘스트 동기화
+              try {
+                const activeRes = await client.get('/api/v1/quests/active', {
+                  headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                if (activeRes.data.success && Array.isArray(activeRes.data.data)) {
+                  useGameStore.getState().syncActiveQuests(activeRes.data.data);
+                }
+              } catch (activeError) {
+                console.error('[ActiveQuests] API error:', activeError);
+              }
+
               router.push('/');
             }
           }
@@ -110,14 +120,28 @@ export const useAuth = () => {
                 useGameStore.getState().setResources(gold, coin);
                 useGameStore.getState().setNickname(nickname);
 
-                // /desks API 테스트 호출
+                // /desks API 호출 → 책상 잠금 상태 동기화
                 try {
                   const desksRes = await client.get('/api/v1/desks', {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                   });
-                  console.log('[Desks] API response:', desksRes.data);
+                  if (desksRes.data.success) {
+                    useGameStore.getState().setDesksFromApi(desksRes.data.data);
+                  }
                 } catch (desksError) {
                   console.error('[Desks] API error:', desksError);
+                }
+
+                // /quests/active API 호출 → 진행 중 퀘스트 동기화
+                try {
+                  const activeRes = await client.get('/api/v1/quests/active', {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                  });
+                  if (activeRes.data.success && Array.isArray(activeRes.data.data)) {
+                    useGameStore.getState().syncActiveQuests(activeRes.data.data);
+                  }
+                } catch (activeError) {
+                  console.error('[ActiveQuests] API error:', activeError);
                 }
 
                 router.push('/');

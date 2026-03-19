@@ -31,6 +31,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/actuator/prometheus", "/actuator/health").permitAll()  // 추가
                 .anyRequest().authenticated()
             )
             .addFilterBefore(privyAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

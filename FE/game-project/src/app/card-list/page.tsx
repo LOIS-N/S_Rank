@@ -62,7 +62,7 @@ function NineSliceBox({ src, slice, framePadding, borderScale = 1, children, cla
 }
 
 function displaySkillType(type: string): string {
-  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type;
+  return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
 }
 
 // --- API 응답 타입 ---
@@ -204,18 +204,18 @@ export default function CardListPage() {
   // --- 스크롤 관련 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0);
   const [trackHeight, setTrackHeight] = useState(0);
+  const [wrapperHeight, setWrapperHeight] = useState(0); // 추가
   const gridRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null); // 추가
   const isDraggingRef = useRef(false);
   const dragStartYRef = useRef(0);
   const dragStartRatioRef = useRef(0);
 
   const ROW_HEIGHT = 360;
-  const VISIBLE_ROWS = 2;
   const totalRows = Math.ceil(sortedCards.length / 3);
   const totalContentHeight = totalRows * ROW_HEIGHT + 260;
-  const visibleHeight = VISIBLE_ROWS * ROW_HEIGHT;
-  const maxScroll = Math.max(0, totalContentHeight - visibleHeight);
+  const maxScroll = Math.max(0, totalContentHeight - wrapperHeight); // visibleHeight -> wrapperHeight
   const scrollOffset = scrollRatio * maxScroll;
 
   // --- 스크롤 하단 도달 시 다음 페이지 로드 ---
@@ -242,7 +242,18 @@ export default function CardListPage() {
   }, [scrollRatio, trackHeight]);
 
   useEffect(() => {
-    if (trackRef.current) setTrackHeight(trackRef.current.clientHeight);
+    const measure = () => {
+      if (trackRef.current) setTrackHeight(trackRef.current.clientHeight);
+      if (wrapperRef.current) setWrapperHeight(wrapperRef.current.clientHeight);
+    };
+    measure();
+    // 초기 로드 시 렌더링 완료 후 재측정 (폰트/이미지 등)
+    window.addEventListener('resize', measure);
+    const timer = setTimeout(measure, 100);
+    return () => {
+      window.removeEventListener('resize', measure);
+      clearTimeout(timer);
+    };
   }, [sortedCards]);
 
   const handleThumbMouseDown = useCallback((e: React.MouseEvent) => {
@@ -293,7 +304,7 @@ export default function CardListPage() {
         {/* 상단 타이틀 */}
         <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
           <NineSliceBox
-            src="/assets/008/questCard_000.png"
+            src="/assets/008/questCard_000.webp"
             slice={[200, 208, 200, 208]}
             framePadding={14}
             borderScale={0.4}
@@ -324,8 +335,8 @@ export default function CardListPage() {
             </div>
 
             {/* 카드 리스트 박스 */}
-            <NineSliceBox src="/assets/008/questInf_000.png" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
-              <div className="cardlist-grid-wrapper" onWheel={handleWheel} style={{ height: visibleHeight }}>
+            <NineSliceBox src="/assets/008/questInf_000.webp" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
+              <div className="cardlist-grid-wrapper" ref={wrapperRef} onWheel={handleWheel} style={{ flex: 1, overflow: 'hidden' }}>
                 <div className="cardlist-grid" ref={gridRef} style={{ transform: `translateY(-${scrollOffset}px)` }}>
                   {isInitialLoad ? (
                     <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>
@@ -345,7 +356,7 @@ export default function CardListPage() {
                           data-grade={card.grade}
                           onClick={() => handleCardClick(card.cardId)}
                         >
-                          <img src={card.imageUrl} alt={card.name} draggable={false} />
+                          <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
                           <span className="cardlist-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                           <span className="cardlist-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                           <span className="cardlist-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
@@ -372,7 +383,7 @@ export default function CardListPage() {
 
           {/* ──── 우측: 상세 정보 패널 ──── */}
           <NineSliceBox
-            src="/assets/008/questInf_000.png"
+            src="/assets/008/questInf_000.webp"
             slice={[121, 248, 85, 248]}
             framePadding={20}
             borderScale={0.5}
@@ -393,7 +404,7 @@ export default function CardListPage() {
                 {/* 우측 정보 */}
                 <div className="cardlist-info-col">
                   {/* 이름 + 등급 + 강화 */}
-                  <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
+                  <NineSliceBox src="/assets/008/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
                     <div className="cardlist-info-header-text">
                       {selectedListCard.name}({selectedListCard.grade}등급)
                       {/* TODO: 강화 레벨 표시 - 카드 상세 API에서 enhanceLevel 필드가 내려오면 아래 주석 해제
@@ -403,25 +414,21 @@ export default function CardListPage() {
                   </NineSliceBox>
 
                   {/* 능력치 */}
-                  <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
+                  <NineSliceBox src="/assets/008/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
                     <div className="cardlist-info-title">능력치</div>
                     <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{selectedListCard.skill1.value}</div>
                     <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{selectedListCard.skill2.value}</div>
                     <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{selectedListCard.skill3.value}</div>
                   </NineSliceBox>
 
-                  {/* 특수 능력 */}
-                  <NineSliceBox src="/assets/008/questInf_001.png" slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
-                    {selectedListCard.specialAbility ? (
+                  {/* 특수 능력 (있을 때만 표시) */}
+                  {selectedListCard.specialAbility && (
+                    <NineSliceBox src="/assets/008/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
                       <div className="cardlist-info-text">
                         능력 : {selectedListCard.specialAbility.name}
                       </div>
-                    ) : (
-                      <div className="cardlist-info-text" style={{ color: '#888' }}>
-                        특수 능력 없음
-                      </div>
-                    )}
-                  </NineSliceBox>
+                    </NineSliceBox>
+                  )}
                 </div>
               </div>
             ) : (
