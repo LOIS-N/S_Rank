@@ -134,10 +134,10 @@
   align-items: flex-end;
 }
 
-/* Result Buttons Area - 결과 화면에서 네비게이션 바 바로 위 고정 */
+/* Result Buttons Area - 결과 화면에서 네비게이션 바 위 여유 공간 확보 */
 .gacha-bottom-buttons {
   position: absolute;
-  bottom: 7.5cqw;
+  bottom: 10cqw;
   left: 0;
   right: 0;
   display: flex;
@@ -226,7 +226,7 @@
   justify-content: center;
   background-color: rgba(0, 0, 0, 0.6);
   z-index: 10;
-  padding: 20px 24px 9cqw 24px;
+  padding: 20px 24px 12cqw 24px;
 }
 
 /* 결과 공통 레이아웃 (좌: 카드, 우: 정보) */
@@ -540,4 +540,105 @@
     transform: scale(1);
     opacity: 1;
   }
+}
+
+/* ============================
+   1회 뽑기 결과 — 중앙 세로 레이아웃
+   ============================ */
+.gacha-single-result-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-height: calc(100% - 20px);
+  overflow: visible;
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.gacha-single-big-card {
+  position: relative;
+  width: 240px;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.gacha-single-big-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* 1회 큰 카드 스탯 폰트 더 크게 */
+.gacha-single-big-card .gacha-card-stat {
+  font-size: 18px;
+}
+
+/* 등급별 glow/border — 기존 클래스와 동일 패턴 */
+.gacha-single-big-card::before {
+  content: "";
+  position: absolute;
+  top: -3px; left: 7px; right: 7px; bottom: -3px;
+  border-radius: 8px;
+  z-index: -1;
+  animation: gachaBorderRotate 2.5s linear infinite;
+  pointer-events: none;
+}
+
+.gacha-single-big-card[data-grade="S"]::before {
+  background: conic-gradient(from var(--gacha-border-angle, 0deg),
+    #b9f2ff, #00e5ff, #ffffff, #76d7ff, #00e5ff, #b9f2ff);
+}
+.gacha-single-big-card[data-grade="S"] {
+  filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.7));
+}
+
+.gacha-single-big-card[data-grade="A"]::before {
+  background: conic-gradient(from var(--gacha-border-angle, 0deg),
+    #ffd700, #ffec80, #b8860b, #fff4b0, #ffd700, #ffd700);
+}
+.gacha-single-big-card[data-grade="A"] {
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
+}
+
+.gacha-single-big-card[data-grade="B"]::before {
+  background: conic-gradient(from var(--gacha-border-angle, 0deg),
+    #c0c0c0, #e8e8e8, #888888, #f0f0f0, #c0c0c0, #c0c0c0);
+}
+.gacha-single-big-card[data-grade="B"] {
+  filter: drop-shadow(0 0 8px rgba(192, 192, 192, 0.6));
+}
+
+.gacha-single-big-card[data-grade="C"]::before {
+  background: conic-gradient(from var(--gacha-border-angle, 0deg),
+    #cd7f32, #e8a860, #8b4513, #daa06d, #cd7f32, #cd7f32);
+}
+.gacha-single-big-card[data-grade="C"] {
+  filter: drop-shadow(0 0 8px rgba(205, 127, 50, 0.5));
+}
+
+.gacha-single-big-card[data-grade="D"]::before {
+  background: conic-gradient(from var(--gacha-border-angle, 0deg),
+    #1a3a8a, #2b5fcf, #0d2266, #3a7af0, #1a3a8a, #1a3a8a);
+}
+.gacha-single-big-card[data-grade="D"] {
+  filter: drop-shadow(0 0 8px rgba(26, 58, 138, 0.6));
+}
+
+.gacha-single-info-box {
+  width: 100%;
+  max-width: 360px;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  animation-delay: 0.2s;
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+.gacha-single-pull-buttons {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  animation: popIn 0.4s ease both;
+  animation-delay: 0.35s;
+  opacity: 0;
+  animation-fill-mode: forwards;
 }
