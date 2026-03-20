@@ -214,9 +214,11 @@ export default function CardListPage() {
   const dragStartRatioRef = useRef(0);
   // 스와이프 스크롤
   const swipeStartYRef = useRef(0);
-  const swipeStartRatioRef = useRef(0);
   const isSwipingRef = useRef(false);
   const swipeMovedRef = useRef(false);
+  const swipeVelocityRef = useRef(0);
+  const swipeLastTimeRef = useRef(0);
+  const momentumAnimRef = useRef<number | null>(null);
 
   // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
   const maxScroll = Math.max(0, gridHeight - wrapperHeight);
@@ -348,21 +350,44 @@ export default function CardListPage() {
               style={{ flex: 1, overflow: 'hidden' }}
               onPointerDown={(e) => {
                 if (maxScroll <= 0) return;
-                // e.currentTarget.setPointerCapture(e.pointerId);
+                if (momentumAnimRef.current !== null) { cancelAnimationFrame(momentumAnimRef.current); momentumAnimRef.current = null; }
                 isSwipingRef.current = true;
                 swipeMovedRef.current = false;
                 swipeStartYRef.current = e.clientY;
-                swipeStartRatioRef.current = scrollRatio;
+                swipeVelocityRef.current = 0;
+                swipeLastTimeRef.current = performance.now();
               }}
               onPointerMove={(e) => {
                 if (!isSwipingRef.current || maxScroll <= 0) return;
+                const now = performance.now();
+                const dt = Math.max(8, now - swipeLastTimeRef.current);
                 const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
-                const deltaY = (swipeStartYRef.current - e.clientY) / gameScale;
-                if (Math.abs(deltaY) > 5) swipeMovedRef.current = true;
-                setScrollRatio(Math.min(1, Math.max(0, swipeStartRatioRef.current + deltaY / maxScroll)));
+                const rawDelta = swipeStartYRef.current - e.clientY;
+                if (Math.abs(rawDelta) > 2) swipeMovedRef.current = true;
+                swipeVelocityRef.current = rawDelta * (16 / dt);
+                swipeStartYRef.current = e.clientY;
+                swipeLastTimeRef.current = now;
+                setScrollRatio(prev => Math.min(1, Math.max(0, prev + (rawDelta / gameScale) / maxScroll)));
               }}
-              onPointerUp={() => { isSwipingRef.current = false; swipeMovedRef.current = false; }}
-              onPointerCancel={() => { isSwipingRef.current = false; swipeMovedRef.current = false; }}
+              onPointerUp={() => {
+                if (!isSwipingRef.current) return;
+                isSwipingRef.current = false;
+                const capturedMax = maxScroll;
+                const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
+                let v = swipeVelocityRef.current / gameScale;
+                const animate = () => {
+                  v *= 0.90;
+                  if (Math.abs(v) < 0.3 || capturedMax <= 0) { momentumAnimRef.current = null; swipeMovedRef.current = false; return; }
+                  setScrollRatio(prev => Math.min(1, Math.max(0, prev + v / capturedMax)));
+                  momentumAnimRef.current = requestAnimationFrame(animate);
+                };
+                if (Math.abs(v) > 0.5) { momentumAnimRef.current = requestAnimationFrame(animate); } else { swipeMovedRef.current = false; }
+              }}
+              onPointerCancel={() => {
+                isSwipingRef.current = false;
+                swipeMovedRef.current = false;
+                if (momentumAnimRef.current !== null) { cancelAnimationFrame(momentumAnimRef.current); momentumAnimRef.current = null; }
+              }}
               onClickCapture={(e) => { if (swipeMovedRef.current) { e.stopPropagation(); swipeMovedRef.current = false; } }}
             >
               <div className="cardlist-grid" ref={gridRef} style={{ transform: `translateY(-${scrollOffset}px)` }}>
