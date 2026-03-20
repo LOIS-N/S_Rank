@@ -5,6 +5,12 @@ import com.ssafy.srank.auth.application.dto.response.LoginResponse;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.desk.application.service.DeskService;
+import com.ssafy.srank.log.application.command.AuthLogCommand;
+import com.ssafy.srank.log.application.command.GoldLogCommand;
+import com.ssafy.srank.log.application.facade.AuthLogFacade;
+import com.ssafy.srank.log.application.facade.EconomyLogFacade;
+import com.ssafy.srank.log.domain.enums.AuthLogEventType;
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +19,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -25,6 +32,8 @@ public class AuthServiceImpl implements AuthService {
     private final PrivyTokenService privyTokenService;
     private final UserRepository userRepository;
     private final DeskService deskService;
+    private final AuthLogFacade authLogFacade;
+    private final EconomyLogFacade economyLogFacade;
 
     private static final long SIGNUP_BONUS_GOLD = 300_000L;
 
@@ -55,6 +64,11 @@ public class AuthServiceImpl implements AuthService {
             log.info("{} stage=service.user-found userId={} privyId={}",
                     AUTH_LOGIN_TAG, user.getUserId(), user.getPrivyId());
             ensureActive(user);
+            authLogFacade.recordLogin(new AuthLogCommand(
+                    user.getUserId(),
+                    AuthLogEventType.LOGIN,
+                    LocalDateTime.now()
+            ));
             return new LoginResponse(false);
         }
 
@@ -71,6 +85,19 @@ public class AuthServiceImpl implements AuthService {
                     .build());
 
             deskService.unlockDesk(savedUser.getUserId(), 1L);
+            LocalDateTime now = LocalDateTime.now();
+            authLogFacade.recordSignup(new AuthLogCommand(
+                    savedUser.getUserId(),
+                    AuthLogEventType.SIGNUP,
+                    now
+            ));
+            economyLogFacade.recordGoldChange(new GoldLogCommand(
+                    savedUser.getUserId(),
+                    SIGNUP_BONUS_GOLD,
+                    savedUser.getGold(),
+                    GoldLogReason.SIGNUP_BONUS,
+                    now
+            ));
 
             log.info("{} stage=service.user-save.success privyId={}", AUTH_LOGIN_TAG, identity.privyId());
             return new LoginResponse(true);

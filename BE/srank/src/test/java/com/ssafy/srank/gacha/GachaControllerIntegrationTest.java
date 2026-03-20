@@ -11,6 +11,9 @@ import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.gacha.domain.policy.GachaRandomProvider;
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.log.repository.GachaLogRepository;
+import com.ssafy.srank.log.repository.UserGoldLogRepository;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -52,6 +55,12 @@ class GachaControllerIntegrationTest {
 
     @Autowired
     private CardTemplateRepository cardTemplateRepository;
+
+    @Autowired
+    private UserGoldLogRepository userGoldLogRepository;
+
+    @Autowired
+    private GachaLogRepository gachaLogRepository;
 
     @MockBean
     private PrivyTokenService privyTokenService;
@@ -104,6 +113,8 @@ class GachaControllerIntegrationTest {
 
     @AfterEach
     void tearDown() {
+        gachaLogRepository.deleteAllInBatch();
+        userGoldLogRepository.deleteAllInBatch();
         userCardRepository.deleteAllInBatch();
         cardTemplateRepository.deleteAllInBatch();
         userRepository.deleteAllInBatch();
@@ -146,6 +157,9 @@ class GachaControllerIntegrationTest {
 
         assertThat(userCardRepository.countActiveByUserId(user.getUserId())).isEqualTo(1);
         assertThat(userRepository.findById(user.getUserId()).orElseThrow().getGold()).isEqualTo(190_000L);
+        assertThat(userGoldLogRepository.findAll()).hasSize(1);
+        assertThat(userGoldLogRepository.findAll().get(0).getReason()).isEqualTo(GoldLogReason.GACHA_SPEND);
+        assertThat(gachaLogRepository.findAll()).hasSize(1);
     }
 
     @Test
@@ -179,6 +193,9 @@ class GachaControllerIntegrationTest {
                 ))
                 .allMatch(value -> value >= 1 && value <= 20);
         assertThat(userRepository.findById(user.getUserId()).orElseThrow().getGold()).isEqualTo(110_000L);
+        assertThat(userGoldLogRepository.findAll()).hasSize(1);
+        assertThat(userGoldLogRepository.findAll().get(0).getAmount()).isEqualTo(-90_000L);
+        assertThat(gachaLogRepository.findAll()).hasSize(10);
     }
 
     @Test
@@ -192,6 +209,9 @@ class GachaControllerIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("GA001"));
+
+        assertThat(userGoldLogRepository.count()).isZero();
+        assertThat(gachaLogRepository.count()).isZero();
     }
 
     @Test

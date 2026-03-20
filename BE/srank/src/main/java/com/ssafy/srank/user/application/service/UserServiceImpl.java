@@ -2,6 +2,9 @@ package com.ssafy.srank.user.application.service;
 
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.log.application.command.AuthLogCommand;
+import com.ssafy.srank.log.application.facade.AuthLogFacade;
+import com.ssafy.srank.log.domain.enums.AuthLogEventType;
 import com.ssafy.srank.user.application.dto.request.UpdateNicknameRequest;
 import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
 import com.ssafy.srank.user.domain.entity.User;
@@ -10,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 
 @Service
@@ -20,6 +24,7 @@ public class UserServiceImpl implements UserService {
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[A-Za-z0-9가-힣]{2,8}$");
 
     private final UserRepository userRepository;
+    private final AuthLogFacade authLogFacade;
 
     @Override
     public MyInfoResponse getMyInfo(Long userId) {
@@ -48,18 +53,25 @@ public class UserServiceImpl implements UserService {
     public void withdraw(Long userId) {
         User user = getActiveUser(userId);
         user.withdraw();
+        authLogFacade.recordWithdraw(new AuthLogCommand(
+                userId,
+                AuthLogEventType.WITHDRAW,
+                LocalDateTime.now()
+        ));
     }
 
     @Override
-    public void rewardGold(Long userId, Long gold) {
+    public long rewardGold(Long userId, Long gold) {
         User user = getActiveUser(userId);
         user.increaseGold(gold);
+        return user.getGold();
     }
 
     @Override
-    public void spendGold(Long userId, Long gold) {
+    public long spendGold(Long userId, Long gold) {
         User user = getActiveUser(userId);
         user.decreaseGold(gold);
+        return user.getGold();
     }
 
     private User getActiveUser(Long userId) {

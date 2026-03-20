@@ -15,12 +15,19 @@ import com.ssafy.srank.gacha.application.dto.response.GachaDrawResponse;
 import com.ssafy.srank.gacha.domain.enums.GachaType;
 import com.ssafy.srank.gacha.domain.policy.FlyerGachaPolicy;
 import com.ssafy.srank.gacha.domain.policy.GachaRandomProvider;
+import com.ssafy.srank.log.application.command.GachaDrawLogCommand;
+import com.ssafy.srank.log.application.command.GachaDrawnCardLogCommand;
+import com.ssafy.srank.log.application.command.GoldLogCommand;
+import com.ssafy.srank.log.application.facade.EconomyLogFacade;
+import com.ssafy.srank.log.application.facade.GachaLogFacade;
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -37,6 +44,8 @@ public class GachaServiceImpl implements GachaService {
     private final CardTemplateRepository cardTemplateRepository;
     private final FlyerGachaPolicy flyerGachaPolicy;
     private final GachaRandomProvider gachaRandomProvider;
+    private final EconomyLogFacade economyLogFacade;
+    private final GachaLogFacade gachaLogFacade;
 
     @Override
     @Transactional
@@ -62,13 +71,33 @@ public class GachaServiceImpl implements GachaService {
         }
 
         user.spendGold(cost);
+        economyLogFacade.recordGoldChange(new GoldLogCommand(
+                userId,
+                -cost,
+                user.getGold(),
+                GoldLogReason.GACHA_SPEND,
+                LocalDateTime.now()
+        ));
 
         List<UserCard> drawnCards = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             drawnCards.add(createDrawnCard(userId));
         }
 
-        List<GachaDrawCardResponse> cards = userCardRepository.saveAll(drawnCards).stream()
+        List<UserCard> savedCards = userCardRepository.saveAll(drawnCards);
+        gachaLogFacade.recordDraw(new GachaDrawLogCommand(
+                userId,
+                type,
+                count,
+                cost,
+                false,
+                savedCards.stream()
+                        .map(this::toGachaDrawnCardLogCommand)
+                        .toList(),
+                LocalDateTime.now()
+        ));
+
+        List<GachaDrawCardResponse> cards = savedCards.stream()
                 .map(UserCard::toResponse)
                 .map(GachaDrawCardResponse::from)
                 .toList();
@@ -128,5 +157,19 @@ public class GachaServiceImpl implements GachaService {
 
     private int nextStatValue(int min, int max) {
         return min + gachaRandomProvider.nextInt(max - min + 1);
+    }
+
+    private GachaDrawnCardLogCommand toGachaDrawnCardLogCommand(UserCard userCard) {
+        return new GachaDrawnCardLogCommand(
+                userCard.getId(),
+                userCard.getCardTemplate().getGrade(),
+                userCard.getStat1().getSkillType().name(),
+                userCard.getStat1().getTotalValue(),
+                userCard.getStat2().getSkillType().name(),
+                userCard.getStat2().getTotalValue(),
+                userCard.getStat3().getSkillType().name(),
+                userCard.getStat3().getTotalValue(),
+                userCard.getSpecialSkillTemplate() == null ? null : userCard.getSpecialSkillTemplate().getSkillCode()
+        );
     }
 }

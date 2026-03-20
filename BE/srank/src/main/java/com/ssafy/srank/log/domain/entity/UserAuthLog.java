@@ -1,7 +1,10 @@
 package com.ssafy.srank.log.domain.entity;
 
+import com.ssafy.srank.log.domain.enums.AuthLogEventType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -15,38 +18,24 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_sub_quest_log")
+@Table(name = "user_auth_log")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-public class UserSubQuestLog {
+public class UserAuthLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_sub_quest")
-    private Long userSubQuestLogId;
+    @Column(name = "user_auth_log_id")
+    private Long userAuthLogId;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "sub_quest_template_id", nullable = false)
-    private Long subQuestTemplateId;
-
-    @Column(name = "status", nullable = false, length = 20)
-    private String status;
-
-    @Column(name = "started_at")
-    private LocalDateTime startedAt;
-
-    @Column(name = "completed_at")
-    private LocalDateTime completedAt;
-
-    @Column(name = "claimed_at")
-    private LocalDateTime claimedAt;
-
-    @Column(name = "actual_duration_minutes")
-    private Integer actualDurationMinutes;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "event_type", nullable = false, length = 20)
+    private AuthLogEventType eventType;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

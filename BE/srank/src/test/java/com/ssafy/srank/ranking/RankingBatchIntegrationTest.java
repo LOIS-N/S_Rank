@@ -9,6 +9,7 @@ import com.ssafy.srank.card.repository.CardTemplateRepository;
 import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.log.domain.entity.EnhancementLog;
 import com.ssafy.srank.log.domain.entity.UserGoldLog;
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.log.repository.EnhancementLogRepository;
 import com.ssafy.srank.log.repository.UserGoldLogRepository;
 import com.ssafy.srank.ranking.batch.RankingBatchConfig;
@@ -94,28 +95,28 @@ class RankingBatchIntegrationTest {
                 .userId(alpha.getUserId())
                 .amount(100)
                 .balanceAfter(100)
-                .reason("QUEST")
+                .reason(GoldLogReason.QUEST_REWARD)
                 .createdAt(LocalDateTime.now().minusHours(5))
                 .build());
         userGoldLogRepository.save(UserGoldLog.builder()
                 .userId(alpha.getUserId())
                 .amount(-20)
                 .balanceAfter(80)
-                .reason("SHOP")
+                .reason(GoldLogReason.GACHA_SPEND)
                 .createdAt(LocalDateTime.now().minusHours(4))
                 .build());
         userGoldLogRepository.save(UserGoldLog.builder()
                 .userId(beta.getUserId())
                 .amount(100)
                 .balanceAfter(100)
-                .reason("QUEST")
+                .reason(GoldLogReason.QUEST_REWARD)
                 .createdAt(LocalDateTime.now().minusHours(3))
                 .build());
         userGoldLogRepository.save(UserGoldLog.builder()
                 .userId(withdrawn.getUserId())
                 .amount(500)
                 .balanceAfter(500)
-                .reason("QUEST")
+                .reason(GoldLogReason.QUEST_REWARD)
                 .createdAt(LocalDateTime.now().minusHours(2))
                 .build());
 

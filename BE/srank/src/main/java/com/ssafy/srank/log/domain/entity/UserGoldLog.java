@@ -1,7 +1,10 @@
 package com.ssafy.srank.log.domain.entity;
 
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -36,8 +39,9 @@ public class UserGoldLog {
     @Column(name = "balance_after", nullable = false)
     private long balanceAfter;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "reason", nullable = false, length = 30)
-    private String reason;
+    private GoldLogReason reason;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
