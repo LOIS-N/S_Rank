@@ -1,4 +1,3 @@
-pipeline {
     agent any
 
     environment {
@@ -20,26 +19,6 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-                sh """
-                    cd ${COMPOSE_PATH}
-                    docker compose build
-                """
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                sh """
-                    cd ${COMPOSE_PATH}
-                    docker compose down --remove-orphans || true
-                    docker compose up -d
-                    docker image prune -f
-                """
-            }
-        }
-    }
 
     post {
         success {
@@ -63,6 +42,4 @@ pipeline {
             """
         }
     }
-
-
 }
