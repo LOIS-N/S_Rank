@@ -602,7 +602,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
 
       // FE 인덱스(0~4)로 store 업데이트, BE 템플릿 ID(1~5)와 혼용 방지
       const feDeskIndex = selectingDeskId ?? 0;
-      startQuest(feDeskIndex, durationMinutes * 60, rewardInfo.reward, quest.title);
+      startQuest(feDeskIndex, durationMinutes * 60, rewardInfo.reward, quest.title, quest.questId, type as 'main' | 'sub');
       router.push('/');
     } catch (err: unknown) {
       const e = err as { response?: { status?: number; data?: { message?: string; code?: string; error?: { message?: string; code?: string } } }; message?: string };

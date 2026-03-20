@@ -288,7 +288,11 @@ export default function GameCanvas() {
                       deskData.desk.setVisible(false);
                       deskData.newIcon.setVisible(false);
 
-                      if (remainMs <= 0) {
+                      // result 표기는 실제 종료 1분 후에 표시 (서버 처리 여유)
+                      const RESULT_DELAY_MS = 60 * 1000;
+                      const displayRemainMs = remainMs + RESULT_DELAY_MS;
+
+                      if (displayRemainMs <= 0) {
                         deskData.resultIcon.setVisible(true);
                         deskData.timerBg.setVisible(false);
                         deskData.timerText.setVisible(false);
@@ -298,13 +302,13 @@ export default function GameCanvas() {
                       } else {
                         deskData.resultIcon.setVisible(false);
                         deskData.timerText.setVisible(true);
-                        const totalSec = Math.floor(remainMs / 1000);
-                        const h = Math.floor(totalSec / 3600);
-                        const m = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
-                        const s = (totalSec % 60).toString().padStart(2, '0');
-                        deskData.timerText.setText(h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`);
+                        // 남는 초를 올림하여 분 단위로 표시 (시간:분 형태)
+                        const totalMin = Math.ceil(displayRemainMs / 60000);
+                        const h = Math.floor(totalMin / 60).toString().padStart(2, '0');
+                        const m = (totalMin % 60).toString().padStart(2, '0');
+                        deskData.timerText.setText(`${h}:${m}`);
                         // 시간에 따라 박스 색상 변경: 1h+ 초록, 10m+ 노랑, 10m 미만 빨강 (모두 뮤트톤)
-                        const bgColor = remainMs > 3600000 ? 0x80c880 : remainMs > 600000 ? 0xe0cc50 : 0xe07878;
+                        const bgColor = displayRemainMs > 3600000 ? 0x80c880 : displayRemainMs > 600000 ? 0xe0cc50 : 0xe07878;
                         deskData.timerBg.clear();
                         deskData.timerBg.fillStyle(bgColor, 0.88);
                         deskData.timerBg.fillRoundedRect(-60, -19, 120, 36, 6);
