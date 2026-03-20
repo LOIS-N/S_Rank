@@ -1,0 +1,547 @@
+/* gacha.css */
+
+/* --- 게임 컨테이너 (부모 game-wrapper를 꽉 채움) --- */
+.gacha-page-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.gacha-content {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: background-image 0.3s ease;
+}
+
+/* Background Variations */
+.gacha-bg-flyer {
+  background-image: url('/assets/006/lotto_000.webp');
+}
+
+.gacha-bg-fair {
+  background-image: url('/assets/006/lotto_001.webp');
+}
+
+.gacha-bg-public {
+  background-image: url('/assets/006/lotto_002.webp');
+}
+
+/* --- 좌측 상단 골드 HUD --- */
+.gacha-gold-hud {
+  position: absolute;
+  top: 100px;
+  left: 16px;
+  z-index: 15;
+}
+
+/* Top Tabs */
+.gacha-tabs-container {
+  display: flex;
+  height: 80px;
+  width: 100%;
+  margin-top: -20px;
+}
+
+/* 탭 부모 래퍼 (정확히 1/3씩 분할하기 위함) */
+.gacha-tab-wrapper {
+  flex: 0 0 33.3333%;
+  width: 33.3333%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  position: relative;
+}
+
+/* 실제 탭 버튼 */
+.gacha-tab {
+  flex: 1;
+  width: 100% !important;
+  height: 80px;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  color: #2a2a40;
+  position: relative;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  transition: height 0.2s ease, transform 0.1s ease, filter 0.1s ease;
+  transform-origin: top center;
+  box-sizing: border-box;
+}
+
+.gacha-tab:hover {
+  filter: brightness(1.1);
+}
+
+.gacha-tab.active {
+  height: 100px;
+  filter: brightness(1.1) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
+  z-index: 2;
+}
+
+.gacha-tab span {
+  position: relative;
+  z-index: 5;
+  padding-top: 10px;
+}
+
+/* 투명 영역 오버슈트 보정 */
+.gacha-tab-inner {
+  position: absolute;
+  top: -20px;
+  bottom: -20px;
+  left: -74px;
+  right: -74px;
+  border-image-source: url('/assets/006/topButton_000.webp');
+  border-image-slice: 189 501 fill;
+  border-image-width: 32px 86px;
+  border-image-repeat: stretch;
+  z-index: 1;
+}
+
+/* Main Area */
+.gacha-main-area {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-top: 40px;
+  padding-left: 40px;
+  padding-right: 40px;
+  padding-bottom: 7.5cqw;
+  /* 하단 네비게이션 바 높이만큼 여백 확보 */
+}
+
+/* Bottom Buttons Area - 초기 화면에서는 우측 하단 네비게이션 바 위 */
+.gacha-bottom-area {
+  margin-top: auto;
+  align-self: flex-end;
+  display: flex;
+  gap: 24px;
+  align-items: flex-end;
+}
+
+/* Result Buttons Area - 결과 화면에서 네비게이션 바 위 여유 공간 확보 */
+.gacha-bottom-buttons {
+  position: absolute;
+  bottom: 8cqw;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 결과 화면 버튼 축소 */
+.gacha-bottom-buttons .gacha-action-btn {
+  width: 190px;
+  height: 64px;
+  font-size: 17px;
+}
+
+.gacha-bottom-buttons .gacha-action-btn.btn-10pull {
+  height: 66px;
+}
+
+.gacha-bottom-buttons .btn-subtitle {
+  font-size: 14px;
+}
+
+.gacha-action-btn {
+  width: 240px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.1s ease;
+  color: #2a2a40;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 21px;
+  background-size: 105.17% 177.64%;
+  background-repeat: no-repeat;
+  background-position: center 47.78%;
+  position: relative;
+  line-height: 1.1;
+}
+
+.gacha-action-btn.btn-10pull {
+  height: 82px;
+}
+
+.gacha-action-btn:hover {
+  transform: scale(1.03);
+  filter: brightness(1.1);
+}
+
+.gacha-action-btn:active {
+  transform: scale(0.97);
+  filter: brightness(0.9);
+}
+
+/* 재화 부족 시 비활성화 */
+.gacha-action-btn.btn-disabled {
+  filter: brightness(0.5) grayscale(0.4);
+  cursor: not-allowed;
+}
+
+.gacha-action-btn.btn-disabled:hover {
+  transform: none;
+  filter: brightness(0.5) grayscale(0.4);
+}
+
+.gacha-action-btn.btn-disabled:active {
+  transform: none;
+  filter: brightness(0.5) grayscale(0.4);
+}
+
+.gacha-action-btn .nineslice-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.btn-subtitle {
+  font-size: 18px;
+  font-weight: 800;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  margin-top: 2px;
+}
+
+/* ============================
+   Result Phases
+   ============================ */
+.gacha-result-container {
+  position: absolute;
+  top: 80px; /* 탭 아래부터 */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 10;
+  padding: 40px 24px 14cqw 24px;
+  cursor: pointer; /* iOS Safari: div.onClick은 cursor:pointer 없으면 tap→click 이벤트 미발생 */
+}
+
+/* 결과 공통 레이아웃 (좌: 카드, 우: 정보) */
+.gacha-result-layout {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  gap: 24px;
+  min-height: 0;
+  align-items: center;
+}
+
+/* ============================
+   1회 뽑기 결과
+   ============================ */
+.gacha-result-card-col {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.gacha-result-single-card {
+  position: relative;
+  width: 200px;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.gacha-result-single-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.gacha-result-info-col {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.gacha-result-info-box {
+  width: 100%;
+  max-width: 340px;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  animation-delay: 0.2s;
+}
+
+.gacha-result-name {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  color: #111;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.gacha-result-grade {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: #2a2a40;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.gacha-result-stats {
+  font-family: 'Stardust', sans-serif;
+  font-weight: bold;
+  font-size: 18px;
+  color: #111;
+  line-height: 1.8;
+  text-align: center;
+}
+
+.gacha-result-special {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  color: #ffd700;
+  text-align: center;
+  margin-top: 10px;
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.3);
+}
+
+/* ============================
+   10회 뽑기 결과
+   ============================ */
+.gacha-result-10 {
+  align-items: stretch;
+}
+
+.gacha-result-grid-col {
+  flex: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+}
+
+.gacha-result-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.gacha-grid-card {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  transform-origin: center center;
+  aspect-ratio: 2 / 3;
+  overflow: visible;
+}
+
+.gacha-grid-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  z-index: 1;
+  position: relative;
+}
+
+.gacha-grid-card:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* 10회 카드 딜레이는 GachaRevealCard에서 revealDelay prop으로 처리 */
+
+/* 등급별 선택 테두리 — 제거됨 */
+
+@property --gacha-border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes gachaBorderRotate {
+  from { --gacha-border-angle: 0deg; }
+  to   { --gacha-border-angle: 360deg; }
+}
+
+/* 우측 상세 패널 (10회) */
+.gacha-result-detail-col {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+}
+
+.gacha-result-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.gacha-detail-big-card {
+  position: relative;
+  width: 160px;
+  animation: popIn 0.3s ease-out both;
+}
+
+.gacha-detail-big-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.gacha-detail-info-box {
+  width: 100%;
+  max-width: 280px;
+}
+
+.gacha-detail-empty {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* 카드 위 능력치 오버레이 (card-list와 동일) */
+.gacha-card-stat {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 10px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.gacha-card-stat.stat-1 { bottom: 26%; }
+.gacha-card-stat.stat-2 { bottom: 16%; }
+.gacha-card-stat.stat-3 { bottom: 5%; }
+
+/* 1회 뽑기 큰 카드의 스탯은 더 크게 */
+.gacha-result-single-card .gacha-card-stat,
+.gacha-detail-big-card .gacha-card-stat {
+  font-size: 13px;
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================
+   10회 뽑기 결과 — 중앙 그리드
+   ============================ */
+.gacha-result-10-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  padding: 0 60px;
+  margin-bottom: 3cqw;
+  margin-top: 1cqw;
+}
+
+.gacha-result-10-centered .gacha-result-grid {
+  width: 100%;
+  max-width: 700px;
+}
+
+/* ============================
+   1회 뽑기 결과 — 중앙 세로 레이아웃
+   ============================ */
+.gacha-single-result-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-height: calc(100% - 20px);
+  overflow: visible;
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.gacha-single-big-card {
+  position: relative;
+  width: 280px;
+  height: calc(280px * 3 / 2); /* 카드 비율 2:3 기준 */
+  /* GachaRevealCard가 내부에서 reveal 애니메이션 처리 */
+}
+
+.gacha-single-big-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* 1회 큰 카드 스탯 폰트 더 크게 */
+.gacha-single-big-card .gacha-card-stat {
+  font-size: 17px;
+}
+
+/* 1회 결과 카드 보더/글로우는 GachaRevealCard 내부에서 처리 */
+
+.gacha-single-info-box {
+  width: 100%;
+  max-width: 360px;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  animation-delay: 0.2s;
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+.gacha-single-pull-buttons {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  animation: popIn 0.4s ease both;
+  animation-delay: 0.35s;
+  opacity: 0;
+  animation-fill-mode: forwards;
+}

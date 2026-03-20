@@ -1,0 +1,918 @@
+/* ============================================================
+   Quest Main Page Styles (퀘스트 메인 화면)
+   - 1280x720 (16:9) 기준 레이아웃
+   - Stardust font 적용
+   - pixel-art 에셋 기반 UI
+   ============================================================ */
+
+/* --- 게임 컨테이너: 부모 game-wrapper를 꽉 채움, Javascript transform scale을 부모에서 처리 --- */
+.quest-page-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  /* card-list와 맞춤 */
+  position: relative;
+  overflow: hidden;
+}
+
+.quest-page-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/assets/003-01/questMain_000.webp');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.4;
+  /* 배경 투명도 조정 */
+  z-index: 0;
+}
+
+/* 내부 요소들이 배경 위로 올라오도록 설정 */
+.quest-page-container>* {
+  position: relative;
+  z-index: 1;
+}
+
+/* --- 페이지 타이틀 --- */
+.quest-page-title-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.quest-page-title {
+  text-align: center;
+  color: #fff;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 34px;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  flex-shrink: 0;
+  margin: 0;
+  padding: 4px 10px;
+}
+
+/* --- 메인 콘텐츠 애니메이션 래퍼 --- */
+.quest-content-wrapper {
+  display: flex;
+  flex: 1;
+  width: 200%;
+  /* For 2 phases of 100% width each */
+  height: 100%;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  min-height: 0;
+}
+
+.quest-content-wrapper.phase-select {
+  transform: translateX(0);
+}
+
+.quest-content-wrapper.phase-placement {
+  transform: translateX(-50%);
+}
+
+/* --- 메인 콘텐츠 영역 공통 --- */
+.quest-content {
+  display: flex;
+  flex: 1 0 50%;
+  padding: 0 24px calc(100px + var(--game-clip-y, 0px)) 24px;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.phase-1-content {
+  gap: 16px;
+  /* Phase 1은 기존 간격 유지 */
+}
+
+.phase-2-content {
+  gap: 0;
+  /* Phase 2 (카드 배치)는 card-list와 맞게 간격 제거 */
+}
+
+/* ============================
+   좌측 영역: 퀘스트 리스트 + 스크롤바
+   ============================ */
+.quest-left-area {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 퀘스트 리스트 컬럼 */
+.quest-list-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  gap: 8px;
+}
+
+/* --- 퀘스트 카드 공통 --- */
+.quest-card {
+  min-height: 62px;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  flex-shrink: 0;
+}
+
+.quest-card:hover {
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+.quest-card.selected {
+  filter: brightness(1.2) drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));
+  transform: scale(1.03);
+}
+
+/* 메인 퀘스트 카드 (강조) */
+.quest-card.main-quest {
+  min-height: 68px;
+}
+
+.quest-card-label {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.main-label {
+  color: #ffd700;
+  font-size: 21px;
+  font-weight: 800;
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
+}
+
+.sub-label {
+  color: #a0c0ff;
+  font-size: 18px;
+  font-weight: 800;
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
+}
+
+.quest-card-title {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 21px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 난이도 별 */
+.quest-stars {
+  display: flex;
+  gap: 2px;
+  margin-left: 8px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.quest-star {
+  width: 20px;
+  height: 20px;
+  background-image: url('/assets/003-01/levelStar_000.webp');
+  background-size: 458.71% 255.37%;
+  background-position: 50% 48.15%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.quest-star.empty {
+  filter: grayscale(100%) brightness(1.5);
+  opacity: 0.4;
+}
+
+/* --- 서브 퀘스트 스크롤 영역 --- */
+.sub-quest-scroll-area {
+  flex: 1;
+  overflow: hidden;
+  clip-path: inset(0 -100px);
+  /* 상하는 overflow:hidden이 처리, 좌우만 -100px로 호버 효과 잘림 방지 */
+  position: relative;
+  min-height: 0;
+  touch-action: none;
+}
+
+.sub-quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding-bottom: 24px;
+  /* 스크롤 최하단 짤림 방지용 여유 공간 */
+}
+
+/* ============================
+   커스텀 스크롤바 (중앙 배치)
+   ============================ */
+.scrollbar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  /* 트랙과 버튼 사이 간격 */
+  width: 120px;
+  /* 56px -> 120px (Phase2와 통일) */
+  flex-shrink: 0;
+}
+
+/* 메인 퀘스트 높이만큼의 스페이서 */
+.scrollbar-spacer {
+  height: 74px;
+  flex-shrink: 0;
+}
+
+/* 스크롤바 트랙 - Phase2 스타일로 통일 */
+.scrollbar-track {
+  width: 80px;
+  /* 36px -> 80px */
+  flex: 1;
+  max-height: calc(100% - 200px);
+  /* Phase1 특유의 하단 버튼 공간 확보 유지 */
+  background-image: url('/assets/003-02/scrollBar_000.webp');
+  /* Phase2 자산 사용 */
+  background-size: 518% 108%;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  min-height: 80px;
+  position: relative;
+  overflow: visible;
+  /* Phase2와 동일하게 썸이 삐져나올 수 있게 */
+}
+
+/* 스크롤바 썸 (움직이는 손잡이) - Phase2 스타일로 통일 */
+.scrollbar-thumb {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  /* 36px -> 100px */
+  height: 100px;
+  /* 36px -> 100px */
+  background-image: url('/assets/003-02/scrollButton_000.webp');
+  /* Phase2 자산 사용 */
+  background-size: 84% 48%;
+  background-position: 50% 49%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  cursor: grab;
+  z-index: 2;
+  touch-action: none;
+  /* 드래그 중 브라우저 스크롤 방지 */
+}
+
+.scrollbar-thumb:active {
+  cursor: grabbing;
+}
+
+/* 새로고침 버튼 — 스크롤바 줄인 공간만큼 크게 */
+.refresh-button {
+  width: 110px;
+  /* 80px → 110px (+30px) */
+  height: 110px;
+  /* 80px → 110px (+30px) */
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  margin-top: 0;
+  margin-bottom: 0;
+  align-self: center;
+  position: relative;
+  z-index: 5;
+}
+
+.refresh-button:hover {
+  transform: scale(1.1);
+}
+
+.refresh-button:active {
+  transform: scale(0.95);
+}
+
+.refresh-button-inner {
+  width: 100%;
+  height: 100%;
+  background-size: 199.2% 110.27%;
+  background-position: 50% 57.69%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.refresh-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  /* 픽셀 깨짐 방지 */
+}
+
+/* ============================
+   우측 영역: 퀘스트 상세 정보
+   ============================ */
+.quest-detail-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 상세 정보 없음 */
+.quest-detail-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a8ab0;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 26px;
+}
+
+/* 퀘스트 제목 (상세) */
+.quest-detail-title {
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 27px;
+  color: #2a2a40;
+  padding: 6px 0;
+  flex-shrink: 0;
+}
+
+/* 내부 패널 (questInf_001.png 배경) — 퀘스트 내용 박스 */
+.quest-info-box.content-box .nineslice-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 좌우 중앙 */
+  justify-content: center;
+  /* 상하 중앙 */
+  text-align: center;
+}
+
+.quest-info-box.content-box {
+  flex: 1;
+  /* quest-detail-row와 동일한 flex 비율 */
+  min-height: 0;
+  overflow: hidden;
+  /* 스크롤 없음 */
+}
+
+.quest-info-box-label {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  color: #2a2a40;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.quest-info-box-text {
+  font-family: 'Stardust', sans-serif;
+  font-size: 14px;
+  color: #111;
+  font-weight: bold;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* 조건 + 보상 한 줄 */
+.quest-detail-row {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  /* content-box와 동일한 flex 비율 */
+  min-height: 0;
+}
+
+.quest-detail-row>.quest-info-box .nineslice-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.quest-detail-row>.quest-info-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 내부 텍스트들의 세로 중앙 정렬을 위한 하위 div 타겟팅 */
+.quest-detail-row>.quest-info-box>div:last-child {
+  justify-content: center;
+}
+
+/* 수락하기 버튼 */
+.quest-accept-button {
+  cursor: pointer;
+  padding: 12px 0;
+  /* 8px -> 12px */
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 26px;
+  color: #2a2a40;
+  text-shadow: none;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  flex-shrink: 0;
+  min-height: 72px;
+  /* 54px -> 72px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quest-accept-button:hover {
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+.quest-accept-button:active {
+  transform: scale(0.98);
+  filter: brightness(0.95);
+}
+
+/* ============================
+   Phase 2: 퀘스트 카드 배치 화면
+   ============================ */
+
+.phase2-container {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  gap: 0;
+  /* card-list와 맞춤 (scrollbar-column이 이미 120px 너비를 가짐) */
+  min-height: 0;
+}
+
+/* 좌측: 카드 리스트 컬럼 (card-list와 동기화) */
+.phase2-left-col {
+  flex: 3.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+
+.phase2-left-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+
+.phase2-card-grid-wrapper {
+  flex: 1;
+  clip-path: inset(0 -15px);
+  /* card-list와 동일: 상하 0, 좌우 -15px */
+  position: relative;
+  min-height: 0;
+  touch-action: none;
+}
+
+.phase2-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* card-list와 동일하게 3열 */
+  gap: 12px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 4px;
+  /* 테두리 강조 안쪽 여백 */
+  padding-bottom: 24px;
+  /* 스크롤 최하단 짤림 방지용 여유 공간 */
+}
+
+/* 카드 아이템 효과 */
+.phase2-card-item {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  transform-origin: center center;
+  aspect-ratio: 104 / 144;
+  /* SCardImage 비율 */
+}
+
+.phase2-card-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  z-index: 1;
+  position: relative;
+}
+
+.phase2-card-item:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* 카드가 선택되었을 때 좌측 강조 */
+.phase2-card-item.selected {
+  transform: scale(1.05);
+  z-index: 2;
+}
+
+/* 회전하는 테두리 (::before) — border 역할, card-list와 동일 */
+.phase2-card-item.selected::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 7px;
+  right: 7px;
+  bottom: -3px;
+  border-radius: 8px;
+  z-index: -1;
+  animation: borderRotate 2.5s linear infinite;
+  pointer-events: none;
+}
+
+/* --- S등급: 다이아몬드 --- */
+.phase2-card-item.selected[data-grade="S"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+      #b9f2ff, #00e5ff, #ffffff, #76d7ff, #00e5ff, #b9f2ff);
+}
+
+.phase2-card-item.selected[data-grade="S"] {
+  filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.7));
+}
+
+/* --- A등급: 금색 --- */
+.phase2-card-item.selected[data-grade="A"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+      #ffd700, #ffec80, #b8860b, #fff4b0, #ffd700, #ffd700);
+}
+
+.phase2-card-item.selected[data-grade="A"] {
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
+}
+
+/* --- B등급: 은색 --- */
+.phase2-card-item.selected[data-grade="B"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+      #c0c0c0, #e8e8e8, #888888, #f0f0f0, #c0c0c0, #c0c0c0);
+}
+
+.phase2-card-item.selected[data-grade="B"] {
+  filter: drop-shadow(0 0 8px rgba(192, 192, 192, 0.6));
+}
+
+/* --- C등급: 동색 (브론즈) --- */
+.phase2-card-item.selected[data-grade="C"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+      #cd7f32, #e8a860, #8b4513, #daa06d, #cd7f32, #cd7f32);
+}
+
+.phase2-card-item.selected[data-grade="C"] {
+  filter: drop-shadow(0 0 8px rgba(205, 127, 50, 0.5));
+}
+
+/* --- D등급: 진한 파랑색 --- */
+.phase2-card-item.selected[data-grade="D"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+      #1a3a8a, #2b5fcf, #0d2266, #3a7af0, #1a3a8a, #1a3a8a);
+}
+
+.phase2-card-item.selected[data-grade="D"] {
+  filter: drop-shadow(0 0 8px rgba(26, 58, 138, 0.6));
+}
+
+/* 테두리 회전 애니메이션 */
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes borderRotate {
+  from {
+    --border-angle: 0deg;
+  }
+
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+/* 카드 능력치 오버레이 (card-list와 동일) */
+.phase2-card-stat {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.phase2-card-stat.stat-1 {
+  bottom: 26%;
+}
+
+.phase2-card-stat.stat-2 {
+  bottom: 16%;
+}
+
+.phase2-card-stat.stat-3 {
+  bottom: 5%;
+}
+
+.phase2-scrollbar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 120px;
+  flex-shrink: 0;
+  height: 100%;
+  margin: 0;
+}
+
+/* 우측: 퀘스트 셋업 및 현황판 (card-list와 동일 비율) */
+.phase2-right-box {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.phase2-right-title-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.phase2-info-title {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  color: #2a2a40;
+  text-align: center;
+  width: 100%;
+}
+
+.phase2-info-subtitle {
+  font-family: 'Stardust', sans-serif;
+  font-weight: bold;
+  font-size: 18px;
+  color: #444;
+  text-align: center;
+  width: 100%;
+}
+
+/* 카드 배치 현황판 (퀘스트 제목과 합쳐진 박스) */
+.phase2-right-drop-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.phase2-right-drop-box .nineslice-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+}
+
+.phase2-drop-cards {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 카드 없을 때 안내 문구 */
+.phase2-drop-empty-text {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ? 빈 슬롯 카드 */
+.phase2-fan-placeholder {
+  cursor: default;
+  pointer-events: none;
+}
+
+.phase2-placeholder-inner {
+  width: 100%;
+  aspect-ratio: 104 / 144;
+  background: rgba(255, 255, 255, 0.06);
+  border: 3px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* 포커 스타일 부채꼴 카드 */
+.phase2-fan-card {
+  cursor: pointer;
+  transition: transform 0.3s ease, filter 0.3s ease;
+  transform-origin: center bottom;
+  filter: drop-shadow(3px 5px 8px rgba(0, 0, 0, 0.5));
+  animation: fanCardIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.phase2-fan-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.phase2-fan-card:hover {
+  filter: brightness(1.2) drop-shadow(3px 8px 12px rgba(0, 0, 0, 0.6));
+  z-index: 10 !important;
+}
+
+@keyframes fanCardIn {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* 경고 메시지 오버레이 — 카드 팬 위에 표시 */
+.phase2-warning-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  pointer-events: none;
+  padding: 12px;
+}
+
+.phase2-warning-text {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  color: #ff4444;
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.9),
+    -2px -2px 0px rgba(0, 0, 0, 0.9),
+    2px -2px 0px rgba(0, 0, 0, 0.9),
+    -2px 2px 0px rgba(0, 0, 0, 0.9);
+  text-align: center;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 14px 18px;
+  border: 2px solid rgba(255, 68, 68, 0.5);
+  border-radius: 6px;
+  line-height: 1.5;
+  animation: warningPulse 1.5s ease-in-out infinite;
+}
+
+.phase2-warning-text.hardcap {
+  color: #ff2222;
+  border-color: rgba(255, 34, 34, 0.6);
+}
+
+@keyframes warningPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.65;
+  }
+}
+
+/* 수락 버튼 비활성화 */
+.phase2-btn-accept.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Bottom elements */
+.phase2-right-bottom-row {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 130px;
+  /* 공간 차지 고정 */
+}
+
+.phase2-info-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.phase2-accept-button {
+  flex-shrink: 0;
+  height: 76px;
+  /* 64px -> 76px */
+}
+
+/* Split Buttons in Phase 2 (card-list 스타일 통일) */
+.phase2-action-buttons {
+  display: flex;
+  gap: 16px;
+  flex: 0 0 84px;
+}
+
+.phase2-btn-cancel,
+.phase2-btn-accept {
+  flex: 1;
+  display: flex;
+  cursor: pointer;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 26px;
+  color: #2a2a40;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+/* 버튼 내부 텍스트 완전 중앙 정렬 */
+.phase2-btn-cancel .nineslice-content,
+.phase2-btn-accept .nineslice-content {
+  justify-content: center;
+  align-items: center;
+}
+
+.phase2-btn-cancel:hover,
+.phase2-btn-accept:hover {
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+.phase2-btn-cancel:active,
+.phase2-btn-accept:active {
+  transform: scale(0.98);
+  filter: brightness(0.95);
+}
+
+/* Phase 2 Specific Scrollbar — card-list와 동일 위치/크기 */
+.phase2-scrollbar-column .scrollbar-track {
+  width: 80px;
+  max-height: none;
+  /* Phase1 제한 해제 */
+  overflow: visible;
+  /* Phase1 overflow:hidden 해제 */
+  background-image: url('/assets/003-02/scrollBar_000.webp');
+  background-size: 518% 108%;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+}
+
+.phase2-scrollbar-column .scrollbar-thumb {
+  width: 100px;
+  height: 100px;
+  background-image: url('/assets/003-02/scrollButton_000.webp');
+  background-size: 84% 48%;
+  background-position: 50% 49%;
+  background-repeat: no-repeat;
+}

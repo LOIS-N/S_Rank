@@ -1,0 +1,57 @@
+package com.ssafy.srank.ranking.batch;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class RankingBatchRunner {
+
+    private final JobLauncher jobLauncher;
+    private final Job rankingSnapshotJob;
+
+    @Value("${app.ranking.batch.runner-enabled:true}")
+    private boolean runnerEnabled;
+
+    @Scheduled(cron = "0 0 * * * *")
+    public void runScheduledJob() {
+        // 테스트 환경에서는 스케줄러가 자동 실행되지 않도록 토글로 막는다.
+        if (!runnerEnabled) {
+            return;
+        }
+        launch("scheduled");
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void runOnStartup() {
+        // 서비스 기동 직후 한 번 스냅샷을 만들어 초기 조회 결과가 비지 않게 한다.
+        if (!runnerEnabled) {
+            return;
+        }
+        launch("startup");
+    }
+
+    private void launch(String trigger) {
+        try {
+            // 동일 Job의 중복 실행을 피하기 위해 실행 시각을 JobParameter로 넣는다.
+            JobParameters jobParameters = new JobParametersBuilder()
+                    .addString("trigger", trigger)
+                    .addLong("timestamp", System.currentTimeMillis())
+                    .toJobParameters();
+
+            jobLauncher.run(rankingSnapshotJob, jobParameters);
+        } catch (Exception e) {
+            log.error("랭킹 배치 실행 실패 - trigger={}", trigger, e);
+        }
+    }
+}

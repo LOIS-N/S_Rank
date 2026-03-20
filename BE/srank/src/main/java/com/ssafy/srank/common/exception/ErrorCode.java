@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
  *   G  : Global / 공통
  *   AU : Auth (인증/인가)
  *   U  : User (유저)
+ *   D  : Desk (책상)
  *   C  : Card (카드)
  *   Q  : Quest (퀘스트)
  *   GA : Gacha (뽑기)
@@ -20,6 +21,7 @@ import org.springframework.http.HttpStatus;
  *   BC : Blockchain (블록체인/NFT)
  *   RK : Ranking (랭킹)
  *   AC : Achievement (업적)
+ *   GD : GOLD (골드 재화)
  */
 @Getter
 @RequiredArgsConstructor
@@ -40,6 +42,9 @@ public enum ErrorCode {
     TOKEN_INVALID(HttpStatus.UNAUTHORIZED,              "AU003", "유효하지 않은 토큰입니다."),
     DUPLICATE_LOGIN(HttpStatus.CONFLICT,                "AU004", "중복 로그인이 감지되었습니다."),
     SOCIAL_LOGIN_FAILED(HttpStatus.BAD_GATEWAY,         "AU005", "소셜 로그인 처리에 실패했습니다."),
+    NICKNAME_DUPLICATE(HttpStatus.CONFLICT,             "AU006", "이미 사용 중인 닉네임입니다."),
+    NICKNAME_INVALID(HttpStatus.BAD_REQUEST,            "AU007", "닉네임 형식이 올바르지 않습니다."),
+    WITHDRAWN_USER(HttpStatus.FORBIDDEN,                "AU008", "탈퇴한 계정입니다."),
 
     // ======================== U : User ========================
     USER_NOT_FOUND(HttpStatus.NOT_FOUND,                "U001", "유저를 찾을 수 없습니다."),
@@ -49,12 +54,20 @@ public enum ErrorCode {
     WALLET_NOT_FOUND(HttpStatus.NOT_FOUND,              "U005", "지갑 정보를 찾을 수 없습니다."),
     WALLET_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "U006", "지갑 생성에 실패했습니다."),
 
+    // ======================== D : Desk (책상) ========================
+    DESK_NOT_FOUND(HttpStatus.NOT_FOUND,                "D001", "책상을 찾을 수 없습니다."),
+    DESK_ALREADY_UNLOCKED(HttpStatus.CONFLICT,          "D002", "이미 해금된 책상입니다."),
+    DESK_INSUFFICIENT_LEVEL(HttpStatus.BAD_REQUEST,     "D003", "책상 해금에 필요한 레벨이 부족합니다."),
+
     // ======================== C : Card ========================
     CARD_NOT_FOUND(HttpStatus.NOT_FOUND,                "C001", "카드를 찾을 수 없습니다."),
     CARD_NOT_OWNED(HttpStatus.FORBIDDEN,                "C002", "보유하지 않은 카드입니다."),
     CARD_INVENTORY_FULL(HttpStatus.BAD_REQUEST,         "C003", "카드 인벤토리가 가득 찼습니다. (최대 200장)"),
     CARD_ALREADY_IN_USE(HttpStatus.CONFLICT,            "C004", "이미 퀘스트에 배치된 카드입니다."),
     CARD_ON_SALE(HttpStatus.CONFLICT,                   "C005", "거래소에 등록된 카드는 사용할 수 없습니다."),
+    CARD_DELETED(HttpStatus.CONFLICT,                   "C006", "삭제된 카드입니다."),
+    CARD_CANNOT_ENHANCE_DELETED(HttpStatus.CONFLICT,    "C007", "삭제된 카드는 강화할 수 없습니다."),
+    CARD_ENHANCE_TRY_EXCEEDED(HttpStatus.BAD_REQUEST,   "C008", "강화 가능 횟수를 모두 소진했습니다."),
 
     // ======================== Q : Quest ========================
     QUEST_NOT_FOUND(HttpStatus.NOT_FOUND,               "Q001", "퀘스트를 찾을 수 없습니다."),
@@ -65,13 +78,18 @@ public enum ErrorCode {
     QUEST_EXCEED_HARD_CAP(HttpStatus.BAD_REQUEST,       "Q006", "예상 완료 시간이 하드캡을 초과합니다."),
     QUEST_SLOT_NOT_UNLOCKED(HttpStatus.FORBIDDEN,       "Q007", "해당 슬롯이 해금되지 않았습니다."),
     QUEST_NOT_COMPLETED(HttpStatus.BAD_REQUEST,         "Q008", "아직 완료되지 않은 퀘스트입니다."),
+    INVALID_QUEST_TYPE(HttpStatus.BAD_REQUEST,          "Q009", "유효하지 않은 퀘스트 타입입니다."),
+    QUEST_ALREADY_COMPLETED(HttpStatus.CONFLICT,        "Q010", "이미 완료된 퀘스트입니다."),
+    QUEST_REWARD_ALREADY_CLAIMED(HttpStatus.CONFLICT,   "Q011", "이미 보상을 수령한 퀘스트입니다."),
+    QUEST_REWARD_NOT_AVAILABLE(HttpStatus.BAD_REQUEST,  "Q012", "보상을 받을 수 없는 상태입니다."),
 
     // ======================== GA : Gacha ========================
-    GACHA_TYPE_NOT_FOUND(HttpStatus.NOT_FOUND,          "GA001", "존재하지 않는 뽑기 종류입니다."),
-    GACHA_NOT_UNLOCKED(HttpStatus.FORBIDDEN,            "GA002", "해금되지 않은 뽑기입니다. 회사 단계를 높이세요."),
-    GACHA_COUNT_INVALID(HttpStatus.BAD_REQUEST,         "GA003", "뽑기 횟수는 1회 또는 10회만 가능합니다."),
-    GACHA_VRF_PENDING(HttpStatus.ACCEPTED,              "GA004", "VRF 결과 대기 중입니다."),
-    GACHA_VRF_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,  "GA005", "VRF 확률 처리에 실패했습니다."),
+    GACHA_INVALID_COUNT(HttpStatus.BAD_REQUEST,         "GA001", "뽑기 횟수는 1회 또는 10회만 가능합니다."),
+    GACHA_GOLD_INSUFFICIENT(HttpStatus.BAD_REQUEST,     "GA002", "골드가 부족합니다."),
+    GACHA_TYPE_LOCKED(HttpStatus.FORBIDDEN,             "GA003", "아직 해금되지 않은 뽑기입니다."),
+    GACHA_TYPE_INVALID(HttpStatus.BAD_REQUEST,          "GA004", "유효하지 않은 뽑기 타입입니다."),
+    GACHA_INVENTORY_FULL(HttpStatus.CONFLICT,           "GA005", "카드 보관함이 가득 차 뽑기를 진행할 수 없습니다."),
+    GACHA_VRF_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,  "GA006", "뽑기 확률 검증 중 오류가 발생했습니다."),
 
     // ======================== EN : Enhance (강화) ========================
     ENHANCE_NO_ATTEMPTS_LEFT(HttpStatus.BAD_REQUEST,    "EN001", "강화 횟수가 남아있지 않습니다. (최대 7회)"),
@@ -103,7 +121,11 @@ public enum ErrorCode {
 
     // ======================== AC : Achievement (업적) ========================
     ACHIEVEMENT_NOT_FOUND(HttpStatus.NOT_FOUND,         "AC001", "업적을 찾을 수 없습니다."),
-    ACHIEVEMENT_ALREADY_REWARDED(HttpStatus.CONFLICT,   "AC002", "이미 보상을 수령한 업적입니다.");
+    ACHIEVEMENT_ALREADY_REWARDED(HttpStatus.CONFLICT,   "AC002", "이미 보상을 수령한 업적입니다."),
+
+    // ======================== GD : Gold (골드-재화) ========================
+    GOLD_INVALID_AMOUNT(HttpStatus.BAD_REQUEST,      "GD001", "잘못된 골드(재화) 입니다."),
+    GOLD_INSUFFICIENT(HttpStatus.BAD_REQUEST,      "GD002", "보유 골드가 부족합니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
