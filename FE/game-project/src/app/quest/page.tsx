@@ -640,13 +640,18 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
   const dragStartP2RatioRef = useRef(0);
   // Phase2 스와이프 스크롤
   const swipe2StartYRef = useRef(0);
-  const swipe2StartRatioRef = useRef(0);
   const isSwipe2Ref = useRef(false);
   const swipe2MovedRef = useRef(false);
+  const swipe2VelocityRef = useRef(0);
+  const swipe2LastTimeRef = useRef(0);
+  const momentum2AnimRef = useRef<number | null>(null);
 
   // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
   const p2MaxScroll = Math.max(0, p2GridHeight - p2WrapperHeight);
   const p2ScrollOffset = p2ScrollRatio * p2MaxScroll;
+  // 네이티브 이벤트 핸들러에서 최신 p2MaxScroll을 참조하기 위한 ref
+  const p2MaxScrollRef = useRef(0);
+  useEffect(() => { p2MaxScrollRef.current = p2MaxScroll; }, [p2MaxScroll]);
 
   // 스크롤 하단 도달 시 다음 페이지 로드
   useEffect(() => {
@@ -729,6 +734,65 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
     setP2ScrollRatio(newRatio);
   }, []);
 
+  // Phase2 카드 그리드 스와이프 스크롤
+  // pointerdown은 요소에, pointermove/pointerup/cancel은 window에 등록 (Phase1과 동일한 패턴)
+  useEffect(() => {
+    const el = p2WrapperRef.current;
+    if (!el) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (p2MaxScrollRef.current <= 0) return;
+      if (momentum2AnimRef.current !== null) { cancelAnimationFrame(momentum2AnimRef.current); momentum2AnimRef.current = null; }
+      isSwipe2Ref.current = true;
+      swipe2MovedRef.current = false;
+      swipe2StartYRef.current = e.clientY;
+      swipe2VelocityRef.current = 0;
+      swipe2LastTimeRef.current = performance.now();
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isSwipe2Ref.current || p2MaxScrollRef.current <= 0) return;
+      const now = performance.now();
+      const dt = Math.max(8, now - swipe2LastTimeRef.current);
+      const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
+      const rawDelta = swipe2StartYRef.current - e.clientY;
+      if (Math.abs(rawDelta) > 2) swipe2MovedRef.current = true;
+      swipe2VelocityRef.current = rawDelta * (16 / dt);
+      swipe2StartYRef.current = e.clientY;
+      swipe2LastTimeRef.current = now;
+      setP2ScrollRatio(prev => Math.min(1, Math.max(0, prev + (rawDelta / gameScale) / p2MaxScrollRef.current)));
+    };
+    const onPointerUp = () => {
+      if (!isSwipe2Ref.current) return;
+      isSwipe2Ref.current = false;
+      const capturedMax = p2MaxScrollRef.current;
+      const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
+      let v = swipe2VelocityRef.current / gameScale;
+      const animate = () => {
+        v *= 0.90;
+        if (Math.abs(v) < 0.3 || capturedMax <= 0) { momentum2AnimRef.current = null; swipe2MovedRef.current = false; return; }
+        setP2ScrollRatio(prev => Math.min(1, Math.max(0, prev + v / capturedMax)));
+        momentum2AnimRef.current = requestAnimationFrame(animate);
+      };
+      if (Math.abs(v) > 0.5) { momentum2AnimRef.current = requestAnimationFrame(animate); } else { swipe2MovedRef.current = false; }
+    };
+    const onPointerCancel = () => {
+      isSwipe2Ref.current = false;
+      swipe2MovedRef.current = false;
+      if (momentum2AnimRef.current !== null) { cancelAnimationFrame(momentum2AnimRef.current); momentum2AnimRef.current = null; }
+    };
+    el.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerCancel);
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
+    };
+  // quest가 null → non-null로 바뀔 때 p2WrapperRef.current가 비로소 DOM에 연결되므로 재실행 필요
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quest]);
+
   if (!quest) return null;
 
   return (
@@ -741,23 +805,6 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
             ref={p2WrapperRef}
             onWheel={handleP2Wheel}
             style={{ flex: 1, overflow: 'hidden' }}
-            onPointerDown={(e) => {
-              if (p2MaxScroll <= 0) return;
-              // e.currentTarget.setPointerCapture(e.pointerId);
-              isSwipe2Ref.current = true;
-              swipe2MovedRef.current = false;
-              swipe2StartYRef.current = e.clientY;
-              swipe2StartRatioRef.current = p2ScrollRatio;
-            }}
-            onPointerMove={(e) => {
-              if (!isSwipe2Ref.current || p2MaxScroll <= 0) return;
-              const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
-              const deltaY = (swipe2StartYRef.current - e.clientY) / gameScale;
-              if (Math.abs(deltaY) > 5) swipe2MovedRef.current = true;
-              setP2ScrollRatio(Math.min(1, Math.max(0, swipe2StartRatioRef.current + deltaY / p2MaxScroll)));
-            }}
-            onPointerUp={() => { isSwipe2Ref.current = false; swipe2MovedRef.current = false; }}
-            onPointerCancel={() => { isSwipe2Ref.current = false; swipe2MovedRef.current = false; }}
             onClickCapture={(e) => { if (swipe2MovedRef.current) { e.stopPropagation(); swipe2MovedRef.current = false; } }}
           >
             <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
@@ -1064,9 +1111,11 @@ export default function QuestPage() {
   const dragStartRatioRef = useRef(0);
   // 스와이프 스크롤
   const swipe1StartYRef = useRef(0);
-  const swipe1StartRatioRef = useRef(0);
   const isSwipe1Ref = useRef(false);
   const swipe1MovedRef = useRef(false);
+  const swipe1VelocityRef = useRef(0);
+  const swipe1LastTimeRef = useRef(0);
+  const momentum1AnimRef = useRef<number | null>(null);
 
   // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
   const maxScroll = Math.max(0, questListHeight - questWrapperHeight);
@@ -1204,21 +1253,44 @@ export default function QuestPage() {
                 className="sub-quest-scroll-area"
                 onPointerDown={(e) => {
                   if (maxScroll <= 0) return;
-                  // e.currentTarget.setPointerCapture(e.pointerId);
+                  if (momentum1AnimRef.current !== null) { cancelAnimationFrame(momentum1AnimRef.current); momentum1AnimRef.current = null; }
                   isSwipe1Ref.current = true;
                   swipe1MovedRef.current = false;
                   swipe1StartYRef.current = e.clientY;
-                  swipe1StartRatioRef.current = scrollRatio;
+                  swipe1VelocityRef.current = 0;
+                  swipe1LastTimeRef.current = performance.now();
                 }}
                 onPointerMove={(e) => {
                   if (!isSwipe1Ref.current || maxScroll <= 0) return;
+                  const now = performance.now();
+                  const dt = Math.max(8, now - swipe1LastTimeRef.current);
                   const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
-                  const deltaY = (swipe1StartYRef.current - e.clientY) / gameScale;
-                  if (Math.abs(deltaY) > 5) swipe1MovedRef.current = true;
-                  setScrollRatio(Math.min(1, Math.max(0, swipe1StartRatioRef.current + deltaY / maxScroll)));
+                  const rawDelta = swipe1StartYRef.current - e.clientY;
+                  if (Math.abs(rawDelta) > 2) swipe1MovedRef.current = true;
+                  swipe1VelocityRef.current = rawDelta * (16 / dt);
+                  swipe1StartYRef.current = e.clientY;
+                  swipe1LastTimeRef.current = now;
+                  setScrollRatio(prev => Math.min(1, Math.max(0, prev + (rawDelta / gameScale) / maxScroll)));
                 }}
-                onPointerUp={() => { isSwipe1Ref.current = false; swipe1MovedRef.current = false; }}
-                onPointerCancel={() => { isSwipe1Ref.current = false; swipe1MovedRef.current = false; }}
+                onPointerUp={() => {
+                  if (!isSwipe1Ref.current) return;
+                  isSwipe1Ref.current = false;
+                  const capturedMax = maxScroll;
+                  const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
+                  let v = swipe1VelocityRef.current / gameScale;
+                  const animate = () => {
+                    v *= 0.90;
+                    if (Math.abs(v) < 0.3 || capturedMax <= 0) { momentum1AnimRef.current = null; swipe1MovedRef.current = false; return; }
+                    setScrollRatio(prev => Math.min(1, Math.max(0, prev + v / capturedMax)));
+                    momentum1AnimRef.current = requestAnimationFrame(animate);
+                  };
+                  if (Math.abs(v) > 0.5) { momentum1AnimRef.current = requestAnimationFrame(animate); } else { swipe1MovedRef.current = false; }
+                }}
+                onPointerCancel={() => {
+                  isSwipe1Ref.current = false;
+                  swipe1MovedRef.current = false;
+                  if (momentum1AnimRef.current !== null) { cancelAnimationFrame(momentum1AnimRef.current); momentum1AnimRef.current = null; }
+                }}
                 onClickCapture={(e) => { if (swipe1MovedRef.current) { e.stopPropagation(); swipe1MovedRef.current = false; } }}
               >
                 <div
