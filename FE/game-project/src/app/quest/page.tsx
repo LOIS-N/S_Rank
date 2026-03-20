@@ -273,7 +273,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { q
 // --- Phase 2: 카드 배치 콘텐츠 ---
 function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest | null, onCancel: () => void, onShowUsedCardModal: () => void }) {
   const router = useRouter();
-  const { selectingDeskId, startQuest, accessToken } = useGameStore();
+  const { selectingDeskId, startQuest, accessToken, quests: storeQuests } = useGameStore();
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
 
@@ -570,6 +570,14 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       }
     }
 
+    // 책상(부서) 사용 가능 여부 사전 검증
+    const deskIndex = selectingDeskId ?? 0;
+    const deskStatus = storeQuests[deskIndex]?.status;
+    if (deskStatus === 'IN_PROGRESS') {
+      setWarningMessage('프로젝트를 시작할 수 있는 부서가 없습니다.');
+      return;
+    }
+
     setIsStarting(true);
     try {
       const token = await getAuthToken();
@@ -609,7 +617,10 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       });
       const errCode = errData?.error?.code || errData?.code;
       if (errCode === 'Q006') {
-        setHardcapMessage('더 높은 능력치의 카드들로 배치해주세요.');
+        const hardcapMinutes = quest.durationMinutes * 2;
+        setHardcapMessage(`프로젝트에 진행할 인원들의 능력치가 생각보다 낮습니다. ${hardcapMinutes}분을 뛰어 넘어야 퀘스트 수주가 가능합니다!`);
+      } else if (errCode === 'Q007') {
+        setWarningMessage('프로젝트를 시작할 수 있는 부서가 없습니다.');
       } else {
         const msg = errData?.error?.message || errData?.error?.code || errData?.message || errData?.code || e.message || '알 수 없는 오류';
         setWarningMessage(`퀘스트 시작 실패: ${msg}`);
@@ -799,57 +810,52 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
 
       {/* ──── 우측: 퀘스트 프레임 ──── */}
       <NineSliceBox src="/assets/003-02/questInf_000.webp" slice={[121, 248, 85, 248]} framePadding={20} borderScale={0.5} className="phase2-right-box">
-        {/* Top: 퀘스트 제목 + 카드 수 */}
-        <NineSliceBox src="/assets/003-02/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-title-box">
+        {/* 퀘스트 제목 + 카드 배치 현황판 (합쳐진 박스) */}
+        <NineSliceBox src="/assets/003-02/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-drop-box">
           <div className="phase2-info-title">{quest.title}</div>
           <div className="phase2-info-subtitle">카드 배치 : {selectedCards.length} / {quest.cardSlotCount}장</div>
-        </NineSliceBox>
-
-        {/* Middle: 카드 배치 현황판 */}
-        <NineSliceBox src="/assets/003-02/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-drop-box">
           <div className="phase2-drop-cards">
-            {selectedCards.length === 0 ? (
-              <div className="phase2-drop-empty-text">카드를 선택하세요</div>
-            ) : (
-              (() => {
-                const total = selectedCards.length;
-                const cardWidth = total <= 3 ? 110 : total === 4 ? 95 : 82;
-                const overlap = total <= 3 ? -25 : total === 4 ? -30 : -35;
-                const fanAngle = total <= 3 ? 10 : total === 4 ? 8 : 6;
-                const yMultiplier = total <= 3 ? 10 : total === 4 ? 8 : 6;
-                return selectedCards.map((cardId, index) => {
-                  const card = sortedCards.find(c => c.cardId === cardId);
-                  if (!card) return null;
-                  const angle = (index - (total - 1) / 2) * fanAngle;
-                  const yOffset = Math.abs(index - (total - 1) / 2) * yMultiplier;
+            {(() => {
+              const total = quest.cardSlotCount;
+              const cardWidth = total <= 3 ? 110 : total === 4 ? 95 : 82;
+              const overlap = total <= 3 ? -25 : total === 4 ? -30 : -35;
+              const fanAngle = total <= 3 ? 10 : total === 4 ? 8 : 6;
+              const yMultiplier = total <= 3 ? 10 : total === 4 ? 8 : 6;
+              return Array.from({ length: total }).map((_, index) => {
+                const cardId = selectedCards[index];
+                const card = cardId ? sortedCards.find(c => c.cardId === cardId) : null;
+                const angle = (index - (total - 1) / 2) * fanAngle;
+                const yOffset = Math.abs(index - (total - 1) / 2) * yMultiplier;
+                const style = {
+                  width: `${cardWidth}px`,
+                  zIndex: index,
+                  marginLeft: index > 0 ? `${overlap}px` : '0',
+                  transform: `rotate(${angle}deg) translateY(${yOffset}px)`,
+                };
+                if (!card) {
                   return (
-                    <div
-                      key={card.cardId}
-                      className="phase2-fan-card"
-                      style={{
-                        width: `${cardWidth}px`,
-                        zIndex: index,
-                        marginLeft: index > 0 ? `${overlap}px` : '0',
-                        transform: `rotate(${angle}deg) translateY(${yOffset}px)`,
-                      }}
-                      onClick={() => handleCardClick(card.cardId)}
-                    >
-                      <img src={card.imageUrl} alt={card.name} draggable={false} />
+                    <div key={`slot-${index}`} className="phase2-fan-card phase2-fan-placeholder" style={style}>
+                      <div className="phase2-placeholder-inner">?</div>
                     </div>
                   );
-                });
-              })()
+                }
+                return (
+                  <div key={card.cardId} className="phase2-fan-card" style={style} onClick={() => handleCardClick(card.cardId)}>
+                    <img src={card.imageUrl} alt={card.name} draggable={false} />
+                  </div>
+                );
+              });
+            })()}
+            {/* 경고 메시지 — 카드 위 오버레이 */}
+            {(warningMessage || hardcapMessage) && (
+              <div className="phase2-warning-overlay">
+                <div className={`phase2-warning-text${hardcapMessage ? ' hardcap' : ''}`}>
+                  {hardcapMessage || warningMessage}
+                </div>
+              </div>
             )}
           </div>
         </NineSliceBox>
-
-        {/* 경고 메시지 */}
-        {warningMessage && (
-          <div className="phase2-warning">{warningMessage}</div>
-        )}
-        {hardcapMessage && (
-          <div className="phase2-warning" style={{ color: '#ff3333' }}>{hardcapMessage}</div>
-        )}
 
         {/* Bottom: 수행 조건 + 예상 시간/보상 */}
         <div className="phase2-right-bottom-row">
