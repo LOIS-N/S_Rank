@@ -71,7 +71,7 @@ public class GachaLog {
     @Column(name = "skill_value3", nullable = false)
     private int skillValue3;
 
-    @Column(name = "special_skill_code", length = 30)
+    @Column(name = "special_skill_code", nullable = true, length = 30)
     private String specialSkillCode;
 
     @Column(name = "created_at", nullable = false)
