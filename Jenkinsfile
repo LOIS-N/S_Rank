@@ -19,7 +19,26 @@ pipeline {
                 ])
             }
         }
-        // 배포 등 다른 스테이지가 필요하다면 여기에 추가하세요.
+
+        stage('Build') {
+            steps {
+                sh """
+                    cd ${COMPOSE_PATH}
+                    docker compose build
+                """
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh """
+                    cd ${COMPOSE_PATH}
+                    docker compose down --remove-orphans || true
+                    docker compose up -d
+                    docker image prune -f
+                """
+            }
+        }
     }
 
     post {
