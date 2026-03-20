@@ -4,11 +4,12 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { GachaRevealCard } from "./GachaRevealCard";
+import { GachaAnimationOverlay } from "./GachaAnimationOverlay";
 import "./gacha.css";
 
 // --- Types ---
 type TabType = 'flyer' | 'fair' | 'public';
-type PhaseType = 'select' | 'result_1' | 'result_10';
+type PhaseType = 'select' | 'animating' | 'result_1' | 'result_10';
 type EffectGrade = 'A' | 'S';
 
 const TAB_TO_TYPE_ID: Record<TabType, string> = {
@@ -161,6 +162,7 @@ export default function GachaPage() {
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const [isPulling, setIsPulling] = useState(false);
   const [gachaEffect, setGachaEffect] = useState<EffectGrade | null>(null);
+  const [lastPullCount, setLastPullCount] = useState<1 | 10>(1);
 
   const canPull1 = gold >= GACHA_COSTS[currentTab].single;
   const canPull10 = gold >= GACHA_COSTS[currentTab].ten;
@@ -225,13 +227,8 @@ export default function GachaPage() {
 
         setDrawnCards(normalized);
         setSelectedCardIndex(null);
-        setPhase(count === 1 ? 'result_1' : 'result_10');
-
-        // A/S 등급 Phaser 파티클 효과 (S 우선)
-        const hasS = normalized.some(c => c.grade === 'S');
-        const hasA = normalized.some(c => c.grade === 'A');
-        if (hasS) setGachaEffect('S');
-        else if (hasA) setGachaEffect('A');
+        setLastPullCount(count);
+        setPhase('animating');
       }
     } catch (err: unknown) {
       const e = err as { response?: { data?: unknown }; message?: string };
@@ -241,6 +238,15 @@ export default function GachaPage() {
       setIsPulling(false);
     }
   };
+
+  const handleAnimationComplete = useCallback(() => {
+    // Transition from animation to result view
+    const hasS = drawnCards.some(c => c.grade === 'S');
+    const hasA = drawnCards.some(c => c.grade === 'A');
+    if (hasS) setGachaEffect('S');
+    else if (hasA) setGachaEffect('A');
+    setPhase(lastPullCount === 1 ? 'result_1' : 'result_10');
+  }, [drawnCards, lastPullCount]);
 
   const handleReturn = () => {
     setDrawnCards([]);
@@ -272,6 +278,14 @@ export default function GachaPage() {
 
   return (
     <div className="gacha-page-container">
+
+      {/* Phaser 뽑기 애니메이션 오버레이 */}
+      {phase === 'animating' && drawnCards.length > 0 && (
+        <GachaAnimationOverlay
+          cards={drawnCards}
+          onComplete={handleAnimationComplete}
+        />
+      )}
 
       {/* Phaser 파티클 효과 오버레이 (A/S 등급 시) */}
       {gachaEffect && (
@@ -370,6 +384,7 @@ export default function GachaPage() {
                   card={drawnCards[0]}
                   revealDelay={0}
                   statFontSize={21}
+                  instantReveal
                 />
               </div>
 
@@ -399,6 +414,7 @@ export default function GachaPage() {
                       card={card}
                       revealDelay={idx * 150}
                       statFontSize={12}
+                      instantReveal
                     />
                   </div>
                 ))}

@@ -119,7 +119,7 @@ html, body {
   transform-origin: center center;
   transform: scale(var(--game-scale, 1));
   background-color: black;
-  overflow: hidden;
+  overflow: visible; /* Phaser 캔버스가 뷰포트 전체를 채울 수 있도록 overflow 허용 */
   touch-action: none; /* 내부 Phaser 캔버스 및 커스텀 스크롤이 모든 터치 처리 */
   /* CSS Container Query: 자식 요소들이 cqw 단위로 game-wrapper 너비 기준 비율 크기 사용 가능 */
   container-type: inline-size;

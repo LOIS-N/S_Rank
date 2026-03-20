@@ -22,21 +22,24 @@ function applyViewportVars() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  const isLandscape = vw > vh;
-  // 모바일 가로 (vh < 600): 너비 기준 스케일 → 전체화면 채움
-  // 데스크탑 / 태블릿: Math.min → 레터박스
-  const isMobileLandscape = isLandscape && vh < 600;
-  const scale = isMobileLandscape
-    ? vw / GAME_W
-    : Math.min(vw / GAME_W, vh / GAME_H);
+  // 항상 뷰포트 안에 완전히 들어오도록 Math.min 스케일.
+  // 좌우 레터박스(검은 여백)는 허용, 상하 클리핑은 방지.
+  const scale = Math.min(vw / GAME_W, vh / GAME_H);
 
   // 상하 클립 보정값 (HUD·NavBar 오프셋용)
   const clipY = Math.max(0, (GAME_H - vh / scale) / 2);
+
+  // 뷰포트를 game-wrapper 좌표계로 환산한 크기
+  // → Phaser 캔버스가 game-wrapper 바깥으로 확장되어 뷰포트 전체를 채울 수 있게 함
+  const vpW = vw / scale;
+  const vpH = vh / scale;
 
   root.style.setProperty("--avw", `${vw}px`);
   root.style.setProperty("--avh", `${vh}px`);
   root.style.setProperty("--game-scale", `${scale}`);
   root.style.setProperty("--game-clip-y", `${clipY}px`);
+  root.style.setProperty("--vp-w", `${vpW}px`);
+  root.style.setProperty("--vp-h", `${vpH}px`);
 }
 
 export default function ZoomGuard() {

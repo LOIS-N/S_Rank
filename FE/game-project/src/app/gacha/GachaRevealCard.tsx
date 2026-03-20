@@ -20,6 +20,8 @@ interface GachaRevealCardProps {
   card: GachaRevealCardData;
   revealDelay: number;
   statFontSize?: number;
+  /** true면 플립 없이 즉시 앞면(공개 상태)으로 표시 */
+  instantReveal?: boolean;
 }
 
 // --- Helpers ---
@@ -105,12 +107,19 @@ if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
 }
 
 // --- Component ---
-export function GachaRevealCard({ card, revealDelay, statFontSize = 12 }: GachaRevealCardProps) {
-  const [phase, setPhase] = useState<'hidden' | 'pre' | 'flipping' | 'revealed'>('hidden');
+export function GachaRevealCard({ card, revealDelay, statFontSize = 12, instantReveal = false }: GachaRevealCardProps) {
+  const [phase, setPhase] = useState<'hidden' | 'pre' | 'flipping' | 'revealed'>(
+    instantReveal ? 'revealed' : 'hidden'
+  );
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const grade = card.grade;
 
   useEffect(() => {
+    if (instantReveal) {
+      setPhase('revealed');
+      return;
+    }
+
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
     setPhase('hidden');
@@ -135,7 +144,7 @@ export function GachaRevealCard({ card, revealDelay, statFontSize = 12 }: GachaR
     }
 
     return () => timersRef.current.forEach(clearTimeout);
-  }, [revealDelay, grade, card.imageUrl]);
+  }, [revealDelay, grade, card.imageUrl, instantReveal]);
 
   const isFlipped = phase === 'flipping' || phase === 'revealed';
   const isPre = phase === 'pre';
@@ -155,15 +164,7 @@ export function GachaRevealCard({ card, revealDelay, statFontSize = 12 }: GachaR
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', perspective: '800px', overflow: 'visible' }}>
 
-      {/* Grade border — shown behind card after reveal */}
-      {isRevealed && GRADE_BORDER[grade] && (
-        <div style={{
-          position: 'absolute', top: -3, left: -3, right: -3, bottom: -3,
-          zIndex: 0, borderRadius: 8, pointerEvents: 'none',
-          background: GRADE_BORDER[grade],
-          animation: 'gachaBorderRotate 2.5s linear infinite',
-        }} />
-      )}
+      {/* Grade border removed */}
 
       {/* S-grade burst particles */}
       {grade === 'S' && isRevealed && (
@@ -219,29 +220,20 @@ export function GachaRevealCard({ card, revealDelay, statFontSize = 12 }: GachaR
         animation: isPre && grade === 'S' ? 'grcSShake 1.2s ease-in-out' : undefined,
       }}>
 
-        {/* FRONT: face-down card back */}
+        {/* FRONT: face-down card back (portfolio image) */}
         <div style={{
           position: 'absolute', width: '100%', height: '100%',
           backfaceVisibility: 'hidden',
-          background: 'linear-gradient(135deg, #1a1510 0%, #252018 30%, #302820 50%, #252018 70%, #1a1510 100%)',
-          border: '3px solid #555',
           boxShadow: preBoxShadow,
           transition: 'box-shadow 0.3s',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxSizing: 'border-box',
           overflow: 'hidden',
         }}>
-          <div style={{ position: 'absolute', inset: 6, border: '2px solid rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', inset: 12, border: '1px solid rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 28, color: 'rgba(255,255,255,0.12)', lineHeight: 1 }}>◆</span>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.08)', letterSpacing: 3, fontFamily: "'StardustS','Stardust',sans-serif" }}>RECRUIT</span>
-          </div>
-
-          {([{ top: 8, left: 8 }, { top: 8, right: 8 }, { bottom: 8, left: 8 }, { bottom: 8, right: 8 }] as React.CSSProperties[]).map((pos, i) => (
-            <span key={i} style={{ position: 'absolute', fontSize: 8, color: 'rgba(255,255,255,0.06)', ...pos }}>◇</span>
-          ))}
+          <img
+            src="/assets/006/portfolio_000.webp"
+            alt="card back"
+            draggable={false}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', imageRendering: 'pixelated', display: 'block' }}
+          />
 
           {/* S-grade: pulsing gold border during pre */}
           {isPre && grade === 'S' && (
