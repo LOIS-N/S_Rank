@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 
 
 export default function GameCanvas() {
@@ -235,7 +236,6 @@ export default function GameCanvas() {
                   sceneRef.registry.set('originDeskScale', originDeskScale);
                   sceneRef.registry.set('playAssetsLoaded', true);
                   sceneRef.registry.set('playAssetsLoading', false);
-                  playContainer.setScale(0.8);
                   playContainer.setVisible(true);
                   cityBg.setVisible(false);
                 });
@@ -342,5 +342,18 @@ export default function GameCanvas() {
     }
   }, [gameStatus]);
 
-  return <div id="game-container" className="absolute inset-0 w-full h-full touch-none" />;
+  return (
+    <div
+      id="game-container"
+      style={{
+        // game-wrapper(1280×720)를 그대로 채움.
+        // transform 없이 inset:0 으로 단순화해야
+        // Phaser의 getBoundingClientRect()가 중첩 transform 때문에
+        // 일부 모바일 브라우저에서 (0,0)을 잘못 반환하는 문제를 방지한다.
+        position: 'absolute',
+        inset: 0,
+        touchAction: 'none',
+      }}
+    />
+  );
 }

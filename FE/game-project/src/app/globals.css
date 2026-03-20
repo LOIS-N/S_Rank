@@ -3,15 +3,35 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   /* 애니메이션 정의 */
   --keyframes-float: {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-15px); }
-  };
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-15px);
+    }
+  }
+
+  ;
+
   --keyframes-wavy: {
-    0%, 100% { transform: rotate(-1deg); }
-    50% { transform: rotate(1deg); }
-  };
+
+    0%,
+    100% {
+      transform: rotate(-1deg);
+    }
+
+    50% {
+      transform: rotate(1deg);
+    }
+  }
+
+  ;
   --animation-float: float 3s ease-in-out infinite;
   --animation-wavy: wavy 2s ease-in-out infinite;
 }
@@ -69,14 +89,19 @@
 }
 
 /* 모바일 환경 필수 설정 */
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
   position: fixed; /* 스크롤 튕김 방지 */
-  touch-action: none; /* 브라우저 기본 터치 동작 비활성화 (Phaser·커스텀 이벤트가 처리) */
+  /* touch-action: none 을 html/body에 쓰면 하위 모든 HTML 요소의 실질적
+     touch-action이 none으로 교집합 처리되어 일부 모바일 브라우저에서
+     click 이벤트 합성이 막히는 버그 발생 → manipulation으로 대체.
+     스크롤/핀치줌 방지는 position:fixed + overflow:hidden + viewport meta가 담당. */
+  touch-action: manipulation;
   -webkit-text-size-adjust: 100%; /* iOS 텍스트 크기 자동조정 방지 */
   -webkit-tap-highlight-color: transparent; /* 모바일 탭 하이라이트 제거 */
   user-select: none;
@@ -97,8 +122,10 @@ html, body {
 }
 
 /* 바깥 배경 컨테이너 - 전체 화면, 검은 배경 (레터박스 배경)
-   --avw / --avh 는 ZoomGuard.tsx 가 window.innerWidth/Height 로 설정.
-   JS 로드 전 폴백으로 100dvh / 100vw 사용. */
+   position: fixed + inset: 0 으로 뷰포트를 직접 채움.
+   → body { position: fixed } 안에서 relative + CSS var 크기 조합 시
+     Samsung Internet / 구형 WebKit 등에서 game-wrapper 중앙 정렬이 깨지는 문제 해결.
+   → 100dvh 폴백 미지원 기기에서 높이가 0이 되는 문제도 동시에 해소. */
 .app-container {
   position: fixed;
   inset: 0;
@@ -111,16 +138,22 @@ html, body {
 
 /* 16:9 고정 해상도(1280×720) 래퍼.
    --game-scale 로 중앙 기준 균일 스케일 → 폰트·이미지 모두 비례 조절.
-   내부는 항상 1280px 기준 → 1cqw = 12.8px 고정. */
+   내부는 항상 1280px 기준 → 1cqw = 12.8px 고정.
+   position: absolute + translate(-50%, -50%) 로 transform: scale() 이 레이아웃에 영향을
+   주지 않는 문제를 해결 — 모바일에서도 항상 정중앙에 배치됨. */
 .game-wrapper {
-  flex-shrink: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 1280px;
   height: 720px;
   transform-origin: center center;
-  transform: scale(var(--game-scale, 1));
+  transform: translate(-50%, -50%) scale(var(--game-scale, 1));
   background-color: black;
-  overflow: hidden;
-  touch-action: none; /* 내부 Phaser 캔버스 및 커스텀 스크롤이 모든 터치 처리 */
+  overflow: visible;
+  /* Phaser 캔버스가 뷰포트 전체를 채울 수 있도록 overflow 허용 */
+  /* touch-action: none 은 game-container(Phaser 캔버스)에만 적용.
+     여기에 쓰면 HTML UI(버튼, 가챠 등) 전체에 none이 전파되어 click 이벤트가 막힘. */
   /* CSS Container Query: 자식 요소들이 cqw 단위로 game-wrapper 너비 기준 비율 크기 사용 가능 */
   container-type: inline-size;
   container-name: game;
@@ -179,8 +212,17 @@ html, body {
 }
 
 @keyframes rotateHint {
-  0%, 100% { transform: rotate(0deg); }
-  40%       { transform: rotate(90deg); }
-  60%       { transform: rotate(90deg); }
-}
 
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  40% {
+    transform: rotate(90deg);
+  }
+
+  60% {
+    transform: rotate(90deg);
+  }
+}

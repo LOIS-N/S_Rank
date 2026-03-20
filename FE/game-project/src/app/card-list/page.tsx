@@ -150,7 +150,7 @@ export default function CardListPage() {
       setIsLoading(false);
       setIsInitialLoad(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getAuthToken, capacitySort]);
 
   // --- 카드 상세 조회 ---
@@ -182,7 +182,7 @@ export default function CardListPage() {
     setScrollRatio(0);
     setIsInitialLoad(true);
     fetchCards(null, capacitySort);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [capacitySort]);
 
   // --- 카드 클릭 ---
@@ -225,7 +225,7 @@ export default function CardListPage() {
     if (scrollRatio > 0.9 && hasMore && !isLoading && nextCursor) {
       fetchCards(nextCursor);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollRatio, hasMore, isLoading, nextCursor]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -304,167 +304,166 @@ export default function CardListPage() {
   return (
     <div className="cardlist-page-container">
 
-        {/* 상단 타이틀 */}
-        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-          <NineSliceBox
-            src={`${ASSET_BASE}/assets/008/questCard_000.webp`}
-            slice={[200, 208, 200, 208]}
-            framePadding={14}
-            borderScale={0.4}
-            className="cardlist-page-title-box"
-          >
-            <h1 className="cardlist-page-title">카드 목록 보기</h1>
-          </NineSliceBox>
-        </div>
-
-        {/* 메인 콘텐츠 패딩 래퍼 */}
-        <div className="cardlist-content-padding">
-
-          {/* ──── 좌측: 필터 + 카드 그리드 ──── */}
-          <div className="cardlist-left-col">
-            {/* 스킬 필터 드롭다운 */}
-            <div className="cardlist-filters">
-              <div className="cardlist-select-wrapper">
-                <select
-                  className="cardlist-select"
-                  value={capacitySort}
-                  onChange={(e) => setCapacitySort(e.target.value)}
-                >
-                  {SKILL_FILTERS.map(filter => (
-                    <option key={filter} value={filter}>{filter}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* 카드 리스트 박스 */}
-            <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
-              <div
-                className="cardlist-grid-wrapper"
-                ref={wrapperRef}
-                onWheel={handleWheel}
-                style={{ flex: 1, overflow: 'hidden' }}
-                onPointerDown={(e) => {
-                  if (maxScroll <= 0) return;
-                  isSwipingRef.current = true;
-                  swipeMovedRef.current = false;
-                  swipeStartYRef.current = e.clientY;
-                  swipeStartRatioRef.current = scrollRatio;
-                }}
-                onPointerMove={(e) => {
-                  if (!isSwipingRef.current || maxScroll <= 0) return;
-                  const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
-                  const deltaY = (swipeStartYRef.current - e.clientY) / gameScale;
-                  if (Math.abs(deltaY) > 5) swipeMovedRef.current = true;
-                  setScrollRatio(Math.min(1, Math.max(0, swipeStartRatioRef.current + deltaY / maxScroll)));
-                }}
-                onPointerUp={() => { isSwipingRef.current = false; }}
-                onPointerCancel={() => { isSwipingRef.current = false; }}
-                onPointerLeave={() => { isSwipingRef.current = false; }}
-                onClickCapture={(e) => { if (swipeMovedRef.current) { e.stopPropagation(); swipeMovedRef.current = false; } }}
-              >
-                <div className="cardlist-grid" ref={gridRef} style={{ transform: `translateY(-${scrollOffset}px)` }}>
-                  {isInitialLoad ? (
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>
-                      로딩 중...
-                    </div>
-                  ) : sortedCards.length === 0 ? (
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>
-                      카드가 없습니다
-                    </div>
-                  ) : (
-                    sortedCards.map(card => {
-                      const isSelected = card.cardId === selectedCardId;
-                      return (
-                        <div
-                          key={card.cardId}
-                          className={`cardlist-card-item ${isSelected ? 'selected' : ''}`}
-                          data-grade={card.grade}
-                          onClick={() => handleCardClick(card.cardId)}
-                        >
-                          <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
-                          <span className="cardlist-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                          <span className="cardlist-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                          <span className="cardlist-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                  {isLoading && !isInitialLoad && (
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 20, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 14 }}>
-                      더 불러오는 중...
-                    </div>
-                  )}
-                </div>
-              </div>
-            </NineSliceBox>
-          </div>
-
-          {/* ──── 중앙: 스크롤바 ──── */}
-          <div className="cardlist-scrollbar-column">
-            <div ref={trackRef} className="scrollbar-track" onClick={handleTrackClick}>
-              <div className="scrollbar-thumb" style={{ top: getThumbTop() }} onPointerDown={handleThumbPointerDown} />
-            </div>
-          </div>
-
-          {/* ──── 우측: 상세 정보 패널 ──── */}
-          <NineSliceBox
-            src={`${ASSET_BASE}/assets/008/questInf_000.webp`}
-            slice={[121, 248, 85, 248]}
-            framePadding={20}
-            borderScale={0.5}
-            className="cardlist-right-box"
-          >
-            {selectedListCard ? (
-              <div className="cardlist-detail-split animate-detail" key={selectedListCard.cardId}>
-                {/* 큰 카드 이미지 */}
-                <div className="cardlist-big-card-col">
-                  <div className="cardlist-big-card-wrapper">
-                    <img src={selectedListCard.imageUrl} alt={selectedListCard.name} draggable={false} />
-                    <span className="cardlist-big-card-stat stat-1">{displaySkillType(selectedListCard.skill1.skillType)} {selectedListCard.skill1.value}</span>
-                    <span className="cardlist-big-card-stat stat-2">{displaySkillType(selectedListCard.skill2.skillType)} {selectedListCard.skill2.value}</span>
-                    <span className="cardlist-big-card-stat stat-3">{displaySkillType(selectedListCard.skill3.skillType)} {selectedListCard.skill3.value}</span>
-                  </div>
-                </div>
-
-                {/* 우측 정보 */}
-                <div className="cardlist-info-col">
-                  {/* 이름 + 등급 + 강화 */}
-                  <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
-                    <div className="cardlist-info-header-text">
-                      {selectedListCard.name}({selectedListCard.grade}등급)
-                      {/* TODO: 강화 레벨 표시 - 카드 상세 API에서 enhanceLevel 필드가 내려오면 아래 주석 해제
-                      {selectedDetail && ` +${selectedDetail.enhanceLevel}`}
-                      */}
-                    </div>
-                  </NineSliceBox>
-
-                  {/* 능력치 */}
-                  <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
-                    <div className="cardlist-info-title">능력치</div>
-                    <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{selectedListCard.skill1.value}</div>
-                    <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{selectedListCard.skill2.value}</div>
-                    <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{selectedListCard.skill3.value}</div>
-                  </NineSliceBox>
-
-                  {/* 특수 능력 (있을 때만 표시) */}
-                  {selectedListCard.specialAbility && (
-                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
-                      <div className="cardlist-info-text">
-                        능력 : {selectedListCard.specialAbility.name}
-                      </div>
-                    </NineSliceBox>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 18 }}>
-                {isInitialLoad ? "로딩 중..." : "카드를 선택해주세요"}
-              </div>
-            )}
-          </NineSliceBox>
-
-        </div>
+      {/* 상단 타이틀 */}
+      <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+        <NineSliceBox
+          src={`${ASSET_BASE}/assets/008/questCard_000.webp`}
+          slice={[200, 208, 200, 208]}
+          framePadding={14}
+          borderScale={0.4}
+          className="cardlist-page-title-box"
+        >
+          <h1 className="cardlist-page-title">카드 목록 보기</h1>
+        </NineSliceBox>
       </div>
+
+      {/* 메인 콘텐츠 패딩 래퍼 */}
+      <div className="cardlist-content-padding">
+
+        {/* ──── 좌측: 필터 + 카드 그리드 ──── */}
+        <div className="cardlist-left-col">
+          {/* 스킬 필터 드롭다운 */}
+          <div className="cardlist-filters">
+            <div className="cardlist-select-wrapper">
+              <select
+                className="cardlist-select"
+                value={capacitySort}
+                onChange={(e) => setCapacitySort(e.target.value)}
+              >
+                {SKILL_FILTERS.map(filter => (
+                  <option key={filter} value={filter}>{filter}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* 카드 리스트 박스 */}
+          <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
+            <div
+              className="cardlist-grid-wrapper"
+              ref={wrapperRef}
+              onWheel={handleWheel}
+              style={{ flex: 1, overflow: 'hidden' }}
+              onPointerDown={(e) => {
+                if (maxScroll <= 0) return;
+                // e.currentTarget.setPointerCapture(e.pointerId);
+                isSwipingRef.current = true;
+                swipeMovedRef.current = false;
+                swipeStartYRef.current = e.clientY;
+                swipeStartRatioRef.current = scrollRatio;
+              }}
+              onPointerMove={(e) => {
+                if (!isSwipingRef.current || maxScroll <= 0) return;
+                const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
+                const deltaY = (swipeStartYRef.current - e.clientY) / gameScale;
+                if (Math.abs(deltaY) > 5) swipeMovedRef.current = true;
+                setScrollRatio(Math.min(1, Math.max(0, swipeStartRatioRef.current + deltaY / maxScroll)));
+              }}
+              onPointerUp={() => { isSwipingRef.current = false; swipeMovedRef.current = false; }}
+              onPointerCancel={() => { isSwipingRef.current = false; swipeMovedRef.current = false; }}
+              onClickCapture={(e) => { if (swipeMovedRef.current) { e.stopPropagation(); swipeMovedRef.current = false; } }}
+            >
+              <div className="cardlist-grid" ref={gridRef} style={{ transform: `translateY(-${scrollOffset}px)` }}>
+                {isInitialLoad ? (
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>
+                    로딩 중...
+                  </div>
+                ) : sortedCards.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 16 }}>
+                    카드가 없습니다
+                  </div>
+                ) : (
+                  sortedCards.map(card => {
+                    const isSelected = card.cardId === selectedCardId;
+                    return (
+                      <div
+                        key={card.cardId}
+                        className={`cardlist-card-item ${isSelected ? 'selected' : ''}`}
+                        data-grade={card.grade}
+                        onClick={() => handleCardClick(card.cardId)}
+                      >
+                        <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
+                        <span className="cardlist-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                        <span className="cardlist-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                        <span className="cardlist-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                      </div>
+                    );
+                  })
+                )}
+                {isLoading && !isInitialLoad && (
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 20, color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 14 }}>
+                    더 불러오는 중...
+                  </div>
+                )}
+              </div>
+            </div>
+          </NineSliceBox>
+        </div>
+
+        {/* ──── 중앙: 스크롤바 ──── */}
+        <div className="cardlist-scrollbar-column">
+          <div ref={trackRef} className="scrollbar-track" onClick={handleTrackClick}>
+            <div className="scrollbar-thumb" style={{ top: getThumbTop() }} onPointerDown={handleThumbPointerDown} />
+          </div>
+        </div>
+
+        {/* ──── 우측: 상세 정보 패널 ──── */}
+        <NineSliceBox
+          src={`${ASSET_BASE}/assets/008/questInf_000.webp`}
+          slice={[121, 248, 85, 248]}
+          framePadding={20}
+          borderScale={0.5}
+          className="cardlist-right-box"
+        >
+          {selectedListCard ? (
+            <div className="cardlist-detail-split animate-detail" key={selectedListCard.cardId}>
+              {/* 큰 카드 이미지 */}
+              <div className="cardlist-big-card-col">
+                <div className="cardlist-big-card-wrapper">
+                  <img src={selectedListCard.imageUrl} alt={selectedListCard.name} draggable={false} />
+                  <span className="cardlist-big-card-stat stat-1">{displaySkillType(selectedListCard.skill1.skillType)} {selectedListCard.skill1.value}</span>
+                  <span className="cardlist-big-card-stat stat-2">{displaySkillType(selectedListCard.skill2.skillType)} {selectedListCard.skill2.value}</span>
+                  <span className="cardlist-big-card-stat stat-3">{displaySkillType(selectedListCard.skill3.skillType)} {selectedListCard.skill3.value}</span>
+                </div>
+              </div>
+
+              {/* 우측 정보 */}
+              <div className="cardlist-info-col">
+                {/* 이름 + 등급 + 강화 */}
+                <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
+                  <div className="cardlist-info-header-text">
+                    {selectedListCard.name}({selectedListCard.grade}등급)
+                    {/* TODO: 강화 레벨 표시 - 카드 상세 API에서 enhanceLevel 필드가 내려오면 아래 주석 해제
+                      */}
+                  </div>
+                </NineSliceBox>
+
+                {/* 능력치 */}
+                <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
+                  <div className="cardlist-info-title">능력치</div>
+                  <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{selectedListCard.skill1.value}</div>
+                  <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{selectedListCard.skill2.value}</div>
+                  <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{selectedListCard.skill3.value}</div>
+                </NineSliceBox>
+
+                {/* 특수 능력 (있을 때만 표시) */}
+                {selectedListCard.specialAbility && (
+                  <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
+                    <div className="cardlist-info-text">
+                      능력 : {selectedListCard.specialAbility.name}
+                    </div>
+                  </NineSliceBox>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 18 }}>
+              {isInitialLoad ? "로딩 중..." : "카드를 선택해주세요"}
+            </div>
+          )}
+        </NineSliceBox>
+
+      </div>
+    </div>
   );
 }

@@ -262,7 +262,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { q
         onClick={onAccept}
         style={isInProgress ? { filter: 'brightness(0.65)', cursor: 'default' } : undefined}
       >
-        <span style={{position:'relative', zIndex: 2}}>
+        <span style={{ position: 'relative', zIndex: 2 }}>
           {isAccepting ? "수락 중..." : isInProgress ? "진행 중" : "수락하기"}
         </span>
       </NineSliceBox>
@@ -273,7 +273,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { q
 // --- Phase 2: 카드 배치 콘텐츠 ---
 function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest | null, onCancel: () => void, onShowUsedCardModal: () => void }) {
   const router = useRouter();
-  const { selectingDeskId, startQuest, accessToken } = useGameStore();
+  const { selectingDeskId, startQuest, accessToken, quests: storeQuests } = useGameStore();
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
 
@@ -311,7 +311,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       }
     };
     fetchDeskId();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectingDeskId]);
 
   const fetchCards = useCallback(async (cursor?: string | null) => {
@@ -337,12 +337,12 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       setIsCardLoading(false);
       setIsInitialLoad(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getAuthToken]);
 
   useEffect(() => {
     fetchCards(null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 등급순 → 같은 등급 내 총합 능력치 내림차순 정렬
@@ -366,7 +366,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       }
     };
     fetchUsedCards();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // --- 경고 메시지 ---
@@ -568,6 +568,14 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       }
     }
 
+    // 책상(부서) 사용 가능 여부 사전 검증
+    const deskIndex = selectingDeskId ?? 0;
+    const deskStatus = storeQuests[deskIndex]?.status;
+    if (deskStatus === 'IN_PROGRESS') {
+      setWarningMessage('프로젝트를 시작할 수 있는 부서가 없습니다.');
+      return;
+    }
+
     setIsStarting(true);
     try {
       const token = await getAuthToken();
@@ -607,7 +615,10 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       });
       const errCode = errData?.error?.code || errData?.code;
       if (errCode === 'Q006') {
-        setHardcapMessage('더 높은 능력치의 카드들로 배치해주세요.');
+        const hardcapMinutes = quest.durationMinutes * 2;
+        setHardcapMessage(`프로젝트에 진행할 인원들의 능력치가 생각보다 낮습니다. ${hardcapMinutes}분을 뛰어 넘어야 퀘스트 수주가 가능합니다!`);
+      } else if (errCode === 'Q007') {
+        setWarningMessage('프로젝트를 시작할 수 있는 부서가 없습니다.');
       } else {
         const msg = errData?.error?.message || errData?.error?.code || errData?.message || errData?.code || e.message || '알 수 없는 오류';
         setWarningMessage(`퀘스트 시작 실패: ${msg}`);
@@ -642,7 +653,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
     if (p2ScrollRatio > 0.9 && hasMore && !isCardLoading && nextCursor) {
       fetchCards(nextCursor);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p2ScrollRatio, hasMore, isCardLoading, nextCursor]);
 
   const handleP2Wheel = useCallback((e: React.WheelEvent) => {
@@ -732,6 +743,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
             style={{ flex: 1, overflow: 'hidden' }}
             onPointerDown={(e) => {
               if (p2MaxScroll <= 0) return;
+              // e.currentTarget.setPointerCapture(e.pointerId);
               isSwipe2Ref.current = true;
               swipe2MovedRef.current = false;
               swipe2StartYRef.current = e.clientY;
@@ -744,9 +756,8 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
               if (Math.abs(deltaY) > 5) swipe2MovedRef.current = true;
               setP2ScrollRatio(Math.min(1, Math.max(0, swipe2StartRatioRef.current + deltaY / p2MaxScroll)));
             }}
-            onPointerUp={() => { isSwipe2Ref.current = false; }}
-            onPointerCancel={() => { isSwipe2Ref.current = false; }}
-            onPointerLeave={() => { isSwipe2Ref.current = false; }}
+            onPointerUp={() => { isSwipe2Ref.current = false; swipe2MovedRef.current = false; }}
+            onPointerCancel={() => { isSwipe2Ref.current = false; swipe2MovedRef.current = false; }}
             onClickCapture={(e) => { if (swipe2MovedRef.current) { e.stopPropagation(); swipe2MovedRef.current = false; } }}
           >
             <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
@@ -791,63 +802,58 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       {/* ──── 중간: 스크롤바 ──── */}
       <div className="scrollbar-column phase2-scrollbar-column">
         <div ref={p2TrackRef} className="scrollbar-track" onClick={handleP2TrackClick}>
-           <div className="scrollbar-thumb" style={{ top: p2ThumbTop() }} onPointerDown={handleP2ThumbPointerDown} />
+          <div className="scrollbar-thumb" style={{ top: p2ThumbTop() }} onPointerDown={handleP2ThumbPointerDown} />
         </div>
       </div>
 
       {/* ──── 우측: 퀘스트 프레임 ──── */}
       <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={20} borderScale={0.5} className="phase2-right-box">
-        {/* Top: 퀘스트 제목 + 카드 수 */}
-        <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-title-box">
+        {/* 퀘스트 제목 + 카드 배치 현황판 (합쳐진 박스) */}
+        <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-drop-box">
           <div className="phase2-info-title">{quest.title}</div>
           <div className="phase2-info-subtitle">카드 배치 : {selectedCards.length} / {quest.cardSlotCount}장</div>
-        </NineSliceBox>
-
-        {/* Middle: 카드 배치 현황판 */}
-        <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-drop-box">
           <div className="phase2-drop-cards">
-            {selectedCards.length === 0 ? (
-              <div className="phase2-drop-empty-text">카드를 선택하세요</div>
-            ) : (
-              (() => {
-                const total = selectedCards.length;
-                const cardWidth = total <= 3 ? 110 : total === 4 ? 95 : 82;
-                const overlap = total <= 3 ? -25 : total === 4 ? -30 : -35;
-                const fanAngle = total <= 3 ? 10 : total === 4 ? 8 : 6;
-                const yMultiplier = total <= 3 ? 10 : total === 4 ? 8 : 6;
-                return selectedCards.map((cardId, index) => {
-                  const card = sortedCards.find(c => c.cardId === cardId);
-                  if (!card) return null;
-                  const angle = (index - (total - 1) / 2) * fanAngle;
-                  const yOffset = Math.abs(index - (total - 1) / 2) * yMultiplier;
+            {(() => {
+              const total = quest.cardSlotCount;
+              const cardWidth = total <= 3 ? 110 : total === 4 ? 95 : 82;
+              const overlap = total <= 3 ? -25 : total === 4 ? -30 : -35;
+              const fanAngle = total <= 3 ? 10 : total === 4 ? 8 : 6;
+              const yMultiplier = total <= 3 ? 10 : total === 4 ? 8 : 6;
+              return Array.from({ length: total }).map((_, index) => {
+                const cardId = selectedCards[index];
+                const card = cardId ? sortedCards.find(c => c.cardId === cardId) : null;
+                const angle = (index - (total - 1) / 2) * fanAngle;
+                const yOffset = Math.abs(index - (total - 1) / 2) * yMultiplier;
+                const style = {
+                  width: `${cardWidth}px`,
+                  zIndex: index,
+                  marginLeft: index > 0 ? `${overlap}px` : '0',
+                  transform: `rotate(${angle}deg) translateY(${yOffset}px)`,
+                };
+                if (!card) {
                   return (
-                    <div
-                      key={card.cardId}
-                      className="phase2-fan-card"
-                      style={{
-                        width: `${cardWidth}px`,
-                        zIndex: index,
-                        marginLeft: index > 0 ? `${overlap}px` : '0',
-                        transform: `rotate(${angle}deg) translateY(${yOffset}px)`,
-                      }}
-                      onClick={() => handleCardClick(card.cardId)}
-                    >
-                      <img src={card.imageUrl} alt={card.name} draggable={false} />
+                    <div key={`slot-${index}`} className="phase2-fan-card phase2-fan-placeholder" style={style}>
+                      <div className="phase2-placeholder-inner">?</div>
                     </div>
                   );
-                });
-              })()
+                }
+                return (
+                  <div key={card.cardId} className="phase2-fan-card" style={style} onClick={() => handleCardClick(card.cardId)}>
+                    <img src={card.imageUrl} alt={card.name} draggable={false} />
+                  </div>
+                );
+              });
+            })()}
+            {/* 경고 메시지 — 카드 위 오버레이 */}
+            {(warningMessage || hardcapMessage) && (
+              <div className="phase2-warning-overlay">
+                <div className={`phase2-warning-text${hardcapMessage ? ' hardcap' : ''}`}>
+                  {hardcapMessage || warningMessage}
+                </div>
+              </div>
             )}
           </div>
         </NineSliceBox>
-
-        {/* 경고 메시지 */}
-        {warningMessage && (
-          <div className="phase2-warning">{warningMessage}</div>
-        )}
-        {hardcapMessage && (
-          <div className="phase2-warning" style={{ color: '#ff3333' }}>{hardcapMessage}</div>
-        )}
 
         {/* Bottom: 수행 조건 + 예상 시간/보상 */}
         <div className="phase2-right-bottom-row">
@@ -866,16 +872,16 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
             </div>
           </NineSliceBox>
           <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
-             <div className="quest-info-box-label">예상 시간 / 보상</div>
-             <div className="quest-info-box-text">
-               <div>예상 시간 : {estimatedTime != null ? `${estimatedTime}분` : `${quest.durationMinutes}분`}</div>
-               <div>예상 보상 : {rewardInfo.reward.toLocaleString()}G</div>
-               {rewardInfo.ratio > 1.5 && (
-                 <div style={{ fontSize: '20px', color: '#cc8800' }}>
-                   (오버스펙 {Math.round(rewardInfo.multiplier * 100)}%)
-                 </div>
-               )}
-             </div>
+            <div className="quest-info-box-label">예상 시간 / 보상</div>
+            <div className="quest-info-box-text">
+              <div>예상 시간 : {estimatedTime != null ? `${estimatedTime}분` : `${quest.durationMinutes}분`}</div>
+              <div>예상 보상 : {rewardInfo.reward.toLocaleString()}G</div>
+              {rewardInfo.ratio > 1.5 && (
+                <div style={{ fontSize: '20px', color: '#cc8800' }}>
+                  (오버스펙 {Math.round(rewardInfo.multiplier * 100)}%)
+                </div>
+              )}
+            </div>
           </NineSliceBox>
         </div>
 
@@ -1084,7 +1090,7 @@ export default function QuestPage() {
   const getThumbTop = useCallback(() => {
     if (!trackHeight) return 0;
     const thumbSize = 100;
-    const trackPadding = 14; 
+    const trackPadding = 14;
     const maxThumbTop = trackHeight - thumbSize - (trackPadding * 2);
     if (maxThumbTop <= 0) return trackPadding;
     return trackPadding + (scrollRatio * maxThumbTop);
@@ -1158,20 +1164,20 @@ export default function QuestPage() {
   return (
     <div className="quest-page-container">
 
-        {/* 상단 타이틀 */}
-        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-          <NineSliceBox
-            src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
-            slice={[200, 208, 200, 208]}
-            framePadding={14}
-            borderScale={0.4}
-            className="quest-page-title-box"
-          >
-            <h1 className="quest-page-title">회사 프로젝트 정하기</h1>
-          </NineSliceBox>
-        </div>
+      {/* 상단 타이틀 */}
+      <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+        <NineSliceBox
+          src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
+          slice={[200, 208, 200, 208]}
+          framePadding={14}
+          borderScale={0.4}
+          className="quest-page-title-box"
+        >
+          <h1 className="quest-page-title">회사 프로젝트 정하기</h1>
+        </NineSliceBox>
+      </div>
 
-        {/* 메인 콘텐츠 래퍼 (슬라이딩 애니메이션) */}
+      {/* 메인 콘텐츠 래퍼 (슬라이딩 애니메이션) */}
       <div className={`quest-content-wrapper phase-${phase}`}>
         {/* === Phase 1: 퀘스트 목록 화면 === */}
         <div className="quest-content phase-1-content" style={{ pointerEvents: phase === 'placement' ? 'none' : 'auto' }}>
@@ -1198,6 +1204,7 @@ export default function QuestPage() {
                 className="sub-quest-scroll-area"
                 onPointerDown={(e) => {
                   if (maxScroll <= 0) return;
+                  // e.currentTarget.setPointerCapture(e.pointerId);
                   isSwipe1Ref.current = true;
                   swipe1MovedRef.current = false;
                   swipe1StartYRef.current = e.clientY;
@@ -1210,9 +1217,8 @@ export default function QuestPage() {
                   if (Math.abs(deltaY) > 5) swipe1MovedRef.current = true;
                   setScrollRatio(Math.min(1, Math.max(0, swipe1StartRatioRef.current + deltaY / maxScroll)));
                 }}
-                onPointerUp={() => { isSwipe1Ref.current = false; }}
-                onPointerCancel={() => { isSwipe1Ref.current = false; }}
-                onPointerLeave={() => { isSwipe1Ref.current = false; }}
+                onPointerUp={() => { isSwipe1Ref.current = false; swipe1MovedRef.current = false; }}
+                onPointerCancel={() => { isSwipe1Ref.current = false; swipe1MovedRef.current = false; }}
                 onClickCapture={(e) => { if (swipe1MovedRef.current) { e.stopPropagation(); swipe1MovedRef.current = false; } }}
               >
                 <div
@@ -1322,6 +1328,6 @@ export default function QuestPage() {
         </div>,
         document.body
       )}
-      </div>
+    </div>
   );
 }
