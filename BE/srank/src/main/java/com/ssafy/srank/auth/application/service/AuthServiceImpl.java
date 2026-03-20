@@ -82,6 +82,7 @@ public class AuthServiceImpl implements AuthService {
                     .email(identity.email())
                     .walletAddress(identity.walletAddress())
                     .gold(SIGNUP_BONUS_GOLD)
+                    .level(1)
                     .build());
 
             deskService.unlockDesk(savedUser.getUserId(), 1L);
