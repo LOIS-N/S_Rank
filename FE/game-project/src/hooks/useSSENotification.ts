@@ -48,13 +48,10 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
  */
 export function useSSENotification(accessToken: string | null) {
   const abortRef = useRef<AbortController | null>(null);
-  const { nickname } = useGameStore();
   const { isAuthenticated } = useUserStore();
 
   useEffect(() => {
     if (!isAuthenticated || !accessToken) return;
-
-    requestNotificationPermission();
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -71,6 +68,7 @@ export function useSSENotification(accessToken: string | null) {
           return;
         }
 
+        console.log("[SSE] 연결 성공");
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
@@ -79,20 +77,25 @@ export function useSSENotification(accessToken: string | null) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
+          const chunk = decoder.decode(value, { stream: true });
+          console.log("[SSE] 청크 수신:", JSON.stringify(chunk));
+          buffer += chunk;
           const parts = buffer.split("\n\n");
           buffer = parts.pop() ?? "";
 
           for (const part of parts) {
+            if (!part.trim()) continue;
             let eventName = "message";
             let data = "";
             for (const line of part.split("\n")) {
               if (line.startsWith("event:")) eventName = line.slice(6).trim();
               else if (line.startsWith("data:")) data = line.slice(5).trim();
             }
+            console.log("[SSE] 이벤트:", eventName, "| data:", data);
 
             if (eventName === SSE_EVENT_QUEST_COMPLETE) {
               const payload = parseSSEPayload(data);
+              const nickname = useGameStore.getState().nickname;
               const body = payload.message ?? `${nickname || "개발자"}님, 프로젝트가 완수됐어요! 지금 바로 보상을 수령하세요!`;
 
               if (Notification.permission === "granted") {
@@ -115,5 +118,5 @@ export function useSSENotification(accessToken: string | null) {
       controller.abort();
       abortRef.current = null;
     };
-  }, [isAuthenticated, accessToken, nickname]);
+  }, [isAuthenticated, accessToken]);
 }

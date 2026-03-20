@@ -2,7 +2,6 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { useUserStore } from '@/store/useUserStore';
-import { useGameStore } from '@/store/useGameStore';
 import { useSSENotification } from '@/hooks/useSSENotification';
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -11,8 +10,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   // 전역에서 로그인 상태 및 백엔드 연동 감시
   useAuth();
 
-  const { isAuthenticated, isNewUser } = useUserStore();
-  const { accessToken } = useGameStore();
+  const { isAuthenticated, isNewUser, accessToken } = useUserStore();
 
   useSSENotification(accessToken);
   const router = useRouter();

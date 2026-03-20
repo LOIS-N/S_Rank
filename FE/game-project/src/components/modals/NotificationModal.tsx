@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { requestNotificationPermission } from "@/hooks/useSSENotification";
 
 interface NotificationModalProps {
   onClose: () => void;
@@ -16,11 +17,19 @@ const MOCK_NOTIFICATIONS = [
 
 export default function NotificationModal({ onClose }: NotificationModalProps) {
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
+    typeof Notification !== "undefined" ? Notification.permission : "denied"
+  );
 
   const handleRead = (id: number) => {
     setNotifications(prev =>
       prev.map(noti => noti.id === id ? { ...noti, isRead: true } : noti)
     );
+  };
+
+  const handleRequestPermission = async () => {
+    const result = await requestNotificationPermission();
+    setNotifPermission(result);
   };
 
   return (
@@ -31,7 +40,16 @@ export default function NotificationModal({ onClose }: NotificationModalProps) {
           &times;
         </button>
 
-        <h2 className="text-slate-900 font-bold text-3xl mb-7 text-center">알림</h2>
+        <h2 className="text-slate-900 font-bold text-3xl mb-4 text-center">알림</h2>
+
+        {notifPermission !== "granted" && (
+          <button
+            onClick={handleRequestPermission}
+            className="mb-4 py-1.5 px-3 text-sm bg-[#4a90e2] text-white border-2 border-[#2a6cb8] shadow-[3px_3px_0px_#1a4c8e] active:translate-y-0.5 active:shadow-none"
+          >
+            {notifPermission === "denied" ? "알림이 차단됨 (브라우저 설정에서 허용)" : "퀘스트 완료 알림 허용"}
+          </button>
+        )}
 
         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
           {notifications.map((noti) => (

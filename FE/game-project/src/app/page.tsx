@@ -21,9 +21,10 @@ const MainHUD = dynamic(() => import("@/components/MainHUD"), { ssr: false });
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export default function Home() {
-  const { login, authenticated, ready } = usePrivy();
+  const { login, logout, authenticated, ready } = usePrivy();
   const { isAuthenticated, isNewUser, nickname } = useUserStore();
   const { gameStatus, setNickname, startGame, setGameStatus, isHUDModalOpen } = useGameStore();
+  const [syncTimedOut, setSyncTimedOut] = useState(false);
 
   // Problem 1: 인증 완료 시 게임 상태 동기화 (useUserStore 기준)
   useEffect(() => {
@@ -65,6 +66,17 @@ export default function Home() {
     };
   }, []);
 
+  // 서버 동기화 20초 타임아웃
+  useEffect(() => {
+    const isSyncing = authenticated && !isAuthenticated;
+    if (!isSyncing) {
+      setSyncTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setSyncTimedOut(true), 20000);
+    return () => clearTimeout(timer);
+  }, [authenticated, isAuthenticated]);
+
   // Privy SDK 초기화 전
   if (!ready) {
     return (
@@ -103,7 +115,7 @@ export default function Home() {
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-4">
           <button
             onClick={() => login()}
-            className="flex items-center gap-3 bg-white text-[#3c4043] px-5 py-2.5 rounded border border-[#dadce0] text-base font-semibold font-sans transition-colors shadow hover:bg-[#f8f9fa] hover:border-[#d2e3fc] active:bg-[#f1f3f4] translate-y-[115px]"
+            className="flex items-center gap-3 bg-white text-[#3c4043] px-5 py-2.5 rounded border border-[#dadce0] text-base font-semibold font-sans transition-colors shadow hover:bg-[#f8f9fa] hover:border-[#d2e3fc] active:bg-[#f1f3f4] translate-y-[105px]"
           >
             <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-5 h-5" />
             <span>Google로 계속하기</span>
@@ -112,10 +124,26 @@ export default function Home() {
       )}
 
       {/* 2. 서버 동기화 중 (Privy 로그인 완료 → BE 연동 대기) */}
-      {isSyncing && (
+      {isSyncing && !syncTimedOut && (
         <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-[#8ea4b8]/80 font-dot text-white">
           <div className="w-16 h-16 border-8 border-t-yellow-400 border-white/20 rounded-full animate-spin mb-6" />
           <p className="text-2xl animate-pulse drop-shadow-md font-bold text-yellow-100">서버와 동기화 중...</p>
+        </div>
+      )}
+
+      {/* 2-1. 동기화 타임아웃 모달 */}
+      {syncTimedOut && (
+        <div className="absolute inset-0 z-[70] flex items-center justify-center bg-black/60 font-dot">
+          <div className="bg-[#b0c4de] p-8 border-4 border-[#6b859e] shadow-[8px_8px_0px_#4a5d73] flex flex-col items-center gap-6 max-w-sm text-center">
+            <p className="text-slate-900 font-bold text-xl">서버와의 연결이 끊어졌습니다.</p>
+            <p className="text-slate-700 text-base">다시 접속해주세요.</p>
+            <button
+              onClick={() => { setSyncTimedOut(false); logout(); }}
+              className="px-6 py-2 bg-[#4a5d73] text-white border-2 border-[#2a3d53] shadow-[3px_3px_0px_#1a2d43] active:translate-y-0.5 active:shadow-none font-bold text-base"
+            >
+              확인
+            </button>
+          </div>
         </div>
       )}
 

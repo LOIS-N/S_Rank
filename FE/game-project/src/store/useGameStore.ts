@@ -44,7 +44,7 @@ interface GameState {
   startGame: () => void;
   logout: () => void;
   setSelectingDeskId: (id: number | null) => void;
-  startQuest: (id: number, durationSeconds: number, reward: number, title?: string) => void;
+  startQuest: (id: number, durationSeconds: number, reward: number, title?: string, questId?: number | null, questType?: 'main' | 'sub' | null) => void;
   finishQuestTimer: (id: number) => void;
   completeQuest: (id: number) => void;
   unlockQuestSlot: (id: number) => void;
@@ -104,14 +104,17 @@ export const useGameStore = create<GameState>()(
     walletAddress: null
   }),
   setSelectingDeskId: (id) => set({ selectingDeskId: id }),
-  startQuest: (id, durationSeconds, reward, title = '') => set((state) => {
+  startQuest: (id, durationSeconds, reward, title = '', questId = null, questType = null) => set((state) => {
     const updated = state.quests.map(q =>
       q.id === id ? {
         ...q,
         status: 'IN_PROGRESS' as QuestStatus,
         endTime: Date.now() + (durationSeconds * 1000),
+        endAt: null,
         reward,
         title,
+        questId,
+        questType,
       } : q
     );
     return { quests: updated, selectingDeskId: null };
@@ -127,7 +130,7 @@ export const useGameStore = create<GameState>()(
     const updated = state.quests.map(q => {
       if (q.id === id) {
         rewardAcc = q.reward;
-        return { ...q, status: 'IDLE' as QuestStatus, endTime: null, title: '' };
+        return { ...q, status: 'IDLE' as QuestStatus, endTime: null, endAt: null, title: '' };
       }
       return q;
     });
