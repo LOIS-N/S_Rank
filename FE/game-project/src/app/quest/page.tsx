@@ -734,14 +734,13 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
     setP2ScrollRatio(newRatio);
   }, []);
 
-  // Phase2 카드 그리드 스와이프 스크롤 — 네이티브 이벤트 리스너
-  // (React 합성 이벤트 대신 DOM 직접 등록: el.setPointerCapture으로 브라우저 제스처 선점)
+  // Phase2 카드 그리드 스와이프 스크롤
+  // pointerdown은 요소에, pointermove/pointerup/cancel은 window에 등록 (Phase1과 동일한 패턴)
   useEffect(() => {
     const el = p2WrapperRef.current;
     if (!el) return;
     const onPointerDown = (e: PointerEvent) => {
       if (p2MaxScrollRef.current <= 0) return;
-      el.setPointerCapture(e.pointerId);
       if (momentum2AnimRef.current !== null) { cancelAnimationFrame(momentum2AnimRef.current); momentum2AnimRef.current = null; }
       isSwipe2Ref.current = true;
       swipe2MovedRef.current = false;
@@ -781,14 +780,14 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       if (momentum2AnimRef.current !== null) { cancelAnimationFrame(momentum2AnimRef.current); momentum2AnimRef.current = null; }
     };
     el.addEventListener('pointerdown', onPointerDown);
-    el.addEventListener('pointermove', onPointerMove);
-    el.addEventListener('pointerup', onPointerUp);
-    el.addEventListener('pointercancel', onPointerCancel);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerCancel);
     return () => {
       el.removeEventListener('pointerdown', onPointerDown);
-      el.removeEventListener('pointermove', onPointerMove);
-      el.removeEventListener('pointerup', onPointerUp);
-      el.removeEventListener('pointercancel', onPointerCancel);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
     };
   // quest가 null → non-null로 바뀔 때 p2WrapperRef.current가 비로소 DOM에 연결되므로 재실행 필요
   // eslint-disable-next-line react-hooks/exhaustive-deps
