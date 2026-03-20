@@ -243,6 +243,7 @@
   background-color: rgba(0, 0, 0, 0.6);
   z-index: 10;
   padding: 40px 24px 14cqw 24px;
+  cursor: pointer; /* iOS Safari: div.onClick은 cursor:pointer 없으면 tap→click 이벤트 미발생 */
 }
 
 /* 결과 공통 레이아웃 (좌: 카드, 우: 정보) */
