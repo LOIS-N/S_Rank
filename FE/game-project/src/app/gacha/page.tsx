@@ -6,11 +6,15 @@ import { useGameStore } from "@/store/useGameStore";
 import { GachaRevealCard } from "./GachaRevealCard";
 import { GachaAnimationOverlay } from "./GachaAnimationOverlay";
 import "./gacha.css";
+import api from "@/lib/axios";
+
+const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // --- Types ---
 type TabType = 'flyer' | 'fair' | 'public';
 type PhaseType = 'select' | 'animating' | 'result_1' | 'result_10';
 type EffectGrade = 'A' | 'S';
+
 
 const TAB_TO_TYPE_ID: Record<TabType, string> = {
   flyer: 'FLYER',
@@ -180,30 +184,11 @@ export default function GachaPage() {
     setIsPulling(true);
     try {
       const token = await getAuthToken();
-      const res = await fetch('/api/v1/gacha/draws', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ type: TAB_TO_TYPE_ID[currentTab], count }),
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => '');
-        let msg = `오류 (${res.status})`;
-        try {
-          const errorBody = JSON.parse(errorText);
-          msg = errorBody?.error?.message || errorBody?.message || msg;
-        } catch {
-          // non-JSON body (e.g. nginx 502)
-        }
-        console.error(`[가챠] ${count}회 뽑기 실패 — HTTP ${res.status}`, errorText);
-        alert(msg);
-        return;
-      }
-
-      const resData = await res.json();
+      const { data: resData } = await api.post(
+        '/api/v1/gacha/draws',
+        { type: TAB_TO_TYPE_ID[currentTab], count },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
       const drawData = resData.data ?? resData;
 
       if (drawData?.cards) {
@@ -259,7 +244,7 @@ export default function GachaPage() {
     <>
       <div
         className={`gacha-action-btn${!canPull1 || isPulling ? ' btn-disabled' : ''}`}
-        style={{ backgroundImage: 'url(/assets/006/gachaButton_000.webp)' }}
+        style={{ backgroundImage: `url('${ASSET_BASE}/assets/006/gachaButton_000.webp')` }}
         onClick={canPull1 && !isPulling ? () => handlePull(1) : undefined}
       >
         <span>1회 뽑기</span>
@@ -267,7 +252,7 @@ export default function GachaPage() {
       </div>
       <div
         className={`gacha-action-btn btn-10pull${!canPull10 || isPulling ? ' btn-disabled' : ''}`}
-        style={{ backgroundImage: 'url(/assets/006/gachaButton_000.webp)' }}
+        style={{ backgroundImage: `url('${ASSET_BASE}/assets/006/gachaButton_000.webp')` }}
         onClick={canPull10 && !isPulling ? () => handlePull(10) : undefined}
       >
         <span>10회 뽑기</span>
@@ -301,7 +286,7 @@ export default function GachaPage() {
         <div className="gacha-gold-hud">
           <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
             <img
-              src="/assets/002/coin_002.webp"
+              src={`${ASSET_BASE}/assets/002/coin_002.webp`}
               alt="gold"
               style={{
                 width: '5cqw',
@@ -315,7 +300,7 @@ export default function GachaPage() {
                 height: '4cqw',
                 paddingRight: '1.9cqw',
                 fontSize: '1.7cqw',
-                backgroundImage: "url('/assets/002/upperBlank_002.webp')",
+                backgroundImage: `url('${ASSET_BASE}/assets/002/upperBlank_002.webp')`,
                 backgroundSize: '100% 100%',
                 display: 'flex',
                 alignItems: 'center',

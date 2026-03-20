@@ -18,6 +18,8 @@ function LoadingDots() {
 const GameCanvas = dynamic(() => import("@/components/GameCanvas"), { ssr: false });
 const MainHUD = dynamic(() => import("@/components/MainHUD"), { ssr: false });
 
+const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 export default function Home() {
   const { login, authenticated, ready } = usePrivy();
   const { isAuthenticated, isNewUser, nickname } = useUserStore();
@@ -77,12 +79,24 @@ export default function Home() {
 
   return (
     <main className="absolute inset-0 overflow-hidden bg-black text-white font-dot">
-      <audio id="main-bgm" src="/assets/7번.mp3" preload="none" loop className="hidden" />
+      <audio id="main-bgm" src={`${ASSET_BASE}/assets/7번.mp3`} preload="none" loop className="hidden" />
 
-      {/* 0. 게임 캔버스 (배경) */}
+      {/* 0. 게임 캔버스 (배경, PLAYING 상태에서만 표시) */}
       <div className="absolute inset-0 z-0">
         <GameCanvas />
       </div>
+
+      {/* 0-1. 로그인/동기화 배경 이미지 (nginx static) */}
+      {gameStatus !== 'PLAYING' && (
+        <div className="absolute inset-0 z-[1]">
+          <img
+            src={`${ASSET_BASE}/assets/001/city_bg.webp`}
+            alt=""
+            className="w-full h-full object-cover"
+            draggable={false}
+          />
+        </div>
+      )}
 
       {/* 1. 로그인 전 */}
       {!authenticated && (
