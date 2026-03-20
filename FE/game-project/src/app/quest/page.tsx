@@ -754,7 +754,8 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
             onPointerMove={(e) => {
               if (!isSwipe2Ref.current || p2MaxScroll <= 0) return;
               const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
-              const deltaY = (swipe2StartYRef.current - e.clientY) / gameScale;
+              const speedMultiplier = e.pointerType === 'touch' ? 5 : 1.5;
+              const deltaY = (swipe2StartYRef.current - e.clientY) / gameScale * speedMultiplier;
               if (Math.abs(deltaY) > 5) swipe2MovedRef.current = true;
               setP2ScrollRatio(Math.min(1, Math.max(0, swipe2StartRatioRef.current + deltaY / p2MaxScroll)));
             }}
@@ -1222,7 +1223,8 @@ export default function QuestPage() {
                 onPointerMove={(e) => {
                   if (!isSwipe1Ref.current || maxScroll <= 0) return;
                   const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
-                  const deltaY = (swipe1StartYRef.current - e.clientY) / gameScale;
+                  const speedMultiplier = e.pointerType === 'touch' ? 2.5 : 1;
+                  const deltaY = (swipe1StartYRef.current - e.clientY) / gameScale * speedMultiplier;
                   if (Math.abs(deltaY) > 5) swipe1MovedRef.current = true;
                   setScrollRatio(Math.min(1, Math.max(0, swipe1StartRatioRef.current + deltaY / maxScroll)));
                 }}
