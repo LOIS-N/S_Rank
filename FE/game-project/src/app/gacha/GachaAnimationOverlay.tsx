@@ -2,14 +2,26 @@
 
 import { useEffect, useRef } from "react";
 
+interface CardSkill {
+  skillType: string;
+  value: number;
+}
+
 interface GachaAnimationCard {
   grade: string;
   imageUrl: string;
+  skill1: CardSkill;
+  skill2: CardSkill;
+  skill3: CardSkill;
 }
 
 interface Props {
   cards: GachaAnimationCard[];
   onComplete: () => void;
+}
+
+function skillLabel(type: string): string {
+  return type?.toUpperCase() === "DEVOPS" ? "DEV" : (type?.toUpperCase() ?? "?");
 }
 
 export function GachaAnimationOverlay({ cards, onComplete }: Props) {
@@ -31,9 +43,14 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
       const H = 720;
       const cardCount = cards.length;
 
-      // Card dimensions (2:3 ratio = 700:1050)
-      const CARD_W = cardCount === 1 ? 200 : 100;
+      // 더 큰 카드 사이즈로 연출 강화
+      const CARD_W = cardCount === 1 ? 380 : 200;
       const CARD_H = Math.round(CARD_W * 1.5);
+
+      // 결과 화면 카드 크기로 축소 비율
+      // 1회: result .gacha-single-big-card = 280px → 280/380
+      // 10회: result grid cell ≈ 130px → 130/200
+      const FINAL_SCALE = cardCount === 1 ? 280 / 380 : 130 / 200;
 
       // Layout positions
       const positions: { x: number; y: number }[] = [];
@@ -84,11 +101,10 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
         }
 
         create() {
-          // Persistent dark background
+          // 어두운 배경
           this.bg = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0);
           this.bg.setDepth(0);
 
-          // PHASE 1: Quick blackout
           this.tweens.add({
             targets: this.bg,
             alpha: 0.88,
@@ -96,13 +112,13 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             ease: "Quad.easeIn",
           });
 
-          // PHASE 2: Epic resume storm (0.25s ~ 2.4s)
+          // Phase 1: 이력서 폭풍 (0.25s~2.4s)
           this.time.delayedCall(250, () => this.startResumeStorm());
 
-          // PHASE 3: Cards drop
+          // Phase 2: 카드 낙하 (2.4s~)
           this.time.delayedCall(2400, () => this.startCardDrop());
 
-          // Skip
+          // 스킵 허용 (1.2s 이후)
           this.time.delayedCall(1200, () => { this.canSkip = true; });
           this.input.on("pointerdown", () => {
             if (this.canSkip && !this.isEnding) this.skipToEnd();
@@ -110,10 +126,9 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
         }
 
         // =============================================
-        // PHASE 2 — Epic resume storm
+        // Phase 1 — 이력서 폭풍
         // =============================================
         private startResumeStorm() {
-          // Textures for wind/particles
           if (!this.textures.exists("streak")) {
             const g = this.make.graphics({ x: 0, y: 0 });
             g.fillStyle(0xffffff, 1);
@@ -129,9 +144,8 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             g.destroy();
           }
 
-          // ---- WAVE 1: Resumes raining down from above ----
-          const wave1Count = 18;
-          for (let i = 0; i < wave1Count; i++) {
+          // Wave 1: 위에서 비처럼 떨어짐
+          for (let i = 0; i < 18; i++) {
             const resume = this.add.sprite(0, 0, "card_back");
             const scale = 0.6 + Math.random() * 0.5;
             resume.setDisplaySize(CARD_W * scale, CARD_H * scale);
@@ -142,31 +156,20 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             resume.setDepth(2 + i);
             this.flyingObjects.push(resume);
 
-            // Fade in + fall
-            this.tweens.add({
-              targets: resume,
-              alpha: 0.5 + Math.random() * 0.4,
-              duration: 200,
-              delay: i * 50,
-            });
-
-            // Dramatic fall with drift
+            this.tweens.add({ targets: resume, alpha: 0.5 + Math.random() * 0.4, duration: 200, delay: i * 50 });
             const drift = (Math.random() - 0.5) * 300;
             this.tweens.add({
               targets: resume,
-              x: sx + drift,
-              y: H + 200 + Math.random() * 300,
+              x: sx + drift, y: H + 200 + Math.random() * 300,
               rotation: resume.rotation + (Math.random() - 0.5) * 6,
               duration: 1200 + Math.random() * 800,
-              delay: i * 50,
-              ease: "Quad.easeIn",
+              delay: i * 50, ease: "Quad.easeIn",
             });
           }
 
-          // ---- WAVE 2: Sideways burst from center (0.3s later) ----
+          // Wave 2: 중앙에서 사방으로 폭발
           this.time.delayedCall(300, () => {
-            const wave2Count = 14;
-            for (let i = 0; i < wave2Count; i++) {
+            for (let i = 0; i < 14; i++) {
               const resume = this.add.sprite(W / 2, H / 2, "card_back");
               const scale = 0.4 + Math.random() * 0.5;
               resume.setDisplaySize(CARD_W * scale, CARD_H * scale);
@@ -174,45 +177,29 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
               resume.setDepth(20 + i);
               this.flyingObjects.push(resume);
 
-              // Explode outward from center
               const angle = Math.random() * Math.PI * 2;
               const dist = 500 + Math.random() * 600;
-              const endX = W / 2 + Math.cos(angle) * dist;
-              const endY = H / 2 + Math.sin(angle) * dist;
-
+              this.tweens.add({ targets: resume, alpha: 0.6 + Math.random() * 0.3, duration: 150 });
               this.tweens.add({
                 targets: resume,
-                alpha: 0.6 + Math.random() * 0.3,
-                duration: 150,
-              });
-
-              this.tweens.add({
-                targets: resume,
-                x: endX,
-                y: endY,
+                x: W / 2 + Math.cos(angle) * dist,
+                y: H / 2 + Math.sin(angle) * dist,
                 rotation: (Math.random() - 0.5) * 8,
-                duration: 800 + Math.random() * 500,
-                ease: "Cubic.easeOut",
+                duration: 800 + Math.random() * 500, ease: "Cubic.easeOut",
               });
             }
 
-            // Center flash on burst
             const burstFlash = this.add.circle(W / 2, H / 2, 60, 0xffffff, 0.6).setDepth(50);
             this.tweens.add({
-              targets: burstFlash,
-              scaleX: 8, scaleY: 8, alpha: 0,
-              duration: 500, ease: "Quad.easeOut",
-              onComplete: () => burstFlash.destroy(),
+              targets: burstFlash, scaleX: 8, scaleY: 8, alpha: 0,
+              duration: 500, ease: "Quad.easeOut", onComplete: () => burstFlash.destroy(),
             });
-
-            // Camera shake on burst
             this.cameras.main.shake(300, 0.008);
           });
 
-          // ---- WAVE 3: Second rain from top-right (0.7s later) ----
+          // Wave 3: 우측 상단에서 추가로 쏟아짐
           this.time.delayedCall(700, () => {
-            const wave3Count = 12;
-            for (let i = 0; i < wave3Count; i++) {
+            for (let i = 0; i < 12; i++) {
               const resume = this.add.sprite(0, 0, "card_back");
               const scale = 0.5 + Math.random() * 0.6;
               resume.setDisplaySize(CARD_W * scale, CARD_H * scale);
@@ -223,28 +210,23 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
               resume.setDepth(35 + i);
               this.flyingObjects.push(resume);
 
-              // Fall with left drift (wind effect)
               this.tweens.add({
                 targets: resume,
-                x: sx - 200 - Math.random() * 400,
-                y: H + 150,
+                x: sx - 200 - Math.random() * 400, y: H + 150,
                 rotation: resume.rotation + (Math.random() > 0.5 ? 4 : -4),
-                duration: 1000 + Math.random() * 600,
-                delay: i * 40,
-                ease: "Sine.easeIn",
+                duration: 1000 + Math.random() * 600, delay: i * 40, ease: "Sine.easeIn",
               });
             }
           });
 
-          // ---- Continuous wind streaks ----
+          // 바람 스트릭
           this.add.particles(W + 30, H / 2, "streak", {
             speed: { min: 400, max: 800 },
             angle: { min: 178, max: 182 },
             scale: { start: 1.2, end: 0 },
             alpha: { start: 0.3, end: 0 },
             lifespan: { min: 400, max: 700 },
-            quantity: 3,
-            frequency: 25,
+            quantity: 3, frequency: 25,
             emitZone: {
               type: "random",
               source: new Phaser.Geom.Rectangle(0, -H / 2, 10, H),
@@ -252,15 +234,14 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             duration: 1800,
           }).setDepth(1);
 
-          // ---- Sparkle dots floating ----
+          // 반짝이 파티클
           this.add.particles(W / 2, H / 2, "sparkDot", {
             speed: { min: 30, max: 120 },
             angle: { min: 0, max: 360 },
             scale: { start: 0.8, end: 0 },
             alpha: { start: 0.5, end: 0 },
             lifespan: { min: 600, max: 1200 },
-            quantity: 2,
-            frequency: 60,
+            quantity: 2, frequency: 60,
             tint: [0xffffff, 0xccddff, 0xeeeeff],
             emitZone: {
               type: "random",
@@ -269,20 +250,14 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             duration: 1800,
           }).setDepth(60);
 
-          // ---- Second camera shake at peak ----
-          this.time.delayedCall(1000, () => {
-            this.cameras.main.shake(200, 0.005);
-          });
+          this.time.delayedCall(1000, () => { this.cameras.main.shake(200, 0.005); });
 
-          // ---- Fade out all flying resumes before card drop ----
+          // 낙하 이력서 페이드 아웃 (카드 낙하 직전)
           this.time.delayedCall(1700, () => {
             this.flyingObjects.forEach((obj) => {
               const sprite = obj as Phaser.GameObjects.Sprite;
               this.tweens.add({
-                targets: sprite,
-                alpha: 0,
-                duration: 500,
-                ease: "Sine.easeIn",
+                targets: sprite, alpha: 0, duration: 500, ease: "Sine.easeIn",
                 onComplete: () => sprite.destroy(),
               });
             });
@@ -291,7 +266,7 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
         }
 
         // =============================================
-        // PHASE 3 — Cards drop from above
+        // Phase 2 — 카드 낙하
         // =============================================
         private startCardDrop() {
           for (let i = 0; i < cardCount; i++) {
@@ -302,8 +277,6 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
 
           dropOrder.forEach((ci, di) => {
             const pos = posLocal[ci];
-
-            // Back and front are EXACTLY the same size
             const back = this.add.sprite(0, 0, "card_back");
             back.setDisplaySize(CARD_W, CARD_H);
 
@@ -324,23 +297,14 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             this.fronts[ci] = front;
 
             const delay = di * 100;
-
             this.tweens.add({
               targets: container,
-              x: pos.x,
-              y: pos.y,
-              rotation: 0,
-              duration: 500,
-              delay,
-              ease: "Back.easeOut",
+              x: pos.x, y: pos.y, rotation: 0,
+              duration: 500, delay, ease: "Back.easeOut",
               onComplete: () => {
                 this.tweens.add({
-                  targets: container,
-                  scaleY: 0.95,
-                  scaleX: 1.03,
-                  duration: 60,
-                  yoyo: true,
-                  ease: "Sine.easeOut",
+                  targets: container, scaleY: 0.95, scaleX: 1.03,
+                  duration: 60, yoyo: true, ease: "Sine.easeOut",
                 });
                 this.spawnDust(pos.x, pos.y + CARD_H / 2);
               },
@@ -352,7 +316,7 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
         }
 
         // =============================================
-        // PHASE 4 — Flip cards by grade
+        // Phase 3 — 등급별 플립 (back → front)
         // =============================================
         private scheduleReveals(base: number) {
           const normals: number[] = [];
@@ -365,23 +329,15 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             else normals.push(i);
           });
 
-          // B/C/D
           if (normals.length > 0) {
-            this.time.delayedCall(base + 800, () => {
-              this.cameras.main.shake(200, 0.003);
-            });
+            this.time.delayedCall(base + 800, () => { this.cameras.main.shake(200, 0.003); });
             normals.forEach((idx, j) => {
-              this.time.delayedCall(base + 900 + j * 60, () => {
-                this.flipCard(idx, "normal");
-              });
+              this.time.delayedCall(base + 900 + j * 60, () => { this.flipCard(idx, "normal"); });
             });
           }
 
-          // A
           if (aCards.length > 0) {
-            this.time.delayedCall(base + 1800, () => {
-              this.cameras.main.shake(350, 0.01);
-            });
+            this.time.delayedCall(base + 1800, () => { this.cameras.main.shake(350, 0.01); });
             aCards.forEach((idx, j) => {
               this.time.delayedCall(base + 1900 + j * 120, () => {
                 this.effectA(idx);
@@ -390,11 +346,8 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             });
           }
 
-          // S
           if (sCards.length > 0) {
-            this.time.delayedCall(base + 2500, () => {
-              sCards.forEach((idx) => this.preShake(idx));
-            });
+            this.time.delayedCall(base + 2500, () => { sCards.forEach((idx) => this.preShake(idx)); });
             this.time.delayedCall(base + 2800, () => {
               this.cameras.main.shake(500, 0.02);
               this.flash(0x00e5ff, 0.4);
@@ -411,9 +364,82 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
           if (aCards.length > 0) endTime = Math.max(endTime, base + 1900 + aCards.length * 120 + 500);
           if (sCards.length > 0) endTime = Math.max(endTime, base + 3000 + sCards.length * 180 + 700);
 
-          this.time.delayedCall(endTime + 600, () => this.finish());
+          // Phase 4: 능력치 표시 → Phase 5: 카드 축소 → Phase 6: 결과 화면
+          this.time.delayedCall(endTime + 400, () => this.showStats());
+          this.time.delayedCall(endTime + 2000, () => this.startShrink());
         }
 
+        // =============================================
+        // Phase 4 — 카드 위에 능력치 텍스트 표시
+        // =============================================
+        private showStats() {
+          cardsLocal.forEach((card, i) => {
+            const c = this.containers[i];
+            const front = this.fronts[i];
+            if (!c || !front?.visible) return;
+
+            const skills = [card.skill1, card.skill2, card.skill3];
+            // CSS .gacha-card-stat: bottom 26%, 16%, 5%
+            // 컨테이너 기준 (0,0)이 카드 중앙 → y: CARD_H*(0.5 - bottomPct)
+            const yOffsets = [
+              CARD_H * 0.24,   // bottom 26%
+              CARD_H * 0.34,   // bottom 16%
+              CARD_H * 0.45,   // bottom 5%
+            ];
+            const fontSize = Math.max(16, Math.round(CARD_H * 0.058));
+
+            skills.forEach((skill, si) => {
+              if (!skill) return;
+              const label = `${skillLabel(skill.skillType)} ${skill.value}`;
+
+              // 텍스트 배경 (가독성)
+              const bgRect = this.add.rectangle(0, yOffsets[si], CARD_W * 0.82, fontSize * 1.5, 0x000000, 0.45);
+              bgRect.setOrigin(0.5, 0.5);
+              bgRect.setAlpha(0);
+              bgRect.setDepth(c.depth + 9);
+              c.add(bgRect);
+
+              const text = this.add.text(0, yOffsets[si], label, {
+                fontFamily: "'StardustS', 'Stardust', Arial, sans-serif",
+                fontSize: `${fontSize}px`,
+                fontStyle: "bold",
+                color: "#ffffff",
+                stroke: "#000000",
+                strokeThickness: 4,
+                align: "center",
+              });
+              text.setOrigin(0.5, 0.5);
+              text.setAlpha(0);
+              text.setDepth(c.depth + 10);
+              c.add(text);
+
+              const delay = si * 180 + 100;
+              this.tweens.add({ targets: bgRect, alpha: 1, duration: 300, delay, ease: "Sine.easeOut" });
+              this.tweens.add({ targets: text, alpha: 1, duration: 300, delay, ease: "Sine.easeOut" });
+            });
+          });
+        }
+
+        // =============================================
+        // Phase 5 — 카드 축소 (결과 화면 크기로)
+        // =============================================
+        private startShrink() {
+          this.containers.forEach((c) => {
+            if (!c) return;
+            this.tweens.killTweensOf(c);
+            this.tweens.add({
+              targets: c,
+              scale: FINAL_SCALE,
+              duration: 600,
+              ease: "Cubic.easeInOut",
+            });
+          });
+          this.time.delayedCall(750, () => this.finish());
+        }
+
+        // =============================================
+        // 플립 애니메이션
+        // =============================================
         private flipCard(idx: number, grade: string) {
           const c = this.containers[idx];
           if (!c) return;
@@ -422,18 +448,12 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
           const dur = grade === "S" ? 280 : grade === "A" ? 240 : 180;
 
           this.tweens.add({
-            targets: c,
-            scaleX: 0,
-            duration: dur,
-            ease: "Sine.easeIn",
+            targets: c, scaleX: 0, duration: dur, ease: "Sine.easeIn",
             onComplete: () => {
               back.setVisible(false);
               front.setVisible(true);
               this.tweens.add({
-                targets: c,
-                scaleX: 1,
-                duration: dur,
-                ease: "Sine.easeOut",
+                targets: c, scaleX: 1, duration: dur, ease: "Sine.easeOut",
                 onComplete: () => {
                   if (grade === "S") this.glow(idx, 0x00e5ff, 0.45);
                   else if (grade === "A") this.glow(idx, 0xffd700, 0.3);
@@ -443,22 +463,19 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
           });
 
           this.tweens.add({
-            targets: c,
-            y: c.y - 10,
-            duration: dur * 0.8,
-            yoyo: true,
-            ease: "Sine.easeOut",
+            targets: c, y: c.y - 12, duration: dur * 0.8, yoyo: true, ease: "Sine.easeOut",
           });
         }
 
+        // =============================================
+        // 스킵 처리
+        // =============================================
         private skipToEnd() {
           if (this.isEnding) return;
           this.tweens.killAll();
           this.time.removeAllEvents();
-
           this.bg.setAlpha(0.88);
 
-          // Destroy flying objects
           this.flyingObjects.forEach((o) => o.destroy());
           this.flyingObjects = [];
 
@@ -468,8 +485,8 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
               const back = this.add.sprite(0, 0, "card_back").setDisplaySize(CARD_W, CARD_H).setVisible(false);
               const front = this.add.sprite(0, 0, `cf_${i}`).setDisplaySize(CARD_W, CARD_H);
               const shadow = this.add.ellipse(0, CARD_H / 2 + 5, CARD_W * 0.55, 8, 0x000000, 0.25);
-              const c = this.add.container(pos.x, pos.y, [shadow, back, front]).setDepth(10 + i);
-              this.containers[i] = c;
+              const cont = this.add.container(pos.x, pos.y, [shadow, back, front]).setDepth(10 + i);
+              this.containers[i] = cont;
               this.backs[i] = back;
               this.fronts[i] = front;
             }
@@ -484,31 +501,34 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             else if (card.grade === "A") this.glow(i, 0xffd700, 0.3);
           });
 
-          this.time.delayedCall(400, () => this.finish());
+          // 능력치 표시 후 바로 축소
+          this.showStats();
+          this.time.delayedCall(600, () => this.startShrink());
         }
 
+        // =============================================
+        // 종료 — 페이드 아웃 후 onComplete
+        // =============================================
         private finish() {
           if (this.isEnding) return;
           this.isEnding = true;
           const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0).setDepth(2000);
           this.tweens.add({
-            targets: overlay,
-            alpha: 0.7,
-            duration: 400,
-            ease: "Sine.easeIn",
+            targets: overlay, alpha: 0.85, duration: 400, ease: "Sine.easeIn",
             onComplete: () => onCompleteRef.current(),
           });
         }
 
+        // =============================================
+        // 헬퍼 메서드들
+        // =============================================
         private preShake(idx: number) {
           const c = this.containers[idx];
           if (!c) return;
           const ox = c.x;
           this.tweens.add({
-            targets: c,
-            x: { from: ox - 3, to: ox + 3 },
-            duration: 40, yoyo: true, repeat: 10,
-            ease: "Sine.easeInOut",
+            targets: c, x: { from: ox - 3, to: ox + 3 },
+            duration: 40, yoyo: true, repeat: 10, ease: "Sine.easeInOut",
             onComplete: () => { c.x = ox; },
           });
         }
@@ -522,21 +542,17 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             g.destroy();
           }
           this.add.particles(x, y, "dust", {
-            speed: { min: 20, max: 60 },
-            angle: { min: 230, max: 310 },
-            scale: { start: 0.5, end: 0 },
-            alpha: { start: 0.4, end: 0 },
-            lifespan: 350, quantity: 4,
-            tint: [0xaaaaaa, 0x888888],
-            gravityY: 40, duration: 80,
+            speed: { min: 20, max: 60 }, angle: { min: 230, max: 310 },
+            scale: { start: 0.5, end: 0 }, alpha: { start: 0.4, end: 0 },
+            lifespan: 350, quantity: 4, tint: [0xaaaaaa, 0x888888], gravityY: 40, duration: 80,
           }).setDepth(5);
         }
 
         private flash(color: number, alpha: number) {
           const f = this.add.rectangle(W / 2, H / 2, W, H, color, alpha).setDepth(100);
           this.tweens.add({
-            targets: f, alpha: 0, duration: 450,
-            ease: "Sine.easeOut", onComplete: () => f.destroy(),
+            targets: f, alpha: 0, duration: 450, ease: "Sine.easeOut",
+            onComplete: () => f.destroy(),
           });
         }
 
@@ -550,14 +566,10 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             g.destroy();
           }
           this.add.particles(p.x, p.y, "sp_a", {
-            speed: { min: 60, max: 250 },
-            angle: { min: 0, max: 360 },
-            scale: { start: 1, end: 0 },
-            alpha: { start: 0.9, end: 0 },
-            lifespan: { min: 350, max: 800 },
-            quantity: 12,
-            tint: [0xffd700, 0xffec80, 0xffffff],
-            gravityY: 50, duration: 350,
+            speed: { min: 60, max: 250 }, angle: { min: 0, max: 360 },
+            scale: { start: 1, end: 0 }, alpha: { start: 0.9, end: 0 },
+            lifespan: { min: 350, max: 800 }, quantity: 12,
+            tint: [0xffd700, 0xffec80, 0xffffff], gravityY: 50, duration: 350,
           }).setDepth(50);
 
           const fl = this.add.circle(p.x, p.y, CARD_W * 0.7, 0xffd700, 0.35).setDepth(49);
@@ -585,26 +597,18 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
           }
 
           this.add.particles(p.x, p.y, "sp_s", {
-            speed: { min: 100, max: 400 },
-            angle: { min: 0, max: 360 },
-            scale: { start: 1.5, end: 0 },
-            alpha: { start: 1, end: 0 },
-            lifespan: { min: 500, max: 1200 },
-            quantity: 25,
-            tint: [0x00e5ff, 0xb9f2ff, 0xffffff],
-            gravityY: 60, duration: 500,
+            speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 },
+            scale: { start: 1.5, end: 0 }, alpha: { start: 1, end: 0 },
+            lifespan: { min: 500, max: 1200 }, quantity: 25,
+            tint: [0x00e5ff, 0xb9f2ff, 0xffffff], gravityY: 60, duration: 500,
           }).setDepth(50);
 
           this.time.delayedCall(150, () => {
             this.add.particles(p.x, p.y, "sp_s", {
-              speed: { min: 40, max: 150 },
-              angle: { min: 0, max: 360 },
-              scale: { start: 0.7, end: 0 },
-              alpha: { start: 0.6, end: 0 },
-              lifespan: { min: 300, max: 800 },
-              quantity: 12,
-              tint: [0x00e5ff, 0xffffff],
-              gravityY: 30, duration: 400,
+              speed: { min: 40, max: 150 }, angle: { min: 0, max: 360 },
+              scale: { start: 0.7, end: 0 }, alpha: { start: 0.6, end: 0 },
+              lifespan: { min: 300, max: 800 }, quantity: 12,
+              tint: [0x00e5ff, 0xffffff], gravityY: 30, duration: 400,
             }).setDepth(50);
           });
 

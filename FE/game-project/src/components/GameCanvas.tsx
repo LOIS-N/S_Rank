@@ -342,12 +342,12 @@ export default function GameCanvas() {
     <div
       id="game-container"
       style={{
+        // game-wrapper(1280×720)를 그대로 채움.
+        // transform 없이 inset:0 으로 단순화해야
+        // Phaser의 getBoundingClientRect()가 중첩 transform 때문에
+        // 일부 모바일 브라우저에서 (0,0)을 잘못 반환하는 문제를 방지한다.
         position: 'absolute',
-        width: 'var(--vp-w, 1280px)',
-        height: 'var(--vp-h, 720px)',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
+        inset: 0,
         touchAction: 'none',
       }}
     />

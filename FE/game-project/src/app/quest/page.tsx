@@ -262,7 +262,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { q
         onClick={onAccept}
         style={isInProgress ? { filter: 'brightness(0.65)', cursor: 'default' } : undefined}
       >
-        <span style={{position:'relative', zIndex: 2}}>
+        <span style={{ position: 'relative', zIndex: 2 }}>
           {isAccepting ? "수락 중..." : isInProgress ? "진행 중" : "수락하기"}
         </span>
       </NineSliceBox>
@@ -313,7 +313,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       }
     };
     fetchDeskId();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectingDeskId]);
 
   const fetchCards = useCallback(async (cursor?: string | null) => {
@@ -339,12 +339,12 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       setIsCardLoading(false);
       setIsInitialLoad(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getAuthToken]);
 
   useEffect(() => {
     fetchCards(null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 등급순 → 같은 등급 내 총합 능력치 내림차순 정렬
@@ -368,7 +368,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       }
     };
     fetchUsedCards();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // --- 경고 메시지 ---
@@ -644,7 +644,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
     if (p2ScrollRatio > 0.9 && hasMore && !isCardLoading && nextCursor) {
       fetchCards(nextCursor);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p2ScrollRatio, hasMore, isCardLoading, nextCursor]);
 
   const handleP2Wheel = useCallback((e: React.WheelEvent) => {
@@ -734,7 +734,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
             style={{ flex: 1, overflow: 'hidden' }}
             onPointerDown={(e) => {
               if (p2MaxScroll <= 0) return;
-              e.currentTarget.setPointerCapture(e.pointerId);
+              // e.currentTarget.setPointerCapture(e.pointerId);
               isSwipe2Ref.current = true;
               swipe2MovedRef.current = false;
               swipe2StartYRef.current = e.clientY;
@@ -747,8 +747,8 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
               if (Math.abs(deltaY) > 5) swipe2MovedRef.current = true;
               setP2ScrollRatio(Math.min(1, Math.max(0, swipe2StartRatioRef.current + deltaY / p2MaxScroll)));
             }}
-            onPointerUp={() => { isSwipe2Ref.current = false; }}
-            onPointerCancel={() => { isSwipe2Ref.current = false; }}
+            onPointerUp={() => { isSwipe2Ref.current = false; swipe2MovedRef.current = false; }}
+            onPointerCancel={() => { isSwipe2Ref.current = false; swipe2MovedRef.current = false; }}
             onClickCapture={(e) => { if (swipe2MovedRef.current) { e.stopPropagation(); swipe2MovedRef.current = false; } }}
           >
             <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
@@ -793,7 +793,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       {/* ──── 중간: 스크롤바 ──── */}
       <div className="scrollbar-column phase2-scrollbar-column">
         <div ref={p2TrackRef} className="scrollbar-track" onClick={handleP2TrackClick}>
-           <div className="scrollbar-thumb" style={{ top: p2ThumbTop() }} onPointerDown={handleP2ThumbPointerDown} />
+          <div className="scrollbar-thumb" style={{ top: p2ThumbTop() }} onPointerDown={handleP2ThumbPointerDown} />
         </div>
       </div>
 
@@ -868,16 +868,16 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
             </div>
           </NineSliceBox>
           <NineSliceBox src="/assets/003-02/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
-             <div className="quest-info-box-label">예상 시간 / 보상</div>
-             <div className="quest-info-box-text">
-               <div>예상 시간 : {estimatedTime != null ? `${estimatedTime}분` : `${quest.durationMinutes}분`}</div>
-               <div>예상 보상 : {rewardInfo.reward.toLocaleString()}G</div>
-               {rewardInfo.ratio > 1.5 && (
-                 <div style={{ fontSize: '20px', color: '#cc8800' }}>
-                   (오버스펙 {Math.round(rewardInfo.multiplier * 100)}%)
-                 </div>
-               )}
-             </div>
+            <div className="quest-info-box-label">예상 시간 / 보상</div>
+            <div className="quest-info-box-text">
+              <div>예상 시간 : {estimatedTime != null ? `${estimatedTime}분` : `${quest.durationMinutes}분`}</div>
+              <div>예상 보상 : {rewardInfo.reward.toLocaleString()}G</div>
+              {rewardInfo.ratio > 1.5 && (
+                <div style={{ fontSize: '20px', color: '#cc8800' }}>
+                  (오버스펙 {Math.round(rewardInfo.multiplier * 100)}%)
+                </div>
+              )}
+            </div>
           </NineSliceBox>
         </div>
 
@@ -1093,7 +1093,7 @@ export default function QuestPage() {
   const getThumbTop = useCallback(() => {
     if (!trackHeight) return 0;
     const thumbSize = 100;
-    const trackPadding = 14; 
+    const trackPadding = 14;
     const maxThumbTop = trackHeight - thumbSize - (trackPadding * 2);
     if (maxThumbTop <= 0) return trackPadding;
     return trackPadding + (scrollRatio * maxThumbTop);
@@ -1167,20 +1167,20 @@ export default function QuestPage() {
   return (
     <div className="quest-page-container">
 
-        {/* 상단 타이틀 */}
-        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-          <NineSliceBox
-            src="/assets/003-01/questCard_000.webp"
-            slice={[200, 208, 200, 208]}
-            framePadding={14}
-            borderScale={0.4}
-            className="quest-page-title-box"
-          >
-            <h1 className="quest-page-title">회사 프로젝트 정하기</h1>
-          </NineSliceBox>
-        </div>
+      {/* 상단 타이틀 */}
+      <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+        <NineSliceBox
+          src="/assets/003-01/questCard_000.webp"
+          slice={[200, 208, 200, 208]}
+          framePadding={14}
+          borderScale={0.4}
+          className="quest-page-title-box"
+        >
+          <h1 className="quest-page-title">회사 프로젝트 정하기</h1>
+        </NineSliceBox>
+      </div>
 
-        {/* 메인 콘텐츠 래퍼 (슬라이딩 애니메이션) */}
+      {/* 메인 콘텐츠 래퍼 (슬라이딩 애니메이션) */}
       <div className={`quest-content-wrapper phase-${phase}`}>
         {/* === Phase 1: 퀘스트 목록 화면 === */}
         <div className="quest-content phase-1-content">
@@ -1207,7 +1207,7 @@ export default function QuestPage() {
                 className="sub-quest-scroll-area"
                 onPointerDown={(e) => {
                   if (maxScroll <= 0) return;
-                  e.currentTarget.setPointerCapture(e.pointerId);
+                  // e.currentTarget.setPointerCapture(e.pointerId);
                   isSwipe1Ref.current = true;
                   swipe1MovedRef.current = false;
                   swipe1StartYRef.current = e.clientY;
@@ -1220,8 +1220,8 @@ export default function QuestPage() {
                   if (Math.abs(deltaY) > 5) swipe1MovedRef.current = true;
                   setScrollRatio(Math.min(1, Math.max(0, swipe1StartRatioRef.current + deltaY / maxScroll)));
                 }}
-                onPointerUp={() => { isSwipe1Ref.current = false; }}
-                onPointerCancel={() => { isSwipe1Ref.current = false; }}
+                onPointerUp={() => { isSwipe1Ref.current = false; swipe1MovedRef.current = false; }}
+                onPointerCancel={() => { isSwipe1Ref.current = false; swipe1MovedRef.current = false; }}
                 onClickCapture={(e) => { if (swipe1MovedRef.current) { e.stopPropagation(); swipe1MovedRef.current = false; } }}
               >
                 <div
@@ -1331,6 +1331,6 @@ export default function QuestPage() {
         </div>,
         document.body
       )}
-      </div>
+    </div>
   );
 }
