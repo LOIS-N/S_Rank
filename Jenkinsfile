@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        COMPOSE_PATH = '/home/ubuntu/cicd/develop'
         COMPOSE_PATH = '/home/ubuntu/cicd/release'
         MATTERMOST_WEBHOOK = 'https://meeting.ssafy.com/hooks/7pk8t938s7bszxc9acbwfdji9c'
     }
