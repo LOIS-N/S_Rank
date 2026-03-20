@@ -642,9 +642,11 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
   const dragStartP2RatioRef = useRef(0);
   // Phase2 스와이프 스크롤
   const swipe2StartYRef = useRef(0);
-  const swipe2StartRatioRef = useRef(0);
   const isSwipe2Ref = useRef(false);
   const swipe2MovedRef = useRef(false);
+  const swipe2VelocityRef = useRef(0);
+  const swipe2LastTimeRef = useRef(0);
+  const momentum2AnimRef = useRef<number | null>(null);
 
   // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
   const p2MaxScroll = Math.max(0, p2GridHeight - p2WrapperHeight);
@@ -745,22 +747,44 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
             style={{ flex: 1, overflow: 'hidden' }}
             onPointerDown={(e) => {
               if (p2MaxScroll <= 0) return;
-              // e.currentTarget.setPointerCapture(e.pointerId);
+              if (momentum2AnimRef.current !== null) { cancelAnimationFrame(momentum2AnimRef.current); momentum2AnimRef.current = null; }
               isSwipe2Ref.current = true;
               swipe2MovedRef.current = false;
               swipe2StartYRef.current = e.clientY;
-              swipe2StartRatioRef.current = p2ScrollRatio;
+              swipe2VelocityRef.current = 0;
+              swipe2LastTimeRef.current = performance.now();
             }}
             onPointerMove={(e) => {
               if (!isSwipe2Ref.current || p2MaxScroll <= 0) return;
+              const now = performance.now();
+              const dt = Math.max(8, now - swipe2LastTimeRef.current);
               const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
-              const speedMultiplier = e.pointerType === 'touch' ? 5 : 1.5;
-              const deltaY = (swipe2StartYRef.current - e.clientY) / gameScale * speedMultiplier;
-              if (Math.abs(deltaY) > 5) swipe2MovedRef.current = true;
-              setP2ScrollRatio(Math.min(1, Math.max(0, swipe2StartRatioRef.current + deltaY / p2MaxScroll)));
+              const rawDelta = swipe2StartYRef.current - e.clientY;
+              if (Math.abs(rawDelta) > 2) swipe2MovedRef.current = true;
+              swipe2VelocityRef.current = rawDelta * (16 / dt);
+              swipe2StartYRef.current = e.clientY;
+              swipe2LastTimeRef.current = now;
+              setP2ScrollRatio(prev => Math.min(1, Math.max(0, prev + (rawDelta / gameScale) / p2MaxScroll)));
             }}
-            onPointerUp={() => { isSwipe2Ref.current = false; swipe2MovedRef.current = false; }}
-            onPointerCancel={() => { isSwipe2Ref.current = false; swipe2MovedRef.current = false; }}
+            onPointerUp={() => {
+              if (!isSwipe2Ref.current) return;
+              isSwipe2Ref.current = false;
+              const capturedMax = p2MaxScroll;
+              const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
+              let v = swipe2VelocityRef.current / gameScale;
+              const animate = () => {
+                v *= 0.90;
+                if (Math.abs(v) < 0.3 || capturedMax <= 0) { momentum2AnimRef.current = null; swipe2MovedRef.current = false; return; }
+                setP2ScrollRatio(prev => Math.min(1, Math.max(0, prev + v / capturedMax)));
+                momentum2AnimRef.current = requestAnimationFrame(animate);
+              };
+              if (Math.abs(v) > 0.5) { momentum2AnimRef.current = requestAnimationFrame(animate); } else { swipe2MovedRef.current = false; }
+            }}
+            onPointerCancel={() => {
+              isSwipe2Ref.current = false;
+              swipe2MovedRef.current = false;
+              if (momentum2AnimRef.current !== null) { cancelAnimationFrame(momentum2AnimRef.current); momentum2AnimRef.current = null; }
+            }}
             onClickCapture={(e) => { if (swipe2MovedRef.current) { e.stopPropagation(); swipe2MovedRef.current = false; } }}
           >
             <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
@@ -1074,9 +1098,11 @@ export default function QuestPage() {
   const dragStartRatioRef = useRef(0);
   // 스와이프 스크롤
   const swipe1StartYRef = useRef(0);
-  const swipe1StartRatioRef = useRef(0);
   const isSwipe1Ref = useRef(false);
   const swipe1MovedRef = useRef(false);
+  const swipe1VelocityRef = useRef(0);
+  const swipe1LastTimeRef = useRef(0);
+  const momentum1AnimRef = useRef<number | null>(null);
 
   // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
   const maxScroll = Math.max(0, questListHeight - questWrapperHeight);
@@ -1214,22 +1240,44 @@ export default function QuestPage() {
                 className="sub-quest-scroll-area"
                 onPointerDown={(e) => {
                   if (maxScroll <= 0) return;
-                  // e.currentTarget.setPointerCapture(e.pointerId);
+                  if (momentum1AnimRef.current !== null) { cancelAnimationFrame(momentum1AnimRef.current); momentum1AnimRef.current = null; }
                   isSwipe1Ref.current = true;
                   swipe1MovedRef.current = false;
                   swipe1StartYRef.current = e.clientY;
-                  swipe1StartRatioRef.current = scrollRatio;
+                  swipe1VelocityRef.current = 0;
+                  swipe1LastTimeRef.current = performance.now();
                 }}
                 onPointerMove={(e) => {
                   if (!isSwipe1Ref.current || maxScroll <= 0) return;
+                  const now = performance.now();
+                  const dt = Math.max(8, now - swipe1LastTimeRef.current);
                   const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
-                  const speedMultiplier = e.pointerType === 'touch' ? 2.5 : 1;
-                  const deltaY = (swipe1StartYRef.current - e.clientY) / gameScale * speedMultiplier;
-                  if (Math.abs(deltaY) > 5) swipe1MovedRef.current = true;
-                  setScrollRatio(Math.min(1, Math.max(0, swipe1StartRatioRef.current + deltaY / maxScroll)));
+                  const rawDelta = swipe1StartYRef.current - e.clientY;
+                  if (Math.abs(rawDelta) > 2) swipe1MovedRef.current = true;
+                  swipe1VelocityRef.current = rawDelta * (16 / dt);
+                  swipe1StartYRef.current = e.clientY;
+                  swipe1LastTimeRef.current = now;
+                  setScrollRatio(prev => Math.min(1, Math.max(0, prev + (rawDelta / gameScale) / maxScroll)));
                 }}
-                onPointerUp={() => { isSwipe1Ref.current = false; swipe1MovedRef.current = false; }}
-                onPointerCancel={() => { isSwipe1Ref.current = false; swipe1MovedRef.current = false; }}
+                onPointerUp={() => {
+                  if (!isSwipe1Ref.current) return;
+                  isSwipe1Ref.current = false;
+                  const capturedMax = maxScroll;
+                  const gameScale = parseFloat(document.documentElement.style.getPropertyValue('--game-scale')) || 1;
+                  let v = swipe1VelocityRef.current / gameScale;
+                  const animate = () => {
+                    v *= 0.90;
+                    if (Math.abs(v) < 0.3 || capturedMax <= 0) { momentum1AnimRef.current = null; swipe1MovedRef.current = false; return; }
+                    setScrollRatio(prev => Math.min(1, Math.max(0, prev + v / capturedMax)));
+                    momentum1AnimRef.current = requestAnimationFrame(animate);
+                  };
+                  if (Math.abs(v) > 0.5) { momentum1AnimRef.current = requestAnimationFrame(animate); } else { swipe1MovedRef.current = false; }
+                }}
+                onPointerCancel={() => {
+                  isSwipe1Ref.current = false;
+                  swipe1MovedRef.current = false;
+                  if (momentum1AnimRef.current !== null) { cancelAnimationFrame(momentum1AnimRef.current); momentum1AnimRef.current = null; }
+                }}
                 onClickCapture={(e) => { if (swipe1MovedRef.current) { e.stopPropagation(); swipe1MovedRef.current = false; } }}
               >
                 <div
