@@ -269,11 +269,8 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
             log.debug("[Quest] userMainQuestRepository.findByIdAndUserIdAndStatus 호출 전");
             UserMainQuest mainQuest = userMainQuestRepository.findByIdAndUserIdAndStatus(request.questId(), userId, QuestStatus.COMPLETED)
                     .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_COMPLETED));
-            if (mainQuest.getEndAt().isAfter(LocalDateTime.now()))
-                throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
             gold = mainQuest.getMainQuestTemplate().getRewardGold();
             log.debug("[Quest] userMainQuestRepository.findByIdAndUserIdAndStatus 호출 후 - gold={}", gold);
-//            userMainQuestCardRepository.deleteByUserIdAndUserMainQuest_Id(userId, request.questId());
             log.debug("[Quest] userMainQuestRepository.delete 호출 전 - questId={}", request.questId());
             userMainQuestRepository.delete(mainQuest);
             log.debug("[Quest] userMainQuestRepository.delete 호출 후");
@@ -282,11 +279,8 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
             log.debug("[Quest] userSubQuestRepository.findByIdAndUserIdAndStatus 호출 전");
             UserSubQuest subQuest = userSubQuestRepository.findByIdAndUserIdAndStatus(request.questId(), userId, QuestStatus.COMPLETED)
                     .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_COMPLETED));
-            if (subQuest.getEndAt().isAfter(LocalDateTime.now()))
-                throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
             gold = subQuest.getSubQuestTemplate().getRewardGold();
             log.debug("[Quest] userSubQuestRepository.findByIdAndUserIdAndStatus 호출 후 - gold={}", gold);
-//            userSubQuestCardRepository.deleteByUserIdAndUserSubQuest_Id(userId, request.questId());
             log.debug("[Quest] userSubQuestRepository.delete 호출 전 - questId={}", request.questId());
             userSubQuestRepository.delete(subQuest);
             log.debug("[Quest] userSubQuestRepository.delete 호출 후");
