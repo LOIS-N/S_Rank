@@ -3,8 +3,11 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
 
+const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 // 하단 네비게이션이 항상 표시될 서브 페이지 목록
 const SUB_PAGES = ["/quest", "/gacha", "/card-list"];
+
 
 export default function BottomNavBar() {
   const { gameStatus, openComingSoonModal } = useGameStore();
@@ -66,7 +69,7 @@ export default function BottomNavBar() {
                   width: "12.5cqw",
                   height: "4.7cqw",
                   fontSize: "1.6cqw",
-                  backgroundImage: "url('/assets/002/lowerButton_001.webp')",
+                  backgroundImage: `url('${ASSET_BASE}/assets/002/lowerButton_001.webp')`,
                   backgroundSize: "100% 100%",
                   imageRendering: "pixelated",
                   filter: (item.disabled || item.name === activeItem) ? "brightness(0.75)" : undefined,

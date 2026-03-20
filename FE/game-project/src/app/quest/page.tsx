@@ -8,7 +8,7 @@ import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
 import "./quest.css";
 
-const API_HOST = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // --- API 응답 인터페이스 ---
 interface MainQuestData {
@@ -164,7 +164,7 @@ function DifficultyStars({ level, maxStars = 6 }: { level: number; maxStars?: nu
       {Array.from({ length: maxStars }, (_, i) => (
         <img
           key={i}
-          src="/assets/003-01/levelStar_000.webp"
+          src={`${ASSET_BASE}/assets/003-01/levelStar_000.webp`}
           alt={i < level ? "★" : "☆"}
           className={`quest-star ${i >= level ? "empty" : ""}`}
           draggable={false}
@@ -188,7 +188,7 @@ function QuestCard({
 }) {
   return (
     <NineSliceBox
-      src="/assets/003-01/questCard_000.webp"
+      src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
       slice={[200, 208, 200, 208]}
       framePadding={10}
       borderScale={0.4}
@@ -218,7 +218,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { q
 
   return (
     <NineSliceBox
-      src="/assets/003-01/questInf_000.webp"
+      src={`${ASSET_BASE}/assets/003-01/questInf_000.webp`}
       slice={[121, 248, 85, 248]}
       framePadding={24}
       borderScale={0.5}
@@ -227,14 +227,14 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { q
       <div className="quest-detail-title">{quest.title}</div>
 
       {/* 퀘스트 내용 */}
-      <NineSliceBox src="/assets/003-01/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={20} borderScale={0.35} className="quest-info-box content-box">
+      <NineSliceBox src={`${ASSET_BASE}/assets/003-01/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={20} borderScale={0.35} className="quest-info-box content-box">
         <div className="quest-info-box-label">퀘스트 내용</div>
         <div className="quest-info-box-text">{quest.description}</div>
       </NineSliceBox>
 
       {/* 수행 조건 + 예상 시간/보상 */}
       <div className="quest-detail-row">
-        <NineSliceBox src="/assets/003-01/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={20} borderScale={0.35} className="quest-info-box">
+        <NineSliceBox src={`${ASSET_BASE}/assets/003-01/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={20} borderScale={0.35} className="quest-info-box">
           <div className="quest-info-box-label">퀘스트 수행 조건</div>
           <div className="quest-info-box-text">
             <div>{quest.requiredSkillType1} / {quest.requiredSkillValue1}</div>
@@ -243,7 +243,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { q
           </div>
         </NineSliceBox>
 
-        <NineSliceBox src="/assets/003-01/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={20} borderScale={0.35} className="quest-info-box">
+        <NineSliceBox src={`${ASSET_BASE}/assets/003-01/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={20} borderScale={0.35} className="quest-info-box">
           <div className="quest-info-box-label">예상 시간 / 보상</div>
           <div className="quest-info-box-text">
             <div>예상 시간 : {quest.durationMinutes}분</div>
@@ -254,7 +254,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { q
 
       {/* 수락하기 버튼 */}
       <NineSliceBox
-        src="/assets/003-01/questCard_000.webp"
+        src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
         slice={[200, 208, 200, 208]}
         framePadding={10}
         borderScale={0.35}
@@ -296,11 +296,9 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
     const fetchDeskId = async () => {
       try {
         const token = await getAuthToken();
-        const res = await fetch(`${API_HOST}/api/v1/desks`, {
+        const { data: json } = await api.get('/api/v1/desks', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) return;
-        const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
           const sorted = [...json.data].sort((a: { deskTemplateId: number }, b: { deskTemplateId: number }) => a.deskTemplateId - b.deskTemplateId);
           const idx = selectingDeskId ?? 0;
@@ -726,7 +724,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
     <>
       {/* ──── 좌측: 카드 목록 (card-list 레이아웃 통일) ──── */}
       <div className="phase2-left-col">
-        <NineSliceBox src="/assets/003-02/questInf_000.webp" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
+        <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
           <div
             className="phase2-card-grid-wrapper"
             ref={p2WrapperRef}
@@ -734,7 +732,6 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
             style={{ flex: 1, overflow: 'hidden' }}
             onPointerDown={(e) => {
               if (p2MaxScroll <= 0) return;
-              e.currentTarget.setPointerCapture(e.pointerId);
               isSwipe2Ref.current = true;
               swipe2MovedRef.current = false;
               swipe2StartYRef.current = e.clientY;
@@ -749,6 +746,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
             }}
             onPointerUp={() => { isSwipe2Ref.current = false; }}
             onPointerCancel={() => { isSwipe2Ref.current = false; }}
+            onPointerLeave={() => { isSwipe2Ref.current = false; }}
             onClickCapture={(e) => { if (swipe2MovedRef.current) { e.stopPropagation(); swipe2MovedRef.current = false; } }}
           >
             <div className="phase2-card-grid" ref={p2GridRef} style={{ transform: `translateY(-${p2ScrollOffset}px)` }}>
@@ -798,15 +796,15 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       </div>
 
       {/* ──── 우측: 퀘스트 프레임 ──── */}
-      <NineSliceBox src="/assets/003-02/questInf_000.webp" slice={[121, 248, 85, 248]} framePadding={20} borderScale={0.5} className="phase2-right-box">
+      <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={20} borderScale={0.5} className="phase2-right-box">
         {/* Top: 퀘스트 제목 + 카드 수 */}
-        <NineSliceBox src="/assets/003-02/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-title-box">
+        <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-title-box">
           <div className="phase2-info-title">{quest.title}</div>
           <div className="phase2-info-subtitle">카드 배치 : {selectedCards.length} / {quest.cardSlotCount}장</div>
         </NineSliceBox>
 
         {/* Middle: 카드 배치 현황판 */}
-        <NineSliceBox src="/assets/003-02/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-drop-box">
+        <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-right-drop-box">
           <div className="phase2-drop-cards">
             {selectedCards.length === 0 ? (
               <div className="phase2-drop-empty-text">카드를 선택하세요</div>
@@ -853,7 +851,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
 
         {/* Bottom: 수행 조건 + 예상 시간/보상 */}
         <div className="phase2-right-bottom-row">
-          <NineSliceBox src="/assets/003-02/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
+          <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
             <div className="quest-info-box-label">퀘스트 수행 조건</div>
             <div className="quest-info-box-text">
               {requirements.map((req) => {
@@ -867,7 +865,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
               })}
             </div>
           </NineSliceBox>
-          <NineSliceBox src="/assets/003-02/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
+          <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
              <div className="quest-info-box-label">예상 시간 / 보상</div>
              <div className="quest-info-box-text">
                <div>예상 시간 : {estimatedTime != null ? `${estimatedTime}분` : `${quest.durationMinutes}분`}</div>
@@ -884,7 +882,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
         {/* 수락하기 / 취소하기 버튼 */}
         <div className="phase2-action-buttons">
           <NineSliceBox
-            src="/assets/003-01/questCard_000.webp"
+            src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
             slice={[200, 208, 200, 208]}
             framePadding={14}
             borderScale={0.4}
@@ -895,7 +893,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
           </NineSliceBox>
 
           <NineSliceBox
-            src="/assets/003-01/questCard_000.webp"
+            src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
             slice={[200, 208, 200, 208]}
             framePadding={14}
             borderScale={0.4}
@@ -951,13 +949,10 @@ export default function QuestPage() {
   const fetchMainQuest = useCallback(async (chapter: number) => {
     try {
       const token = await getAuthToken();
-      const res = await fetch(`/api/v1/quests/main?chapterNumber=${chapter}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+      const { data: json } = await api.get('/api/v1/quests/main', {
+        params: { chapterNumber: chapter },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
       if (json.success && json.data && Array.isArray(json.data) && json.data.length > 0) {
         // stepNo 오름차순 정렬 후 COMPLETED가 아닌 첫 번째 퀘스트 선택
         const sorted: MainQuestData[] = [...json.data].sort((a, b) => a.stepNo - b.stepNo);
@@ -992,13 +987,9 @@ export default function QuestPage() {
   const fetchSubQuests = useCallback(async () => {
     try {
       const token = await getAuthToken();
-      const res = await fetch(`/api/v1/quests/sub`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+      const { data: json } = await api.get('/api/v1/quests/sub', {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json();
       if (json.success && json.data) {
         const quests: Quest[] = json.data.map((d: SubQuestData) => ({
           questId: d.questId,
@@ -1170,7 +1161,7 @@ export default function QuestPage() {
         {/* 상단 타이틀 */}
         <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
           <NineSliceBox
-            src="/assets/003-01/questCard_000.webp"
+            src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
             slice={[200, 208, 200, 208]}
             framePadding={14}
             borderScale={0.4}
@@ -1183,7 +1174,7 @@ export default function QuestPage() {
         {/* 메인 콘텐츠 래퍼 (슬라이딩 애니메이션) */}
       <div className={`quest-content-wrapper phase-${phase}`}>
         {/* === Phase 1: 퀘스트 목록 화면 === */}
-        <div className="quest-content phase-1-content">
+        <div className="quest-content phase-1-content" style={{ pointerEvents: phase === 'placement' ? 'none' : 'auto' }}>
           {/* ──── 좌측: 퀘스트 리스트 ──── */}
           <div className="quest-left-area" onWheel={handleWheel}>
             <div className="quest-list-column">
@@ -1207,7 +1198,6 @@ export default function QuestPage() {
                 className="sub-quest-scroll-area"
                 onPointerDown={(e) => {
                   if (maxScroll <= 0) return;
-                  e.currentTarget.setPointerCapture(e.pointerId);
                   isSwipe1Ref.current = true;
                   swipe1MovedRef.current = false;
                   swipe1StartYRef.current = e.clientY;
@@ -1222,6 +1212,7 @@ export default function QuestPage() {
                 }}
                 onPointerUp={() => { isSwipe1Ref.current = false; }}
                 onPointerCancel={() => { isSwipe1Ref.current = false; }}
+                onPointerLeave={() => { isSwipe1Ref.current = false; }}
                 onClickCapture={(e) => { if (swipe1MovedRef.current) { e.stopPropagation(); swipe1MovedRef.current = false; } }}
               >
                 <div
@@ -1278,7 +1269,7 @@ export default function QuestPage() {
                 src={
                   isRefreshing
                     ? "/assets/003-01/refreshButton_001.webp"
-                    : "/assets/003-01/refreshButton_000.webp"
+                    : `${ASSET_BASE}/assets/003-01/refreshButton_000.webp`
                 }
                 alt="새로고침"
                 draggable={false}
@@ -1296,7 +1287,7 @@ export default function QuestPage() {
         </div>
 
         {/* === Phase 2: 카드 배치 화면 === */}
-        <div className="quest-content phase-2-content">
+        <div className="quest-content phase-2-content" style={{ pointerEvents: phase === 'select' ? 'none' : 'auto' }}>
           <Phase2Content quest={selectedQuest} onCancel={() => setPhase('select')} onShowUsedCardModal={() => setShowUsedCardModal(true)} />
         </div>
       </div>

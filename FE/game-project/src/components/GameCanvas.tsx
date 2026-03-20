@@ -3,6 +3,9 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
 
+const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+
 export default function GameCanvas() {
   const gameRef = useRef<any>(null);
   const router = useRouter();
@@ -41,7 +44,7 @@ export default function GameCanvas() {
         scene: {
           preload: function (this: Phaser.Scene) {
             // ── Stage 1: 로그인 화면에 필요한 에셋만 먼저 로드 ──
-            this.load.image("city_bg", "/assets/001/city_bg.webp");
+            this.load.image("city_bg", `${ASSET_BASE}/assets/001/city_bg.webp`);
           },
           create: function (this: Phaser.Scene) {
             const scene = this;
@@ -88,19 +91,19 @@ export default function GameCanvas() {
                 else if ((hour >= 6 && hour < 8) || (hour >= 17 && hour < 19)) { bgKey = "bg_002"; ofcKey = "ofc_002"; }
                 else { bgKey = "bg_003"; ofcKey = "ofc_003"; }
 
-                this.load.image("bg_001", "/assets/002/background_001.webp");
-                this.load.image("bg_002", "/assets/002/background_002.webp");
-                this.load.image("bg_003", "/assets/002/background_003.webp");
-                this.load.image("ofc_001", "/assets/002/office_001.webp");
-                this.load.image("ofc_002", "/assets/002/office_002.webp");
-                this.load.image("ofc_003", "/assets/002/office_003.webp");
-                this.load.image("desks", "/assets/002/desks_001.webp");
-                this.load.image("new_001", "/assets/002/new_001.webp");
-                this.load.image("result_001", "/assets/002/result_001.webp");
-                this.load.image("lock_001", "/assets/002/lock_001.webp");
+                this.load.image("bg_001", `${ASSET_BASE}/assets/002/background_001.webp`);
+                this.load.image("bg_002", `${ASSET_BASE}/assets/002/background_002.webp`);
+                this.load.image("bg_003", `${ASSET_BASE}/assets/002/background_003.webp`);
+                this.load.image("ofc_001", `${ASSET_BASE}/assets/002/office_001.webp`);
+                this.load.image("ofc_002", `${ASSET_BASE}/assets/002/office_002.webp`);
+                this.load.image("ofc_003", `${ASSET_BASE}/assets/002/office_003.webp`);
+                this.load.image("desks", `${ASSET_BASE}/assets/002/desks_001.webp`);
+                this.load.image("new_001", `${ASSET_BASE}/assets/002/new_001.webp`);
+                this.load.image("result_001", `${ASSET_BASE}/assets/002/result_001.webp`);
+                this.load.image("lock_001", `${ASSET_BASE}/assets/002/lock_001.webp`);
                 for (let i = 1; i <= 5; i++) {
-                  this.load.image(`people${i}_001`, `/assets/002/people${i}_001.webp`);
-                  this.load.image(`people${i}_002`, `/assets/002/people${i}_002.webp`);
+                  this.load.image(`people${i}_001`, `${ASSET_BASE}/assets/002/people${i}_001.webp`);
+                  this.load.image(`people${i}_002`, `${ASSET_BASE}/assets/002/people${i}_002.webp`);
                 }
 
                 const sceneRef = this;
@@ -232,6 +235,7 @@ export default function GameCanvas() {
                   sceneRef.registry.set('originDeskScale', originDeskScale);
                   sceneRef.registry.set('playAssetsLoaded', true);
                   sceneRef.registry.set('playAssetsLoading', false);
+                  playContainer.setScale(0.8);
                   playContainer.setVisible(true);
                   cityBg.setVisible(false);
                 });

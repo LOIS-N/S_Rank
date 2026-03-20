@@ -3,8 +3,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useUserStore } from '@/store/useUserStore';
 import { useGameStore } from '@/store/useGameStore';
-// TODO: BE SSE 엔드포인트 확정 후 아래 import 주석 해제
-// import { useSSENotification } from '@/hooks/useSSENotification';
+import { useSSENotification } from '@/hooks/useSSENotification';
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -15,9 +14,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const { isAuthenticated, isNewUser } = useUserStore();
   const { accessToken } = useGameStore();
 
-  // TODO: BE SSE 엔드포인트 확정 후 아래 한 줄 주석 해제
-  // useSSENotification(accessToken);
-  void accessToken;
+  useSSENotification(accessToken);
   const router = useRouter();
   const pathname = usePathname();
 

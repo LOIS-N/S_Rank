@@ -100,11 +100,11 @@ html, body {
    --avw / --avh 는 ZoomGuard.tsx 가 window.innerWidth/Height 로 설정.
    JS 로드 전 폴백으로 100dvh / 100vw 사용. */
 .app-container {
+  position: fixed;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--avw, 100vw);
-  height: var(--avh, 100dvh);
   background-color: black;
   overflow: hidden;
 }

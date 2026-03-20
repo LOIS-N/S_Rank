@@ -6,9 +6,7 @@ import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
 import "./card-list.css";
 
-// [실제 배포용] fetch 방식 전환 시 사용 - 현재 axios 사용 중이므로 미사용
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const API_HOST = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // --- 공용 JS 9-slice 컴포넌트 ---
 interface NineSliceBoxProps {
@@ -309,7 +307,7 @@ export default function CardListPage() {
         {/* 상단 타이틀 */}
         <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
           <NineSliceBox
-            src="/assets/008/questCard_000.webp"
+            src={`${ASSET_BASE}/assets/008/questCard_000.webp`}
             slice={[200, 208, 200, 208]}
             framePadding={14}
             borderScale={0.4}
@@ -340,7 +338,7 @@ export default function CardListPage() {
             </div>
 
             {/* 카드 리스트 박스 */}
-            <NineSliceBox src="/assets/008/questInf_000.webp" slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
+            <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
               <div
                 className="cardlist-grid-wrapper"
                 ref={wrapperRef}
@@ -348,7 +346,6 @@ export default function CardListPage() {
                 style={{ flex: 1, overflow: 'hidden' }}
                 onPointerDown={(e) => {
                   if (maxScroll <= 0) return;
-                  e.currentTarget.setPointerCapture(e.pointerId);
                   isSwipingRef.current = true;
                   swipeMovedRef.current = false;
                   swipeStartYRef.current = e.clientY;
@@ -363,6 +360,7 @@ export default function CardListPage() {
                 }}
                 onPointerUp={() => { isSwipingRef.current = false; }}
                 onPointerCancel={() => { isSwipingRef.current = false; }}
+                onPointerLeave={() => { isSwipingRef.current = false; }}
                 onClickCapture={(e) => { if (swipeMovedRef.current) { e.stopPropagation(); swipeMovedRef.current = false; } }}
               >
                 <div className="cardlist-grid" ref={gridRef} style={{ transform: `translateY(-${scrollOffset}px)` }}>
@@ -411,7 +409,7 @@ export default function CardListPage() {
 
           {/* ──── 우측: 상세 정보 패널 ──── */}
           <NineSliceBox
-            src="/assets/008/questInf_000.webp"
+            src={`${ASSET_BASE}/assets/008/questInf_000.webp`}
             slice={[121, 248, 85, 248]}
             framePadding={20}
             borderScale={0.5}
@@ -432,7 +430,7 @@ export default function CardListPage() {
                 {/* 우측 정보 */}
                 <div className="cardlist-info-col">
                   {/* 이름 + 등급 + 강화 */}
-                  <NineSliceBox src="/assets/008/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
+                  <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
                     <div className="cardlist-info-header-text">
                       {selectedListCard.name}({selectedListCard.grade}등급)
                       {/* TODO: 강화 레벨 표시 - 카드 상세 API에서 enhanceLevel 필드가 내려오면 아래 주석 해제
@@ -442,7 +440,7 @@ export default function CardListPage() {
                   </NineSliceBox>
 
                   {/* 능력치 */}
-                  <NineSliceBox src="/assets/008/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
+                  <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
                     <div className="cardlist-info-title">능력치</div>
                     <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{selectedListCard.skill1.value}</div>
                     <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{selectedListCard.skill2.value}</div>
@@ -451,7 +449,7 @@ export default function CardListPage() {
 
                   {/* 특수 능력 (있을 때만 표시) */}
                   {selectedListCard.specialAbility && (
-                    <NineSliceBox src="/assets/008/questInf_001.webp" slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
+                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
                       <div className="cardlist-info-text">
                         능력 : {selectedListCard.specialAbility.name}
                       </div>

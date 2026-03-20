@@ -8,7 +8,10 @@ import DiscordModal from "./modals/DiscordModal";
 import NotificationModal from "./modals/NotificationModal";
 import AchievementModal from "./modals/AchievementModal";
 
+const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 // cqw 기준: game-wrapper 너비의 1% (1280px 기준 → 12.8px = 1cqw)
+
 
 export default function MainHUD() {
   const { gold, coffee, nickname, openComingSoonModal, setHUDModalOpen } = useGameStore();
@@ -57,7 +60,7 @@ export default function MainHUD() {
                   paddingRight: "0.8cqw",
                   paddingLeft: "0.4cqw",
                   fontSize: "1.2cqw",
-                  backgroundImage: "url('/assets/002/upperBlank_002.webp')",
+                  backgroundImage: `url('${ASSET_BASE}/assets/002/upperBlank_002.webp')`,
                   backgroundSize: "100% 100%",
                 }}
               >
@@ -65,7 +68,7 @@ export default function MainHUD() {
                 <span style={{ marginLeft: "0.32cqw", fontSize: "1.12cqw" }}>G</span>
               </div>
               <img
-                src="/assets/002/coin_002.webp" alt="gold"
+                src={`${ASSET_BASE}/assets/002/coin_002.webp`} alt="gold"
                 className="absolute z-10"
                 style={{ left: "-0.96cqw", top: "0.6cqw", width: "2.56cqw", height: "2.56cqw", imageRendering: "pixelated" }}
               />
@@ -81,7 +84,7 @@ export default function MainHUD() {
                   paddingRight: "0.8cqw",
                   paddingLeft: "0.4cqw",
                   fontSize: "1.2cqw",
-                  backgroundImage: "url('/assets/002/upperBlank_002.webp')",
+                  backgroundImage: `url('${ASSET_BASE}/assets/002/upperBlank_002.webp')`,
                   backgroundSize: "100% 100%",
                 }}
               >
@@ -89,7 +92,7 @@ export default function MainHUD() {
                 <span style={{ marginLeft: "0.32cqw", fontSize: "1.12cqw" }}>잔</span>
               </div>
               <img
-                src="/assets/002/coffee_002.webp" alt="coffee"
+                src={`${ASSET_BASE}/assets/002/coffee_002.webp`} alt="coffee"
                 className="absolute z-10"
                 style={{ left: "-0.96cqw", top: "0.6cqw", width: "2.56cqw", height: "2.56cqw", imageRendering: "pixelated" }}
               />
@@ -99,11 +102,11 @@ export default function MainHUD() {
           {/* 오른쪽: 아이콘 버튼들 — 20% 축소, shadow 제거 */}
           <div className="flex" style={{ gap: "1.0cqw", paddingRight: "1.0cqw" }}>
             {[
-              { id: "mypage",       icon: "/assets/002/mypage_002.webp",   label: "마이페이지", comingSoon: false },
-              { id: "ranking",      icon: "/assets/002/ranking_002.webp",  label: "랭킹",       comingSoon: false },
-              { id: "discord",      icon: "/assets/002/discord_002.webp",  label: "디스코드",   comingSoon: false },
-              { id: "notification", icon: "/assets/002/message_002.webp",  label: "알림",       comingSoon: true  },
-              { id: "achievement",  icon: "/assets/002/awards_002.webp",   label: "업적",       comingSoon: true  },
+              { id: "mypage",       icon: `${ASSET_BASE}/assets/002/mypage_002.webp`,   label: "마이페이지", comingSoon: false },
+              { id: "ranking",      icon: `${ASSET_BASE}/assets/002/ranking_002.webp`,  label: "랭킹",       comingSoon: false },
+              { id: "discord",      icon: `${ASSET_BASE}/assets/002/discord_002.webp`,  label: "디스코드",   comingSoon: false },
+              { id: "notification", icon: `${ASSET_BASE}/assets/002/message_002.webp`,  label: "알림",       comingSoon: true  },
+              { id: "achievement",  icon: `${ASSET_BASE}/assets/002/awards_002.webp`,   label: "업적",       comingSoon: true  },
             ].map((item) => (
               <button
                 key={item.id}
@@ -112,7 +115,7 @@ export default function MainHUD() {
                 style={{
                   width: "4cqw",
                   height: "4cqw",
-                  backgroundImage: "url('/assets/002/upperButton_002.webp')",
+                  backgroundImage: `url('${ASSET_BASE}/assets/002/upperButton_002.webp')`,
                   backgroundSize: "100% 100%",
                   filter: item.comingSoon ? "brightness(0.6)" : undefined,
                 }}
