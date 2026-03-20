@@ -4,12 +4,17 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { GachaRevealCard } from "./GachaRevealCard";
+import { GachaAnimationOverlay } from "./GachaAnimationOverlay";
 import "./gacha.css";
+import api from "@/lib/axios";
+
+const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // --- Types ---
 type TabType = 'flyer' | 'fair' | 'public';
-type PhaseType = 'select' | 'result_1' | 'result_10';
+type PhaseType = 'select' | 'animating' | 'result_1' | 'result_10';
 type EffectGrade = 'A' | 'S';
+
 
 const TAB_TO_TYPE_ID: Record<TabType, string> = {
   flyer: 'FLYER',
@@ -161,6 +166,7 @@ export default function GachaPage() {
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const [isPulling, setIsPulling] = useState(false);
   const [gachaEffect, setGachaEffect] = useState<EffectGrade | null>(null);
+  const [lastPullCount, setLastPullCount] = useState<1 | 10>(1);
 
   const canPull1 = gold >= GACHA_COSTS[currentTab].single;
   const canPull10 = gold >= GACHA_COSTS[currentTab].ten;
@@ -178,30 +184,11 @@ export default function GachaPage() {
     setIsPulling(true);
     try {
       const token = await getAuthToken();
-      const res = await fetch('/api/v1/gacha/draws', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ type: TAB_TO_TYPE_ID[currentTab], count }),
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => '');
-        let msg = `오류 (${res.status})`;
-        try {
-          const errorBody = JSON.parse(errorText);
-          msg = errorBody?.error?.message || errorBody?.message || msg;
-        } catch {
-          // non-JSON body (e.g. nginx 502)
-        }
-        console.error(`[가챠] ${count}회 뽑기 실패 — HTTP ${res.status}`, errorText);
-        alert(msg);
-        return;
-      }
-
-      const resData = await res.json();
+      const { data: resData } = await api.post(
+        '/api/v1/gacha/draws',
+        { type: TAB_TO_TYPE_ID[currentTab], count },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
       const drawData = resData.data ?? resData;
 
       if (drawData?.cards) {
@@ -225,13 +212,8 @@ export default function GachaPage() {
 
         setDrawnCards(normalized);
         setSelectedCardIndex(null);
-        setPhase(count === 1 ? 'result_1' : 'result_10');
-
-        // A/S 등급 Phaser 파티클 효과 (S 우선)
-        const hasS = normalized.some(c => c.grade === 'S');
-        const hasA = normalized.some(c => c.grade === 'A');
-        if (hasS) setGachaEffect('S');
-        else if (hasA) setGachaEffect('A');
+        setLastPullCount(count);
+        setPhase('animating');
       }
     } catch (err: unknown) {
       const e = err as { response?: { data?: unknown }; message?: string };
@@ -241,6 +223,15 @@ export default function GachaPage() {
       setIsPulling(false);
     }
   };
+
+  const handleAnimationComplete = useCallback(() => {
+    // Transition from animation to result view
+    const hasS = drawnCards.some(c => c.grade === 'S');
+    const hasA = drawnCards.some(c => c.grade === 'A');
+    if (hasS) setGachaEffect('S');
+    else if (hasA) setGachaEffect('A');
+    setPhase(lastPullCount === 1 ? 'result_1' : 'result_10');
+  }, [drawnCards, lastPullCount]);
 
   const handleReturn = () => {
     setDrawnCards([]);
@@ -253,7 +244,7 @@ export default function GachaPage() {
     <>
       <div
         className={`gacha-action-btn${!canPull1 || isPulling ? ' btn-disabled' : ''}`}
-        style={{ backgroundImage: 'url(/assets/006/gachaButton_000.png)' }}
+        style={{ backgroundImage: `url('${ASSET_BASE}/assets/006/gachaButton_000.webp')` }}
         onClick={canPull1 && !isPulling ? () => handlePull(1) : undefined}
       >
         <span>1회 뽑기</span>
@@ -261,7 +252,7 @@ export default function GachaPage() {
       </div>
       <div
         className={`gacha-action-btn btn-10pull${!canPull10 || isPulling ? ' btn-disabled' : ''}`}
-        style={{ backgroundImage: 'url(/assets/006/gachaButton_000.png)' }}
+        style={{ backgroundImage: `url('${ASSET_BASE}/assets/006/gachaButton_000.webp')` }}
         onClick={canPull10 && !isPulling ? () => handlePull(10) : undefined}
       >
         <span>10회 뽑기</span>
@@ -272,6 +263,14 @@ export default function GachaPage() {
 
   return (
     <div className="gacha-page-container">
+
+      {/* Phaser 뽑기 애니메이션 오버레이 */}
+      {phase === 'animating' && drawnCards.length > 0 && (
+        <GachaAnimationOverlay
+          cards={drawnCards}
+          onComplete={handleAnimationComplete}
+        />
+      )}
 
       {/* Phaser 파티클 효과 오버레이 (A/S 등급 시) */}
       {gachaEffect && (
@@ -287,7 +286,7 @@ export default function GachaPage() {
         <div className="gacha-gold-hud">
           <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
             <img
-              src="/assets/002/coin_002.png"
+              src={`${ASSET_BASE}/assets/002/coin_002.webp`}
               alt="gold"
               style={{
                 width: '5cqw',
@@ -301,7 +300,7 @@ export default function GachaPage() {
                 height: '4cqw',
                 paddingRight: '1.9cqw',
                 fontSize: '1.7cqw',
-                backgroundImage: "url('/assets/002/upperBlank_002.png')",
+                backgroundImage: `url('${ASSET_BASE}/assets/002/upperBlank_002.webp')`,
                 backgroundSize: '100% 100%',
                 display: 'flex',
                 alignItems: 'center',
@@ -370,6 +369,7 @@ export default function GachaPage() {
                   card={drawnCards[0]}
                   revealDelay={0}
                   statFontSize={21}
+                  instantReveal
                 />
               </div>
 
@@ -399,6 +399,7 @@ export default function GachaPage() {
                       card={card}
                       revealDelay={idx * 150}
                       statFontSize={12}
+                      instantReveal
                     />
                   </div>
                 ))}

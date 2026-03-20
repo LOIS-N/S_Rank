@@ -35,4 +35,8 @@ public class UserSubQuest extends BaseEntity {
 
     @Column(name = "end_at", nullable = false)
     private LocalDateTime endAt;
+
+    public void completeStatus(){
+        this.status = QuestStatus.COMPLETED;
+    }
 }

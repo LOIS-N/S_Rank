@@ -14,13 +14,14 @@
   flex-direction: column;
   z-index: 1;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .cardlist-page-container::before {
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-image: url('/assets/008/cardListMain_000.png');
+  background-image: url('/assets/008/cardListMain_000.webp');
   background-size: cover;
   background-position: center;
   opacity: 0.4;
@@ -319,7 +320,7 @@
   flex: 1;
   min-height: 80px;
   max-height: none; /* 추가: Phase2와 동일하게 제한 해제 */
-  background-image: url('/assets/003-02/scrollBar_000.png'); /* 008 -> 003-02 */
+  background-image: url('/assets/003-02/scrollBar_000.webp'); /* 008 -> 003-02 */
   background-size: 518% 108%;
   background-position: 50% 50%;
   background-repeat: no-repeat;
@@ -334,7 +335,7 @@
   transform: translateX(-50%);
   width: 100px;
   height: 100px;
-  background-image: url('/assets/003-02/scrollButton_000.png'); /* 008 -> 003-02 */
+  background-image: url('/assets/003-02/scrollButton_000.webp'); /* 008 -> 003-02 */
   background-size: 84% 48%;
   background-position: 50% 49%;
   background-repeat: no-repeat;

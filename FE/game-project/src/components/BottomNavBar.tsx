@@ -3,8 +3,11 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
 
+const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 // 하단 네비게이션이 항상 표시될 서브 페이지 목록
 const SUB_PAGES = ["/quest", "/gacha", "/card-list"];
+
 
 export default function BottomNavBar() {
   const { gameStatus, openComingSoonModal } = useGameStore();
@@ -45,7 +48,7 @@ export default function BottomNavBar() {
     pathname === "/"          ? "메인"     : "";
 
   return (
-    <div className="absolute left-0 w-full z-[80] pointer-events-none" style={{ bottom: "var(--game-clip-y, 0px)" }}>
+    <div className="absolute left-0 w-full z-[80] pointer-events-none overflow-hidden" style={{ bottom: "var(--game-clip-y, 0px)" }}>
       <div
         className="w-full bg-[#8ea4b8] border-t-4 border-x-2 border-b-2 border-black pointer-events-auto shadow-[0_-4px_10px_rgba(0,0,0,0.5)]"
         style={{
@@ -55,18 +58,18 @@ export default function BottomNavBar() {
         }}
       >
         <div className="w-full flex justify-center" style={{ paddingLeft: "0.6cqw", paddingRight: "0.6cqw" }}>
-          <div className="flex flex-nowrap justify-center w-full overflow-x-auto no-scrollbar"
+          <div className="flex flex-nowrap justify-center w-full overflow-x-hidden"
             style={{ gap: "0.4cqw" }}>
             {menuItems.map((item) => (
               <button
                 key={item.name}
                 onClick={() => handleMenuClick(item.name, item.disabled)}
-                className="flex items-center justify-center text-black font-bold drop-shadow-md transition-all active:translate-x-0.5 active:translate-y-0.5 hover:brightness-110 flex-shrink-0"
+                className="flex items-center justify-center text-black font-bold drop-shadow-md hover:brightness-110 flex-shrink-0"
                 style={{
                   width: "12.5cqw",
                   height: "4.7cqw",
-                  fontSize: "1.28cqw",
-                  backgroundImage: "url('/assets/002/lowerButton_001.png')",
+                  fontSize: "1.6cqw",
+                  backgroundImage: `url('${ASSET_BASE}/assets/002/lowerButton_001.webp')`,
                   backgroundSize: "100% 100%",
                   imageRendering: "pixelated",
                   filter: (item.disabled || item.name === activeItem) ? "brightness(0.75)" : undefined,
