@@ -1,19 +1,13 @@
 package com.ssafy.srank.quest.application.service;
 
-import com.ssafy.srank.card.domain.entity.SpecialSkillEffect;
 import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.desk.repository.UserDeskRepository;
 import com.ssafy.srank.log.application.command.GoldLogCommand;
-import com.ssafy.srank.log.application.command.QuestCardLogCommand;
-import com.ssafy.srank.log.application.command.QuestEventLogCommand;
-import com.ssafy.srank.log.application.command.QuestStartLogCommand;
 import com.ssafy.srank.log.application.facade.EconomyLogFacade;
-import com.ssafy.srank.log.application.facade.QuestLogFacade;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
-import com.ssafy.srank.log.domain.enums.QuestLogStatus;
 import com.ssafy.srank.quest.application.dto.request.CompleteQuestRequest;
 import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
 import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
@@ -44,7 +38,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -60,7 +53,6 @@ public class QuestFacadeServiceImpl implements QuestFacadeService {
     private final UserSubQuestRepository userSubQuestRepository;
     private final UserSubQuestCardRepository userSubQuestCardRepository;
     private final UserService userService;
-    private final QuestLogFacade questLogFacade;
     private final EconomyLogFacade economyLogFacade;
     private final MainQuestTemplateRepository mainQuestTemplateRepository;
     private final SubQuestTemplateRepository subQuestTemplateRepository;
@@ -89,7 +81,7 @@ public class QuestFacadeServiceImpl implements QuestFacadeService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_FOUND));
 
         validateCardCount(request.cardIds());
-        List<UserCard> selectedCards = validateMainQuestCards(userId, request.cardIds(), template);
+        validateMainQuestCards(userId, request.cardIds(), template);
         validateDuration(request.startAt(), request.endAt(), template.getDurationMinutes());
         validateDeskUnlocked(userId, request.deskId());
 
@@ -109,17 +101,6 @@ public class QuestFacadeServiceImpl implements QuestFacadeService {
                         .build())
                 .toList());
 
-        LocalDateTime now = LocalDateTime.now();
-        QuestStartLogCommand logCommand = new QuestStartLogCommand(
-                userId,
-                questId,
-                request.startAt(),
-                now,
-                toQuestCardLogCommands(selectedCards)
-        );
-        questLogFacade.recordMainQuestStarted(logCommand);
-        questLogFacade.recordMainQuestCards(logCommand);
-
         deskQuestRepository.save(UserDeskQuest.builder()
                 .userId(userId)
                 .userDeskId(request.deskId())
@@ -135,7 +116,7 @@ public class QuestFacadeServiceImpl implements QuestFacadeService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_FOUND));
 
         validateCardCount(request.cardIds());
-        List<UserCard> selectedCards = validateSubQuestCards(userId, request.cardIds(), template);
+        validateSubQuestCards(userId, request.cardIds(), template);
         validateDuration(request.startAt(), request.endAt(), template.getDurationMinutes());
         validateDeskUnlocked(userId, request.deskId());
 
@@ -154,17 +135,6 @@ public class QuestFacadeServiceImpl implements QuestFacadeService {
                         .userCardId(cardId)
                         .build())
                 .toList());
-
-        LocalDateTime now = LocalDateTime.now();
-        QuestStartLogCommand logCommand = new QuestStartLogCommand(
-                userId,
-                questId,
-                request.startAt(),
-                now,
-                toQuestCardLogCommands(selectedCards)
-        );
-        questLogFacade.recordSubQuestStarted(logCommand);
-        questLogFacade.recordSubQuestCards(logCommand);
 
         deskQuestRepository.save(UserDeskQuest.builder()
                 .userId(userId)
@@ -216,24 +186,10 @@ public class QuestFacadeServiceImpl implements QuestFacadeService {
 
         int actualDurationMinutes = Math.toIntExact(ChronoUnit.MINUTES.between(mainQuest.getStartedAt(), completedAt));
         long rewardGold = mainQuest.getMainQuestTemplate().getRewardGold();
-        Long templateId = mainQuest.getMainQuestTemplate().getId();
-        LocalDateTime startedAt = mainQuest.getStartedAt();
 
         userMainQuestCardRepository.deleteByUserIdAndUserMainQuest_Id(userId, questId);
         userMainQuestRepository.delete(mainQuest);
         deskQuestRepository.deleteByUserIdAndQuestId(userId, questId);
-
-        // Completed and claimed are appended as separate business events.
-        questLogFacade.recordMainQuestCompleted(new QuestEventLogCommand(
-                userId,
-                templateId,
-                startedAt,
-                completedAt,
-                null,
-                actualDurationMinutes,
-                QuestLogStatus.COMPLETED,
-                completedAt
-        ));
 
         long balanceAfter = userService.rewardGold(userId, rewardGold);
         LocalDateTime claimedAt = LocalDateTime.now();
@@ -242,16 +198,6 @@ public class QuestFacadeServiceImpl implements QuestFacadeService {
                 rewardGold,
                 balanceAfter,
                 GoldLogReason.QUEST_REWARD,
-                claimedAt
-        ));
-        questLogFacade.recordMainQuestClaimed(new QuestEventLogCommand(
-                userId,
-                templateId,
-                startedAt,
-                completedAt,
-                claimedAt,
-                actualDurationMinutes,
-                QuestLogStatus.CLAIMED,
                 claimedAt
         ));
     }
@@ -266,23 +212,10 @@ public class QuestFacadeServiceImpl implements QuestFacadeService {
 
         int actualDurationMinutes = Math.toIntExact(ChronoUnit.MINUTES.between(subQuest.getStartedAt(), completedAt));
         long rewardGold = subQuest.getSubQuestTemplate().getRewardGold();
-        Long templateId = subQuest.getSubQuestTemplate().getId();
-        LocalDateTime startedAt = subQuest.getStartedAt();
 
         userSubQuestCardRepository.deleteByUserIdAndUserSubQuest_Id(userId, questId);
         userSubQuestRepository.delete(subQuest);
         deskQuestRepository.deleteByUserIdAndQuestId(userId, questId);
-
-        questLogFacade.recordSubQuestCompleted(new QuestEventLogCommand(
-                userId,
-                templateId,
-                startedAt,
-                completedAt,
-                null,
-                actualDurationMinutes,
-                QuestLogStatus.COMPLETED,
-                completedAt
-        ));
 
         long balanceAfter = userService.rewardGold(userId, rewardGold);
         LocalDateTime claimedAt = LocalDateTime.now();
@@ -293,16 +226,6 @@ public class QuestFacadeServiceImpl implements QuestFacadeService {
                 GoldLogReason.QUEST_REWARD,
                 claimedAt
         ));
-        questLogFacade.recordSubQuestClaimed(new QuestEventLogCommand(
-                userId,
-                templateId,
-                startedAt,
-                completedAt,
-                claimedAt,
-                actualDurationMinutes,
-                QuestLogStatus.CLAIMED,
-                claimedAt
-        ));
     }
 
     private void validateCardCount(List<Long> cardIds) {
@@ -311,28 +234,22 @@ public class QuestFacadeServiceImpl implements QuestFacadeService {
         }
     }
 
-    private List<UserCard> validateMainQuestCards(Long userId, List<Long> cardIds, MainQuestTemplate template) {
-        return cardIds.stream()
-                .map(cardId -> {
-                    UserCard card = userCardRepository.findByIdAndUserId(cardId, userId)
-                            .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
-                    validateCardNotInUse(userId, cardId);
-                    validateCardStats(card, template);
-                    return card;
-                })
-                .toList();
+    private void validateMainQuestCards(Long userId, List<Long> cardIds, MainQuestTemplate template) {
+        for (Long cardId : cardIds) {
+            UserCard card = userCardRepository.findByIdAndUserId(cardId, userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
+            validateCardNotInUse(userId, cardId);
+            validateCardStats(card, template);
+        }
     }
 
-    private List<UserCard> validateSubQuestCards(Long userId, List<Long> cardIds, SubQuestTemplate template) {
-        return cardIds.stream()
-                .map(cardId -> {
-                    UserCard card = userCardRepository.findByIdAndUserId(cardId, userId)
-                            .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
-                    validateCardNotInUse(userId, cardId);
-                    validateCardStatsForSubQuest(card, template);
-                    return card;
-                })
-                .toList();
+    private void validateSubQuestCards(Long userId, List<Long> cardIds, SubQuestTemplate template) {
+        for (Long cardId : cardIds) {
+            UserCard card = userCardRepository.findByIdAndUserId(cardId, userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
+            validateCardNotInUse(userId, cardId);
+            validateCardStatsForSubQuest(card, template);
+        }
     }
 
     private void validateCardNotInUse(Long userId, Long cardId) {
@@ -384,41 +301,5 @@ public class QuestFacadeServiceImpl implements QuestFacadeService {
     private void validateDeskUnlocked(Long userId, Long deskId) {
         userDeskRepository.findByUserIdAndDeskTemplateId(userId, deskId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_SLOT_NOT_UNLOCKED));
-    }
-
-    private List<QuestCardLogCommand> toQuestCardLogCommands(List<UserCard> cards) {
-        return cards.stream()
-                .map(card -> new QuestCardLogCommand(
-                        card.getId(),
-                        card.getStat1().getSkillType().name(),
-                        card.getStat1().getTotalValue(),
-                        card.getStat2().getSkillType().name(),
-                        card.getStat2().getTotalValue(),
-                        card.getStat3().getSkillType().name(),
-                        card.getStat3().getTotalValue(),
-                        card.getSpecialSkillTemplate() == null ? null : card.getSpecialSkillTemplate().getSkillCode(),
-                        extractSpecialSkillType(card),
-                        extractSpecialSkillValue(card)
-                ))
-                .toList();
-    }
-
-    private String extractSpecialSkillType(UserCard card) {
-        return firstSpecialSkillEffect(card)
-                .map(effect -> effect.getEffectType().name())
-                .orElse(null);
-    }
-
-    private Integer extractSpecialSkillValue(UserCard card) {
-        return firstSpecialSkillEffect(card)
-                .map(SpecialSkillEffect::getEffectAmount)
-                .orElse(null);
-    }
-
-    private Optional<SpecialSkillEffect> firstSpecialSkillEffect(UserCard card) {
-        if (card.getSpecialSkillTemplate() == null || card.getSpecialSkillTemplate().getEffects().isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(card.getSpecialSkillTemplate().getEffects().get(0));
     }
 }
