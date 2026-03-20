@@ -182,6 +182,12 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
 
         //레디스 TTL 추가
         long seconds = Duration.between(mainQuest.getStartedAt(), mainQuest.getEndAt()).getSeconds();
+        if (seconds <= 0) {
+            // endAt이 startAt과 같거나 과거인 경우 — 테스트 목적으로 즉시 완료 처리
+            log.warn("[Quest] TTL이 0 이하 - 즉시 completeQuest 호출 - userId={}, questId={}, seconds={}", userId, userQuestId.getId(), seconds);
+            completeQuest(userId, userQuestId.getId(), "main");
+            return;
+        }
         String key = "quest:%d:%d:%s".formatted(userId, userQuestId.getId(), "main");
         redisTemplate.opsForValue().set(key,"1",Duration.ofSeconds(seconds));
 
@@ -250,6 +256,12 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
 
         //레디스 TTL 추가
         long seconds = Duration.between(userQuestId.getStartedAt(), userQuestId.getEndAt()).getSeconds();
+        if (seconds <= 0) {
+            // endAt이 startAt과 같거나 과거인 경우 — 테스트 목적으로 즉시 완료 처리
+            log.warn("[Quest] TTL이 0 이하 - 즉시 completeQuest 호출 - userId={}, questId={}, seconds={}", userId, userQuestId.getId(), seconds);
+            completeQuest(userId, userQuestId.getId(), "sub");
+            return;
+        }
         String key = "quest:%d:%d:%s".formatted(userId, userQuestId.getId(), "sub");
         redisTemplate.opsForValue().set(key,"1",Duration.ofSeconds(seconds));
 
