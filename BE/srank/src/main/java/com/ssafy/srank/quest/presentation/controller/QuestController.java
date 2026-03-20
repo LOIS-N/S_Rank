@@ -15,6 +15,7 @@ import com.ssafy.srank.quest.application.service.QuestFacadeService;
 import com.ssafy.srank.quest.application.service.SubQuestService;
 import com.ssafy.srank.quest.domain.entity.QuestType;
 import com.ssafy.srank.security.SecurityUtil;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -86,11 +87,13 @@ public class QuestController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
+
+    @Operation(summary = "퀘스트 보상 수령", description = "퀘스트 완료 후 보상을 수령합니다.")
     @PostMapping("/complete")
-    public ResponseEntity<ApiResponse<Void>> completeQuest(
+    public ResponseEntity<ApiResponse<Void>> claimReward(
             @RequestBody CompleteQuestRequest request
             ){
-        service.completeQuest(SecurityUtil.getCurrentUserId(), request);
+        service.claimReward(SecurityUtil.getCurrentUserId(), request);
         return ResponseEntity.ok(ApiResponse.success());
     }
 }

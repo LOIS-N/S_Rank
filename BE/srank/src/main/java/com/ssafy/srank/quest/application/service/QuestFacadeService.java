@@ -13,6 +13,7 @@ public interface QuestFacadeService {
     List<InProcessQuestResponse> getInProcessQuestList(Long userId);
     void startMainQuest(Long userId, Long questId, MainQuestRequest request);
     void startSubQuest(Long userId, Long questId, SubQuestRequest request);
-    void completeQuest(Long userId, CompleteQuestRequest request);
+    void claimReward(Long userId, CompleteQuestRequest request);
     Set<Long> getUsedUserCardList(Long userId);
+    void completeQuest(Long userId, Long questId, String type);
 }

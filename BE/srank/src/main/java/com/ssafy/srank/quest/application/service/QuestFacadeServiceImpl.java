@@ -2,6 +2,7 @@ package com.ssafy.srank.quest.application.service;
 
 import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.repository.UserCardRepository;
+import com.ssafy.srank.common.config.RedisConfig;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.desk.repository.UserDeskRepository;
@@ -11,27 +12,35 @@ import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.domain.entity.*;
 import com.ssafy.srank.quest.repository.*;
+import com.ssafy.srank.sse.application.event.QuestCompletedEvent;
 import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class QuestFacadeServiceImpl implements QuestFacadeService{
+
+    private final StringRedisTemplate redisTemplate;
+    private final ApplicationEventPublisher eventPublisher;
+
     private final MainQuestService mainService;
     private final SubQuestService subService;
 
+
     //Todo : 분리해서 service가 담당하게 하기
-    private final UserDeskQuestRepository deskQuestRepository;
+    private final UserDeskQuestRepository deskQuestRepository; //얘 진짜 리팩토링하기 진짜....
     private final UserMainQuestRepository userMainQuestRepository;
     private final UserMainQuestCardRepository userMainQuestCardRepository;
     private final UserSubQuestRepository userSubQuestRepository;
@@ -83,7 +92,7 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         validateCards(userId, request.cardIds(), template);
 
         // 4️⃣ 예상 완료 시간 검증 (하드캡 내)
-        validateDuration(request.startAt(), request.endAt(), template.getDurationMinutes());
+//        validateDuration(request.startAt(), request.endAt(), template.getDurationMinutes());
 
         // 5️⃣ 책상 해금 여부 검증
         validateDeskUnlocked(userId, request.deskId());
@@ -121,6 +130,11 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
                         .questType(QuestType.MAIN)
                         .questId(userQuestId.getId())
                         .build());
+
+        //레디스 TTL 추가
+        long seconds = Duration.between(mainQuest.getStartedAt(), mainQuest.getEndAt()).getSeconds();
+        String key = "quest:%d:%d:%s".formatted(userId, userQuestId.getId(), "main");
+        redisTemplate.opsForValue().set(key,"1",Duration.ofSeconds(seconds));
     }
 
     @Transactional
@@ -135,10 +149,10 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         validateCardCount(request.cardIds());
 
         // 3️⃣ 카드 스탯 검증 & 중복 사용 검증
-        validateCardsForSubQuest(userId, request.cardIds(), template);
+//        validateCardsForSubQuest(userId, request.cardIds(), template);
 
         // 4️⃣ 예상 완료 시간 검증
-        validateDuration(request.startAt(), request.endAt(), template.getDurationMinutes());
+//        validateDuration(request.startAt(), request.endAt(), template.getDurationMinutes());
 
         // 5️⃣ 책상 해금 여부 검증
         validateDeskUnlocked(userId, request.deskId());
@@ -173,35 +187,38 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
                 .questType(QuestType.SUB)
                 .questId(userQuestId.getId())
                 .build());
+
+        //레디스 TTL 추가
+        long seconds = Duration.between(userQuestId.getStartedAt(), userQuestId.getEndAt()).getSeconds();
+        String key = "quest:%d:%d:%s".formatted(userId, userQuestId.getId(), "sub");
+        redisTemplate.opsForValue().set(key,"1",Duration.ofSeconds(seconds));
     }
 
     @Transactional
     @Override
-    public void completeQuest(Long userId, CompleteQuestRequest request) {
+    public void claimReward(Long userId, CompleteQuestRequest request) {
 
         long gold;
 
         if(request.questType().equals(QuestType.MAIN)){
-            UserMainQuest mainQuest = userMainQuestRepository.findByIdAndUserIdAndStatus(request.questId(), userId, QuestStatus.IN_PROGRESS)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
+            UserMainQuest mainQuest = userMainQuestRepository.findByIdAndUserIdAndStatus(request.questId(), userId, QuestStatus.COMPLETED)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_COMPLETED));
             if (mainQuest.getEndAt().isAfter(LocalDateTime.now()))
-                throw new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS);
+                throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
             gold = mainQuest.getMainQuestTemplate().getRewardGold();
-            userMainQuestCardRepository.deleteByUserIdAndUserMainQuest_Id(userId, request.questId());
+//            userMainQuestCardRepository.deleteByUserIdAndUserMainQuest_Id(userId, request.questId());
             userMainQuestRepository.delete(mainQuest);
         }else{
-            UserSubQuest subQuest = userSubQuestRepository.findByIdAndUserIdAndStatus(request.questId(), userId, QuestStatus.IN_PROGRESS)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
+            UserSubQuest subQuest = userSubQuestRepository.findByIdAndUserIdAndStatus(request.questId(), userId, QuestStatus.COMPLETED)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_COMPLETED));
             if (subQuest.getEndAt().isAfter(LocalDateTime.now()))
-                throw new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS);
+                throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
             gold = subQuest.getSubQuestTemplate().getRewardGold();
-            userSubQuestCardRepository.deleteByUserIdAndUserSubQuest_Id(userId, request.questId());
+//            userSubQuestCardRepository.deleteByUserIdAndUserSubQuest_Id(userId, request.questId());
             userSubQuestRepository.delete(subQuest);
         }
         userDeskQuestRepository.deleteByUserIdAndQuestId(userId,request.questId());
 
-        //Todo : 보상 증가
-        
         userService.rewardGold(userId, gold);
     }
     public Set<Long> getUsedUserCardList(Long userId){
@@ -223,7 +240,36 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         return result;
     }
 
-// ============ 검증 메소드들 ============
+    @Transactional
+    @Override
+    public void completeQuest(Long userId, Long questId, String type) {
+        if(QuestType.valueOf(type.toUpperCase()) == QuestType.MAIN){
+            UserMainQuest quest = userMainQuestRepository.findByIdAndUserId(questId, userId).orElseThrow(
+                    () -> new BusinessException(ErrorCode.QUEST_NOT_FOUND));
+            quest.completeStatus();
+            //카드
+            userMainQuestCardRepository.deleteByUserIdAndUserMainQuest_Id(userId, questId);
+        }else{
+            UserSubQuest quest = userSubQuestRepository.findByIdAndUserId(questId, userId).orElseThrow(
+                    () -> new BusinessException(ErrorCode.QUEST_NOT_FOUND));
+            quest.completeStatus();
+            userSubQuestCardRepository.deleteByUserIdAndUserSubQuest_Id(userId, questId);
+        }
+
+
+        //이벤트 발행
+        eventPublisher.publishEvent(
+                new QuestCompletedEvent(
+                        userId,
+                        questId,
+                        type,
+                        "퀘스트가 완료되었습니다."
+                )
+        );
+    }
+
+
+    // ============ 검증 메소드들 ============
 
     /**
      * 카드 개수 검증 (3~5장)
