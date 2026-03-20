@@ -77,16 +77,19 @@ public class SseService {
     public void sendHeartbeat() {
         log.debug("[SSE] Heartbeat 전송 시작 - 대상 수={}", emitters.size());
 
-        for (Map.Entry<Long, SseEmitter> entry : emitters.entrySet()) {
+        // keySet() 복사 후 순회 — 전송 실패 시 emitters에서 제거해도 순회에 영향 없음
+        for (Long userId : emitters.keySet()) {
+            SseEmitter emitter = emitters.get(userId);
+            if (emitter == null) continue;
             try {
-                entry.getValue().send(
+                emitter.send(
                         SseEmitter.event()
                                 .name("heartbeat")
                                 .data("ping")
                 );
             } catch (IOException e) {
-                emitters.remove(entry.getKey());
-                log.warn("[SSE] Heartbeat 전송 실패, emitter 제거 - userId={}, error={}", entry.getKey(), e.getMessage());
+                emitters.remove(userId);
+                log.warn("[SSE] Heartbeat 전송 실패, emitter 제거 - userId={}, error={}", userId, e.getMessage());
             }
         }
     }
