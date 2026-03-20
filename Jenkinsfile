@@ -1,3 +1,4 @@
+pipeline {
     agent any
 
     environment {
@@ -18,7 +19,8 @@
                 ])
             }
         }
-
+        // 배포 등 다른 스테이지가 필요하다면 여기에 추가하세요.
+    }
 
     post {
         success {
