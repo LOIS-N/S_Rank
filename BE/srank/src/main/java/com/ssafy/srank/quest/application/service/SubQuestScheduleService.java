@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.srank.quest.application.dto.response.AiSubQuestResponse;
 import com.ssafy.srank.quest.repository.SubQuestTemplateRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -14,6 +15,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SubQuestScheduleService {
 
     private final RestClient openAiRestClient;
@@ -21,6 +23,8 @@ public class SubQuestScheduleService {
     private final ObjectMapper objectMapper;
 
     public void generateAndSave(int difficulty) throws JsonProcessingException {
+        log.info("[SubQuestSchedule] OpenAI 서브 퀘스트 생성 시작 - difficulty={}", difficulty);
+
         AiSubQuestResponse response = openAiRestClient.post()
                 .uri("/chat/completions")
                 .body(Map.of(
@@ -35,9 +39,17 @@ public class SubQuestScheduleService {
                 .retrieve()
                 .body(AiSubQuestResponse.class);
 
-        AiSubQuestResponse.SubQuestListContent listContent =
-                objectMapper.readValue(response.getContent(), AiSubQuestResponse.SubQuestListContent.class);
+        AiSubQuestResponse.SubQuestListContent listContent;
+        try {
+            listContent = objectMapper.readValue(response.getContent(), AiSubQuestResponse.SubQuestListContent.class);
+        } catch (JsonProcessingException e) {
+            log.warn("[SubQuestSchedule] OpenAI 응답 파싱 실패 - difficulty={}, error={}", difficulty, e.getMessage());
+            throw e;
+        }
+
         listContent.getQuests().forEach(quest -> subQuestRepository.save(quest.toEntity()));
+
+        log.info("[SubQuestSchedule] 서브 퀘스트 생성 완료 - difficulty={}, savedCount={}", difficulty, listContent.getQuests().size());
     }
 
     private String extractContent(String response) throws JsonProcessingException {
