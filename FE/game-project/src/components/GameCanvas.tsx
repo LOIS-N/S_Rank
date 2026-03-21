@@ -3,9 +3,11 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
 
-const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const ASSET_BASE = '';
+// const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'; (배포할 때는 여기 주석 해제할것)
 
-
+
+
 
 export default function GameCanvas() {
   const gameRef = useRef<any>(null);
@@ -26,10 +28,9 @@ export default function GameCanvas() {
         parent: "game-container",
         backgroundColor: "#000000",
         scale: {
-          mode: Phaser.Scale.FIT, // 16:9 래퍼에 맞게 핏 맞춤
+          mode: Phaser.Scale.NONE, // CSS가 캔버스 스케일링을 관리하도록 변경 (기기별 오프셋 버그 방지)
           width: 1920,
           height: 1080,
-          autoCenter: Phaser.Scale.CENTER_BOTH,
         },
         render: {
           pixelArt: true, // 도트가 깨지지 않고 선명하게 출력됨
@@ -350,13 +351,18 @@ export default function GameCanvas() {
     <div
       id="game-container"
       style={{
-        // game-wrapper(1280×720)를 그대로 채움.
-        // transform 없이 inset:0 으로 단순화해야
-        // Phaser의 getBoundingClientRect()가 중첩 transform 때문에
-        // 일부 모바일 브라우저에서 (0,0)을 잘못 반환하는 문제를 방지한다.
         position: 'absolute',
-        inset: 0,
+        // 상단 토글바와 하단 네비게이션바를 피해서 정중앙 배치
+        top: 'calc(5.8cqw + 3px)', 
+        bottom: 'calc(5.9cqw + 6px + env(safe-area-inset-bottom, 0px))', 
+        left: 0,
+        right: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#000000',
         touchAction: 'none',
+        overflow: 'hidden',
       }}
     />
   );
