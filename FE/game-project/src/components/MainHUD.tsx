@@ -7,6 +7,7 @@ import RankingModal from "./modals/RankingModal";
 import DiscordModal from "./modals/DiscordModal";
 import NotificationModal from "./modals/NotificationModal";
 import AchievementModal from "./modals/AchievementModal";
+import { toggleBgm, isBgmMuted } from "./BgmPlayer";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -16,6 +17,7 @@ const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 export default function MainHUD() {
   const { gold, coffee, nickname, openComingSoonModal, setHUDModalOpen } = useGameStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [bgmMuted, setBgmMuted] = useState(() => isBgmMuted());
 
   const openModal = (id: string) => {
     setActiveModal(id);
@@ -99,14 +101,14 @@ export default function MainHUD() {
             </div>
           </div>
 
-          {/* 오른쪽: 아이콘 버튼들 — 20% 축소, shadow 제거 */}
+          {/* 오른쪽: 아이콘 버튼들 */}
           <div className="flex" style={{ gap: "1.0cqw", paddingRight: "1.0cqw" }}>
             {[
               { id: "mypage",       icon: `${ASSET_BASE}/assets/002/mypage_002.webp`,   label: "마이페이지", comingSoon: false },
               { id: "ranking",      icon: `${ASSET_BASE}/assets/002/ranking_002.webp`,  label: "랭킹",       comingSoon: false },
               { id: "discord",      icon: `${ASSET_BASE}/assets/002/discord_002.webp`,  label: "디스코드",   comingSoon: false },
-              { id: "notification", icon: `${ASSET_BASE}/assets/002/message_002.webp`,  label: "알림",       comingSoon: true  },
-              { id: "achievement",  icon: `${ASSET_BASE}/assets/002/awards_002.webp`,   label: "업적",       comingSoon: true  },
+              { id: "notification", icon: `${ASSET_BASE}/assets/002/message_002.webp`,  label: "알림",       comingSoon: false },
+              { id: "achievement",  icon: `${ASSET_BASE}/assets/002/awards_002.webp`,   label: "업적",       comingSoon: false },
             ].map((item) => (
               <button
                 key={item.id}
@@ -127,6 +129,26 @@ export default function MainHUD() {
                 />
               </button>
             ))}
+
+            {/* BGM 토글 버튼 */}
+            <button
+              onClick={() => setBgmMuted(toggleBgm())}
+              className="relative flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110"
+              style={{
+                width: "4cqw",
+                height: "4cqw",
+                backgroundImage: `url('${ASSET_BASE}/assets/002/upperButton_002.webp')`,
+                backgroundSize: "100% 100%",
+                filter: bgmMuted ? "brightness(0.6)" : undefined,
+              }}
+              title={bgmMuted ? "BGM 켜기" : "BGM 끄기"}
+            >
+              <img
+                src={`${ASSET_BASE}/assets/002/audio.webp`}
+                alt="BGM"
+                style={{ width: "4.43cqw", height: "4.43cqw", imageRendering: "pixelated" }}
+              />
+            </button>
           </div>
         </div>
       </div>

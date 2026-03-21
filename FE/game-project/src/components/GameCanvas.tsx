@@ -121,7 +121,7 @@ export default function GameCanvas() {
                   ];
 
                   const playBg = sceneRef.add.image(0, 0, bgKey);
-                  const playOfc = sceneRef.add.image(0, 0, ofcKey);
+                  const playOfc = sceneRef.add.image(0, 10, ofcKey);
                   playBg.setDisplaySize(1920, 1080);
                   playOfc.setDisplaySize(1920, 1080);
                   playContainer.add([playBg, playOfc]);
