@@ -3,8 +3,11 @@ package com.ssafy.srank.user.application.service;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.log.application.command.AuthLogCommand;
+import com.ssafy.srank.log.application.command.GoldLogCommand;
 import com.ssafy.srank.log.application.facade.AuthLogFacade;
+import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.domain.enums.AuthLogEventType;
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.user.application.dto.request.UpdateNicknameRequest;
 import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
 import com.ssafy.srank.user.domain.entity.User;
@@ -25,6 +28,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final AuthLogFacade authLogFacade;
+    private final EconomyLogFacade economyLogFacade;
 
     @Override
     public MyInfoResponse getMyInfo(Long userId) {
@@ -61,17 +65,33 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public long rewardGold(Long userId, Long gold) {
+    public long rewardGold(Long userId, Long gold, GoldLogReason reason) {
         User user = getActiveUser(userId);
         user.increaseGold(gold);
+        recordGoldLogIfNeeded(userId, gold, user.getGold(), reason);
         return user.getGold();
     }
 
     @Override
-    public long spendGold(Long userId, Long gold) {
+    public long spendGold(Long userId, Long gold, GoldLogReason reason) {
         User user = getActiveUser(userId);
         user.decreaseGold(gold);
+        recordGoldLogIfNeeded(userId, -gold, user.getGold(), reason);
         return user.getGold();
+    }
+
+    private void recordGoldLogIfNeeded(Long userId, Long amount, long balanceAfter, GoldLogReason reason) {
+        if (reason == null) {
+            return;
+        }
+
+        economyLogFacade.recordGoldChange(new GoldLogCommand(
+                userId,
+                amount,
+                balanceAfter,
+                reason,
+                LocalDateTime.now()
+        ));
     }
 
     private User getActiveUser(Long userId) {
