@@ -15,7 +15,7 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
     private final EntityManager entityManager;
 
     @Override
-    public List<GoldRankingAggregate> findTopGoldRankings(int limit) {
+    public List<GoldRankingAggregate> findGoldRankings() {
         String sql = """
                 SELECT
                     u.user_id,
@@ -26,13 +26,10 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
                 WHERE u.deleted_at IS NULL
                 GROUP BY u.user_id, u.nickname
                 ORDER BY gold DESC, u.user_id ASC
-                LIMIT :limit
                 """;
 
         @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery(sql)
-                .setParameter("limit", limit)
-                .getResultList();
+        List<Object[]> rows = entityManager.createNativeQuery(sql).getResultList();
 
         return rows.stream()
                 .map(row -> new GoldRankingAggregate(
@@ -44,7 +41,7 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
     }
 
     @Override
-    public List<CardGradeCountRankingAggregate> findTopCardGradeCountRankings(int limit) {
+    public List<CardGradeCountRankingAggregate> findCardGradeCountRankings() {
         String sql = """
                 SELECT
                     u.user_id,
@@ -63,13 +60,10 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
                 WHERE u.deleted_at IS NULL
                 GROUP BY u.user_id, u.nickname
                 ORDER BY s_count DESC, a_count DESC, u.user_id ASC
-                LIMIT :limit
                 """;
 
         @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery(sql)
-                .setParameter("limit", limit)
-                .getResultList();
+        List<Object[]> rows = entityManager.createNativeQuery(sql).getResultList();
 
         return rows.stream()
                 .map(row -> new CardGradeCountRankingAggregate(
