@@ -20,9 +20,6 @@ import java.util.List;
 @Transactional
 public class RankingSnapshotRefreshServiceImpl implements RankingSnapshotRefreshService {
 
-    // 초기 요구사항 기준 상위 10개만 스냅샷으로 유지한다.
-    public static final int TOP_LIMIT = 10;
-
     private final RankingAggregationRepository rankingAggregationRepository;
     private final UserGoldRankingSnapshotRepository userGoldRankingSnapshotRepository;
     private final UserCardGradeRankingSnapshotRepository userCardGradeRankingSnapshotRepository;
@@ -34,7 +31,7 @@ public class RankingSnapshotRefreshServiceImpl implements RankingSnapshotRefresh
         List<UserGoldRankingSnapshot> snapshots = new ArrayList<>();
         int rank = 1;
         for (RankingAggregationRepository.GoldRankingAggregate aggregate :
-                rankingAggregationRepository.findTopGoldRankings(TOP_LIMIT)) {
+                rankingAggregationRepository.findGoldRankings()) {
             snapshots.add(UserGoldRankingSnapshot.builder()
                     .rank(rank++)
                     .userId(aggregate.userId())
@@ -55,7 +52,7 @@ public class RankingSnapshotRefreshServiceImpl implements RankingSnapshotRefresh
         List<UserCardGradeRankingSnapshot> snapshots = new ArrayList<>();
         int rank = 1;
         for (RankingAggregationRepository.CardGradeCountRankingAggregate aggregate :
-                rankingAggregationRepository.findTopCardGradeCountRankings(TOP_LIMIT)) {
+                rankingAggregationRepository.findCardGradeCountRankings()) {
             snapshots.add(UserCardGradeRankingSnapshot.builder()
                     .rank(rank++)
                     .userId(aggregate.userId())
