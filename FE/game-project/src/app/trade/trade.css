@@ -1,0 +1,766 @@
+/* ============================================================
+   Trade Page Styles — 1280x720 (16:9) 기준 레이아웃
+   ============================================================ */
+
+.trade-page-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.trade-page-container::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: url('/assets/008/cardListMain_000.webp');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.4;
+  z-index: 0;
+}
+
+.trade-page-container > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── 상단 탭 ── */
+.trade-tabs {
+  display: flex;
+  height: 70px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.trade-tab-wrapper {
+  flex: 0 0 33.3333%;
+  width: 33.3333%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  position: relative;
+}
+
+.trade-tab-btn {
+  flex: 1;
+  width: 100%;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #2a2a40;
+  position: relative;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  cursor: pointer;
+  transition: height 0.2s ease, filter 0.1s ease;
+  transform-origin: top center;
+  box-sizing: border-box;
+  padding-top: 8px;
+}
+
+.trade-tab-btn:hover { filter: brightness(1.1); }
+
+.trade-tab-btn.active {
+  height: 88px;
+  filter: brightness(1.1) drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+  z-index: 2;
+}
+
+.trade-tab-btn span { position: relative; z-index: 5; }
+
+.trade-tab-inner {
+  position: absolute;
+  top: -20px; bottom: -20px; left: -74px; right: -74px;
+  border-image-source: url('/assets/006/topButton_000.webp');
+  border-image-slice: 189 501 fill;
+  border-image-width: 32px 86px;
+  border-image-repeat: stretch;
+  z-index: 1;
+}
+
+/* ── 콘텐츠 영역 ── */
+.trade-content {
+  display: flex;
+  flex: 1;
+  padding: 35px 24px calc(50px + var(--game-clip-y, 0px)) 24px;
+  gap: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* ── 좌측: 필터 + 목록 ── */
+.trade-left-col {
+  flex: 3.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+
+/* ── 공통 필터 바 (구매/내역 탭) ── */
+.trade-filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0;
+  flex-wrap: nowrap;
+}
+
+.trade-filter-label {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  color: #334;
+  flex-shrink: 0;
+}
+
+.trade-select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.trade-select {
+  appearance: none;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  padding: 5px 30px 5px 10px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  outline: none;
+}
+
+.trade-select-wrapper::after {
+  content: "▼";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 10px;
+  color: #111;
+}
+
+.trade-price-input {
+  width: 72px;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  padding: 5px 6px;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  outline: none;
+  text-align: center;
+}
+
+.trade-price-sep {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+}
+
+.trade-search-btn {
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  padding: 5px 12px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  transition: background-color 0.15s;
+}
+
+.trade-search-btn:hover { background-color: #ffd700; }
+
+/* ── 판매 탭 기술스택 필터 버튼 바 (카드목록 페이지 동일 스타일) ── */
+.trade-sell-filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0;
+  flex-wrap: nowrap;
+}
+
+.trade-sell-filter-btn {
+  appearance: none;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  color: #111;
+  padding: 5px 10px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  outline: none;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.trade-sell-filter-btn:hover {
+  background-color: #d0d0d0;
+  transform: scale(1.05);
+}
+
+.trade-sell-filter-btn.active {
+  background-color: #ffd700;
+  border-color: #b8960f;
+  color: #111;
+}
+
+/* ── 목록 박스 ── */
+.trade-list-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ── 목록 스크롤 영역 ── */
+.trade-list-wrapper {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+}
+
+.trade-list-inner {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 4px 4px 24px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── 각 카드 행 ── */
+.trade-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.55);
+  border: 2px solid #8ea4b8;
+  padding: 6px 10px 6px 6px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.trade-item-row:hover {
+  background: rgba(255,255,255,0.8);
+  border-color: #4a5d73;
+}
+
+.trade-item-row.selected {
+  background: rgba(255, 220, 100, 0.35);
+  border-color: #c8920a;
+}
+
+.trade-item-thumb {
+  width: 48px;
+  height: 66px;
+  flex-shrink: 0;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.4));
+}
+
+.trade-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trade-item-name {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  color: #111;
+}
+
+.trade-item-stats {
+  font-family: 'Stardust', sans-serif;
+  font-weight: bold;
+  font-size: 12px;
+  color: #334;
+  line-height: 1.5;
+}
+
+.trade-item-price-box {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #e0e0e0;
+  border: 2px solid #6b859e;
+  border-radius: 3px;
+  padding: 6px 20px;
+  min-width: 72px;
+  text-align: center;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
+}
+
+.trade-item-price-label {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 10px;
+  color: #556;
+  margin-bottom: 2px;
+}
+
+.trade-item-price-value {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: #b06000;
+}
+
+/* ── 거래 내역 상태 뱃지 ── */
+.trade-history-status-badge {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  display: inline-block;
+  align-self: flex-start;
+  color: #fff;
+  background: #6b859e;
+}
+
+.trade-history-status-badge[data-status="판매중"] { background: #4aaa66; }
+.trade-history-status-badge[data-status="판매완료"] { background: #6b859e; }
+.trade-history-status-badge[data-status="기간종료"] { background: #aa6b4a; }
+.trade-history-status-badge[data-status="구매완료"] { background: #4a7aaa; }
+
+/* ── 상세정보 보기 버튼 ── */
+.trade-detail-btn {
+  flex-shrink: 0;
+  background-color: #e0e0e0;
+  border: 2px solid #6b859e;
+  border-radius: 3px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #334;
+  padding: 6px 20px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
+  text-align: center;
+  line-height: 1.5;
+  transition: background-color 0.12s;
+}
+
+.trade-detail-btn:hover { background-color: #ffd700; }
+
+/* ── 빈 상태 / 로딩 ── */
+.trade-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 16px;
+  color: #8a8ab0;
+}
+
+/* ── 스크롤바 컬럼 ── */
+.trade-scrollbar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 120px;
+  flex-shrink: 0;
+  height: 100%;
+  margin: 0;
+}
+
+/* 스크롤바 트랙/썸 — card-list 페이지 동일 에셋/스타일 */
+.scrollbar-track {
+  width: 80px;
+  flex: 1;
+  min-height: 80px;
+  max-height: none;
+  background-image: url('/assets/003-02/scrollBar_000.webp');
+  background-size: 518% 108%;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  position: relative;
+  overflow: visible;
+}
+
+.scrollbar-thumb {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 100px;
+  background-image: url('/assets/003-02/scrollButton_000.webp');
+  background-size: 84% 48%;
+  background-position: 50% 49%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  cursor: grab;
+  z-index: 2;
+  touch-action: none;
+}
+
+.scrollbar-thumb:active {
+  cursor: grabbing;
+}
+
+/* ── 우측 패널 ── */
+.trade-right-box {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.trade-right-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 8px;
+}
+
+/* 토큰 잔액 */
+.trade-token-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.6);
+  border: 2px solid #6b859e;
+  padding: 7px 12px;
+  flex-shrink: 0;
+}
+
+.trade-token-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.trade-token-text {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #b06000;
+}
+
+/* ── 카드 이미지 영역 ── */
+.trade-right-card-area {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trade-right-card-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-end;
+}
+
+.trade-right-card-img {
+  max-height: 208px;
+  width: auto;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(4px 4px 8px rgba(0,0,0,0.6));
+  display: block;
+}
+
+/* 판매 그리드 카드 능력치 (카드목록 페이지 동일 방식) */
+.trade-card-stat {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.trade-card-stat.stat-1 { bottom: 26%; }
+.trade-card-stat.stat-2 { bottom: 16%; }
+.trade-card-stat.stat-3 { bottom: 5%; }
+
+/* 우측 상세 카드 능력치 (카드목록 big-card 동일 방식) */
+.trade-right-card-stat {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  pointer-events: none;
+}
+
+.trade-right-card-stat.stat-1 { bottom: 26%; }
+.trade-right-card-stat.stat-2 { bottom: 15.5%; }
+.trade-right-card-stat.stat-3 { bottom: 5%; }
+
+/* 카드 정보 박스 */
+.trade-right-info-box {
+  flex-shrink: 0;
+}
+
+.trade-right-info-text {
+  font-family: 'Stardust', sans-serif;
+  font-weight: bold;
+  font-size: 14px;
+  color: #111;
+  line-height: 1.8;
+  text-align: center;
+}
+
+.trade-right-date-text {
+  font-size: 12px;
+  line-height: 1.9;
+}
+
+/* 구매하기 버튼 */
+.trade-buy-btn {
+  width: 100%;
+  padding: 11px 0;
+  background-color: #ffcc00;
+  border: none;
+  border-bottom: 4px solid #cc9900;
+  border-right: 4px solid #cc9900;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  color: #111;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.1s, border-width 0.1s;
+}
+
+.trade-buy-btn:active { border-bottom-width: 0; border-right-width: 0; transform: translate(2px, 2px); }
+.trade-buy-btn:disabled { background-color: #aaa; border-color: #888; color: #666; cursor: default; }
+
+/* 우측 빈 상태 */
+.trade-right-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 15px;
+  color: #8a8ab0;
+}
+
+/* ── 판매 탭 - 내 카드 그리드 ── */
+.trade-sell-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 4px 4px 24px 4px;
+}
+
+.trade-sell-card-item {
+  position: relative;
+  cursor: pointer;
+  aspect-ratio: 104 / 144;
+  transition: transform 0.15s, filter 0.15s;
+}
+
+.trade-sell-card-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.trade-sell-card-item:hover { transform: scale(1.05); filter: brightness(1.1); }
+.trade-sell-card-item.selected { filter: brightness(1.15) drop-shadow(0 0 8px rgba(255,200,0,0.8)); }
+
+/* 가격 입력 */
+.trade-price-set-box { flex-shrink: 0; }
+
+.trade-price-set-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.trade-price-set-label {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  color: #334;
+}
+
+.trade-price-set-input {
+  width: 100%;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: #111;
+  padding: 7px;
+  outline: none;
+  text-align: center;
+}
+
+/* 판매 등록 버튼 */
+.trade-sell-btn {
+  width: 100%;
+  padding: 11px 0;
+  background-color: #4aaa66;
+  border: none;
+  border-bottom: 4px solid #2d7a44;
+  border-right: 4px solid #2d7a44;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.1s, border-width 0.1s;
+}
+
+.trade-sell-btn:active { border-bottom-width: 0; border-right-width: 0; transform: translate(2px, 2px); }
+.trade-sell-btn:disabled { background-color: #aaa; border-color: #888; color: #666; cursor: default; }
+
+/* ══ 모달 ══ */
+.trade-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.trade-modal-box {
+  background: #b0c4de;
+  border: 4px solid #6b859e;
+  box-shadow: 6px 6px 0px #4a5d73;
+  padding: 32px 40px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-width: 280px;
+  max-width: 380px;
+}
+
+.trade-modal-title {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  color: #111;
+  text-align: center;
+  margin: 0;
+}
+
+.trade-modal-sub {
+  font-family: 'Stardust', sans-serif;
+  font-size: 15px;
+  color: #334;
+  text-align: center;
+  margin: 0;
+}
+
+.trade-modal-btns {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.trade-modal-btn-ok {
+  width: 100%;
+  padding: 10px 0;
+  background-color: #ffcc00;
+  border: none;
+  border-bottom: 4px solid #cc9900;
+  border-right: 4px solid #cc9900;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: #111;
+  cursor: pointer;
+}
+
+.trade-modal-btn-ok:active { border-bottom-width: 0; border-right-width: 0; transform: translate(2px, 2px); }
+
+.trade-modal-btn-buy {
+  flex: 1;
+  padding: 10px 0;
+  background-color: #ffcc00;
+  border: none;
+  border-bottom: 4px solid #cc9900;
+  border-right: 4px solid #cc9900;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: #111;
+  cursor: pointer;
+}
+
+.trade-modal-btn-buy:active { border-bottom-width: 0; border-right-width: 0; transform: translate(2px, 2px); }
+.trade-modal-btn-buy:disabled { background-color: #aaa; border-color: #888; color: #666; cursor: default; }
+
+.trade-modal-btn-cancel {
+  flex: 1;
+  padding: 10px 0;
+  background-color: #c8d8e8;
+  border: none;
+  border-bottom: 4px solid #8ea4b8;
+  border-right: 4px solid #8ea4b8;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: #334;
+  cursor: pointer;
+}
+
+.trade-modal-btn-cancel:active { border-bottom-width: 0; border-right-width: 0; transform: translate(2px, 2px); }

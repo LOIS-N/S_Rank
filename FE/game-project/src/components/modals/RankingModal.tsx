@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePrivy } from "@privy-io/react-auth";
 import client from "@/lib/axios";
-import { useUserStore } from "@/store/useUserStore";
 
 interface RankingModalProps {
   onClose: () => void;
@@ -13,26 +13,30 @@ type TabType = "GOLD" | "STATS" | "CARD";
 export default function RankingModal({ onClose }: RankingModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>("GOLD");
   const [rankings, setRankings] = useState<any[]>([]);
+  const [myRanking, setMyRanking] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { accessToken } = useUserStore();
+  const { getAccessToken } = usePrivy();
 
   useEffect(() => {
     const fetchRankings = async () => {
       setLoading(true);
       setError(null);
       try {
+        const token = await getAccessToken();
+
         let endpoint = "";
         if (activeTab === "GOLD") endpoint = "/api/v1/rankings/gold";
         else if (activeTab === "STATS") endpoint = "/api/v1/rankings/cards/stat-total";
         else if (activeTab === "CARD") endpoint = "/api/v1/rankings/cards/grade-count";
 
         const response = await client.get(endpoint, {
-          headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (response.data.success) {
-          setRankings(response.data.data);
+          setRankings(response.data.data.topRankings ?? []);
+          setMyRanking(response.data.data.myRanking ?? null);
         } else {
           setError(response.data.error?.message || "랭킹 정보를 가져오는데 실패했습니다.");
         }
@@ -45,9 +49,9 @@ export default function RankingModal({ onClose }: RankingModalProps) {
     };
 
     fetchRankings();
-  }, [activeTab, accessToken]);
+  }, [activeTab]);
 
-  const renderRankingItem = (item: any) => {
+  const renderRankingItem = (item: any, isMe = false) => {
     const rankLabel = item.rank <= 3 ? ['🥇', '🥈', '🥉'][item.rank - 1] : `${item.rank}위`;
 
     let content = null;
@@ -61,7 +65,7 @@ export default function RankingModal({ onClose }: RankingModalProps) {
     } else if (activeTab === "STATS") {
       content = (
         <div className="flex justify-between items-center w-full">
-          <span className="text-slate-900 text-base">{item.cardName}</span>
+          <span className="text-slate-900 text-base">{item.nickname}</span>
           <span className="text-blue-600 font-bold drop-shadow-sm text-base">합계: {item.statTotal?.toLocaleString() || 0}</span>
         </div>
       );
@@ -78,11 +82,12 @@ export default function RankingModal({ onClose }: RankingModalProps) {
     }
 
     return (
-      <div key={`${activeTab}-${item.rank}-${item.nickname || item.cardName}`} className="flex items-center bg-white/70 mb-3 p-3 border-2 border-[#6b859e]">
+      <div key={`${activeTab}-${item.rank}-${item.nickname}`} className={`flex items-center mb-3 p-3 border-2 border-[#6b859e] ${isMe ? 'bg-yellow-100/90' : 'bg-white/70'}`}>
         <span className={`w-10 text-center text-base mr-5 flex-shrink-0 ${item.rank <= 3 ? 'text-yellow-600 drop-shadow-sm text-xl' : 'text-slate-800'}`}>
           {rankLabel}
         </span>
         {content}
+        {isMe && <span className="ml-2 text-xs text-yellow-700 flex-shrink-0">나</span>}
       </div>
     );
   };
@@ -129,7 +134,16 @@ export default function RankingModal({ onClose }: RankingModalProps) {
               {error}
             </div>
           ) : rankings.length > 0 ? (
-            rankings.map(renderRankingItem)
+            <>
+              {rankings.map((item) => renderRankingItem(item))}
+              {myRanking && (
+                <>
+                  <div className="border-t-2 border-dashed border-white/60 my-3" />
+                  <p className="text-white/80 text-xs mb-2">내 순위</p>
+                  {renderRankingItem(myRanking, true)}
+                </>
+              )}
+            </>
           ) : (
             <div className="h-full flex items-center justify-center text-slate-700 text-base">
               랭킹 데이터가 없습니다.
