@@ -7,6 +7,7 @@ import com.ssafy.srank.desk.domain.entity.DeskTemplate;
 import com.ssafy.srank.desk.domain.entity.UserDesk;
 import com.ssafy.srank.desk.repository.DeskTemplateRepository;
 import com.ssafy.srank.desk.repository.UserDeskRepository;
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -57,7 +58,7 @@ public class DeskServiceImpl implements DeskService {
         }
 
         // 4. 골드 차감
-        userService.spendGold(userId, (long) template.getUnlockCostGold());
+        userService.spendGold(userId, (long) template.getUnlockCostGold(), GoldLogReason.DESK_UNLOCK_SPEND);
 
         // 5. 해금
         userDeskRepository.save(UserDesk.builder()

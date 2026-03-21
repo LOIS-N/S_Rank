@@ -6,6 +6,7 @@ import com.ssafy.srank.common.config.RedisConfig;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.desk.repository.UserDeskRepository;
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.quest.application.dto.request.CompleteQuestRequest;
 import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
 import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
@@ -299,7 +300,7 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         }
         userDeskQuestRepository.deleteByUserIdAndQuestId(userId,request.questId());
 
-        userService.rewardGold(userId, gold);
+        userService.rewardGold(userId, gold, GoldLogReason.QUEST_REWARD);
 
         log.debug("[Quest] 보상 수령 완료 - userId={}, questId={}, questType={}, gold={}",
                 userId, request.questId(), request.questType(), gold);

@@ -1,5 +1,6 @@
 package com.ssafy.srank.user.application.service;
 
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.user.application.dto.request.UpdateNicknameRequest;
 import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
 
@@ -11,7 +12,7 @@ public interface UserService {
 
     void withdraw(Long userId);
 
-    long rewardGold(Long userId, Long gold);
+    long rewardGold(Long userId, Long gold, GoldLogReason reason);
 
-    long spendGold(Long userId, Long gold);
+    long spendGold(Long userId, Long gold, GoldLogReason reason);
 }
