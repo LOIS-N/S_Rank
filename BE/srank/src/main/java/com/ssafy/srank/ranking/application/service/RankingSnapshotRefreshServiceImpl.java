@@ -77,11 +77,11 @@ public class RankingSnapshotRefreshServiceImpl implements RankingSnapshotRefresh
         List<CardStatTotalRankingSnapshot> snapshots = new ArrayList<>();
         int rank = 1;
         for (RankingAggregationRepository.CardStatTotalRankingAggregate aggregate :
-                rankingAggregationRepository.findTopCardStatTotalRankings(TOP_LIMIT)) {
+                rankingAggregationRepository.findCardStatTotalRankings()) {
             snapshots.add(CardStatTotalRankingSnapshot.builder()
                     .rank(rank++)
-                    .userCardId(aggregate.userCardId())
-                    .cardName(aggregate.cardName())
+                    .userId(aggregate.userId())
+                    .nickname(aggregate.nickname())
                     .statTotal(aggregate.statTotal())
                     .achievedAt(aggregate.achievedAt())
                     .snapshotAt(snapshotAt)

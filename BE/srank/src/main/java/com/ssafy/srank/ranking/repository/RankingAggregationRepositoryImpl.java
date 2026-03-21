@@ -16,7 +16,6 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
 
     @Override
     public List<GoldRankingAggregate> findTopGoldRankings(int limit) {
-        // 현재 보유 골드가 아니라, 획득 로그(amount > 0)의 누적합으로 랭킹을 계산한다.
         String sql = """
                 SELECT
                     u.user_id,
@@ -46,7 +45,6 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
 
     @Override
     public List<CardGradeCountRankingAggregate> findTopCardGradeCountRankings(int limit) {
-        // 탈퇴 유저와 비활성/숨김/삭제 카드 템플릿은 집계 대상에서 제외한다.
         String sql = """
                 SELECT
                     u.user_id,
@@ -84,46 +82,69 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
     }
 
     @Override
-    public List<CardStatTotalRankingAggregate> findTopCardStatTotalRankings(int limit) {
-        // 카드 능력치 동점 시, 같은 statTotal에 먼저 도달한 카드가 앞서도록 achieved_at을 계산한다.
+    public List<CardStatTotalRankingAggregate> findCardStatTotalRankings() {
         String sql = """
+                WITH valid_cards AS (
+                    SELECT
+                        u.user_id,
+                        u.nickname,
+                        uc.user_card_id,
+                        (uc.base_skill_value_1 + uc.bonus_skill_value_1
+                         + uc.base_skill_value_2 + uc.bonus_skill_value_2
+                         + uc.base_skill_value_3 + uc.bonus_skill_value_3) AS stat_total,
+                        COALESCE(MAX(CASE WHEN el.success = true THEN el.created_at END), uc.created_at) AS achieved_at
+                    FROM user_card uc
+                    JOIN users u
+                        ON u.user_id = uc.user_id
+                    JOIN card_template ct
+                        ON ct.card_template_id = uc.card_template_id
+                    LEFT JOIN enhancement_log el
+                        ON el.user_card_id = uc.user_card_id
+                        AND el.success = true
+                    WHERE uc.is_delete = false
+                        AND u.deleted_at IS NULL
+                        AND ct.is_hidden = false
+                        AND ct.is_active = true
+                        AND ct.is_deleted = false
+                    GROUP BY
+                        u.user_id,
+                        u.nickname,
+                        uc.user_card_id,
+                        uc.created_at,
+                        uc.base_skill_value_1,
+                        uc.bonus_skill_value_1,
+                        uc.base_skill_value_2,
+                        uc.bonus_skill_value_2,
+                        uc.base_skill_value_3,
+                        uc.bonus_skill_value_3
+                ),
+                representative_cards AS (
+                    SELECT
+                        vc.user_id,
+                        vc.nickname,
+                        vc.stat_total,
+                        vc.achieved_at,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY vc.user_id
+                            ORDER BY vc.stat_total DESC, vc.achieved_at ASC, vc.user_card_id ASC
+                        ) AS representative_rank
+                    FROM valid_cards vc
+                )
                 SELECT
-                    uc.user_card_id,
-                    ct.character_name,
-                    (uc.base_skill_value_1 + uc.bonus_skill_value_1
-                     + uc.base_skill_value_2 + uc.bonus_skill_value_2
-                     + uc.base_skill_value_3 + uc.bonus_skill_value_3) AS stat_total,
-                    COALESCE(MAX(CASE WHEN el.success = true THEN el.created_at END), uc.created_at) AS achieved_at
-                FROM user_card uc
-                JOIN users u
-                    ON u.user_id = uc.user_id
-                JOIN card_template ct
-                    ON ct.card_template_id = uc.card_template_id
-                LEFT JOIN enhancement_log el
-                    ON el.user_card_id = uc.user_card_id
-                    AND el.success = true
-                WHERE uc.is_delete = false
-                    AND u.deleted_at IS NULL
-                    AND ct.is_hidden = false
-                    AND ct.is_active = true
-                    AND ct.is_deleted = false
-                GROUP BY
-                    uc.user_card_id,
-                    ct.character_name,
-                    uc.created_at,
-                    uc.base_skill_value_1,
-                    uc.bonus_skill_value_1,
-                    uc.base_skill_value_2,
-                    uc.bonus_skill_value_2,
-                    uc.base_skill_value_3,
-                    uc.bonus_skill_value_3
-                ORDER BY stat_total DESC, achieved_at ASC, uc.user_card_id ASC
-                LIMIT :limit
+                    u.user_id,
+                    u.nickname,
+                    COALESCE(rc.stat_total, 0) AS stat_total,
+                    COALESCE(rc.achieved_at, u.created_at) AS achieved_at
+                FROM users u
+                LEFT JOIN representative_cards rc
+                    ON rc.user_id = u.user_id
+                    AND rc.representative_rank = 1
+                WHERE u.deleted_at IS NULL
+                ORDER BY COALESCE(rc.stat_total, 0) DESC, COALESCE(rc.achieved_at, u.created_at) ASC, u.user_id ASC
                 """;
 
         @SuppressWarnings("unchecked")
         List<Object[]> rows = entityManager.createNativeQuery(sql)
-                .setParameter("limit", limit)
                 .getResultList();
 
         return rows.stream()

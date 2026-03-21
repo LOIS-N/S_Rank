@@ -2,9 +2,10 @@ package com.ssafy.srank.ranking.presentation.controller;
 
 import com.ssafy.srank.common.response.ApiResponse;
 import com.ssafy.srank.ranking.application.dto.response.CardGradeCountRankingItemResponse;
-import com.ssafy.srank.ranking.application.dto.response.CardStatTotalRankingItemResponse;
+import com.ssafy.srank.ranking.application.dto.response.CardStatTotalRankingResponse;
 import com.ssafy.srank.ranking.application.dto.response.GoldRankingItemResponse;
 import com.ssafy.srank.ranking.application.service.RankingQueryService;
+import com.ssafy.srank.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,7 +41,7 @@ public class RankingController {
      * 배치가 만들어 둔 카드 능력치 총합 랭킹 스냅샷을 조회한다.
      */
     @GetMapping("/cards/stat-total")
-    public ResponseEntity<ApiResponse<List<CardStatTotalRankingItemResponse>>> getCardStatTotalRankings() {
-        return ResponseEntity.ok(ApiResponse.success(rankingQueryService.getCardStatTotalRankings()));
+    public ResponseEntity<ApiResponse<CardStatTotalRankingResponse>> getCardStatTotalRankings() {
+        return ResponseEntity.ok(ApiResponse.success(rankingQueryService.getCardStatTotalRankings(SecurityUtil.getCurrentUserId())));
     }
 }

@@ -30,11 +30,11 @@ public class CardStatTotalRankingSnapshot {
     @Column(name = "rank", nullable = false)
     private int rank;
 
-    @Column(name = "user_card_id", nullable = false)
-    private Long userCardId;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    @Column(name = "card_name", nullable = false, length = 100)
-    private String cardName;
+    @Column(name = "nickname", length = 50)
+    private String nickname;
 
     @Column(name = "stat_total", nullable = false)
     private int statTotal;
