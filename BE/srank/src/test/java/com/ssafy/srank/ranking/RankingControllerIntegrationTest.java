@@ -122,6 +122,75 @@ class RankingControllerIntegrationTest {
     }
 
     @Test
+    void goldRankingReturnsUnrankedFallbackWhenSnapshotDoesNotContainUser() throws Exception {
+        for (int rank = 1; rank <= 10; rank++) {
+            userGoldRankingSnapshotRepository.save(UserGoldRankingSnapshot.builder()
+                    .rank(rank)
+                    .userId(100L + rank)
+                    .nickname("gold-user-" + rank)
+                    .gold(1000L - rank)
+                    .snapshotAt(LocalDateTime.now())
+                    .build());
+        }
+
+        mockMvc.perform(get("/api/v1/rankings/gold")
+                        .header("Authorization", "Bearer valid"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.topRankings.length()").value(10))
+                .andExpect(jsonPath("$.data.myRanking.rank").value(9999))
+                .andExpect(jsonPath("$.data.myRanking.nickname").value("미등록"))
+                .andExpect(jsonPath("$.data.myRanking.gold").value(0));
+    }
+
+    @Test
+    void cardGradeRankingReturnsUnrankedFallbackWhenSnapshotDoesNotContainUser() throws Exception {
+        for (int rank = 1; rank <= 10; rank++) {
+            userCardGradeRankingSnapshotRepository.save(UserCardGradeRankingSnapshot.builder()
+                    .rank(rank)
+                    .userId(200L + rank)
+                    .nickname("grade-user-" + rank)
+                    .sCount(20L - rank)
+                    .aCount(30L - rank)
+                    .snapshotAt(LocalDateTime.now())
+                    .build());
+        }
+
+        mockMvc.perform(get("/api/v1/rankings/cards/grade-count")
+                        .header("Authorization", "Bearer valid"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.topRankings.length()").value(10))
+                .andExpect(jsonPath("$.data.myRanking.rank").value(9999))
+                .andExpect(jsonPath("$.data.myRanking.nickname").value("미등록"))
+                .andExpect(jsonPath("$.data.myRanking.sCount").value(0))
+                .andExpect(jsonPath("$.data.myRanking.aCount").value(0));
+    }
+
+    @Test
+    void cardStatTotalRankingReturnsUnrankedFallbackWhenSnapshotDoesNotContainUser() throws Exception {
+        for (int rank = 1; rank <= 10; rank++) {
+            cardStatTotalRankingSnapshotRepository.save(CardStatTotalRankingSnapshot.builder()
+                    .rank(rank)
+                    .userId(300L + rank)
+                    .nickname("stat-user-" + rank)
+                    .statTotal(300 - rank)
+                    .achievedAt(LocalDateTime.now().minusHours(rank))
+                    .snapshotAt(LocalDateTime.now())
+                    .build());
+        }
+
+        mockMvc.perform(get("/api/v1/rankings/cards/stat-total")
+                        .header("Authorization", "Bearer valid"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.topRankings.length()").value(10))
+                .andExpect(jsonPath("$.data.myRanking.rank").value(9999))
+                .andExpect(jsonPath("$.data.myRanking.nickname").value("미등록"))
+                .andExpect(jsonPath("$.data.myRanking.statTotal").value(0));
+    }
+
+    @Test
     void cardGradeRankingReturnsTopTenAndMyRanking() throws Exception {
         for (int rank = 1; rank <= 11; rank++) {
             userCardGradeRankingSnapshotRepository.save(UserCardGradeRankingSnapshot.builder()
