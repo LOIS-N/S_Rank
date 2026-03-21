@@ -5,9 +5,9 @@ import java.util.List;
 
 public interface RankingAggregationRepository {
 
-    List<GoldRankingAggregate> findTopGoldRankings(int limit);
+    List<GoldRankingAggregate> findGoldRankings();
 
-    List<CardGradeCountRankingAggregate> findTopCardGradeCountRankings(int limit);
+    List<CardGradeCountRankingAggregate> findCardGradeCountRankings();
 
     List<CardStatTotalRankingAggregate> findCardStatTotalRankings();
 
