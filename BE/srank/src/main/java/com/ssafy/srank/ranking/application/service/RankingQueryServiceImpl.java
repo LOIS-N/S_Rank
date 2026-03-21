@@ -1,7 +1,5 @@
 package com.ssafy.srank.ranking.application.service;
 
-import com.ssafy.srank.common.exception.BusinessException;
-import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.ranking.application.dto.response.CardGradeCountRankingItemResponse;
 import com.ssafy.srank.ranking.application.dto.response.CardStatTotalRankingItemResponse;
 import com.ssafy.srank.ranking.application.dto.response.GoldRankingItemResponse;
@@ -19,6 +17,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class RankingQueryServiceImpl implements RankingQueryService {
+
+    private static final int UNRANKED_RANK = 9999;
+    private static final String UNRANKED_NICKNAME = "미등록";
 
     private final UserGoldRankingSnapshotRepository userGoldRankingSnapshotRepository;
     private final UserCardGradeRankingSnapshotRepository userCardGradeRankingSnapshotRepository;
@@ -40,7 +41,7 @@ public class RankingQueryServiceImpl implements RankingQueryService {
                         snapshot.getNickname(),
                         snapshot.getGold()
                 ))
-                .orElseThrow(() -> new BusinessException(ErrorCode.RANKING_NOT_FOUND));
+                .orElseGet(this::createUnrankedGoldRanking);
 
         return new RankingResponse<>(topRankings, myRanking);
     }
@@ -63,7 +64,7 @@ public class RankingQueryServiceImpl implements RankingQueryService {
                         snapshot.getSCount(),
                         snapshot.getACount()
                 ))
-                .orElseThrow(() -> new BusinessException(ErrorCode.RANKING_NOT_FOUND));
+                .orElseGet(this::createUnrankedCardGradeCountRanking);
 
         return new RankingResponse<>(topRankings, myRanking);
     }
@@ -84,8 +85,20 @@ public class RankingQueryServiceImpl implements RankingQueryService {
                         snapshot.getNickname(),
                         snapshot.getStatTotal()
                 ))
-                .orElseThrow(() -> new BusinessException(ErrorCode.RANKING_NOT_FOUND));
+                .orElseGet(this::createUnrankedCardStatTotalRanking);
 
         return new RankingResponse<>(topRankings, myRanking);
+    }
+
+    private GoldRankingItemResponse createUnrankedGoldRanking() {
+        return new GoldRankingItemResponse(UNRANKED_RANK, UNRANKED_NICKNAME, 0L);
+    }
+
+    private CardGradeCountRankingItemResponse createUnrankedCardGradeCountRanking() {
+        return new CardGradeCountRankingItemResponse(UNRANKED_RANK, UNRANKED_NICKNAME, 0L, 0L);
+    }
+
+    private CardStatTotalRankingItemResponse createUnrankedCardStatTotalRanking() {
+        return new CardStatTotalRankingItemResponse(UNRANKED_RANK, UNRANKED_NICKNAME, 0);
     }
 }
