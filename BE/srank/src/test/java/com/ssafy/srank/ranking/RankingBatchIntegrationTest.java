@@ -89,7 +89,18 @@ class RankingBatchIntegrationTest {
         User alpha = saveUser("did:privy:alpha", "alpha", null);
         User beta = saveUser("did:privy:beta", "beta", null);
         User gamma = saveUser("did:privy:gamma", "gamma", null);
+        User delta = saveUser("did:privy:delta", "delta", null);
         User withdrawn = saveUser("did:privy:withdrawn", "withdrawn", LocalDateTime.now());
+
+        LocalDateTime alphaCreatedAt = LocalDateTime.now().minusDays(10);
+        LocalDateTime betaCreatedAt = LocalDateTime.now().minusDays(9);
+        LocalDateTime gammaCreatedAt = LocalDateTime.now().minusDays(8);
+        LocalDateTime deltaCreatedAt = LocalDateTime.now().minusDays(7);
+
+        updateUserCreatedAt(alpha.getUserId(), alphaCreatedAt);
+        updateUserCreatedAt(beta.getUserId(), betaCreatedAt);
+        updateUserCreatedAt(gamma.getUserId(), gammaCreatedAt);
+        updateUserCreatedAt(delta.getUserId(), deltaCreatedAt);
 
         userGoldLogRepository.save(UserGoldLog.builder()
                 .userId(alpha.getUserId())
@@ -128,29 +139,35 @@ class RankingBatchIntegrationTest {
 
         hideTemplate(hiddenCard.getId());
 
-        UserCard alphaSCard = userCardRepository.save(saveCard(alpha.getUserId(), activeS, 40, 40, 40, 0, 0, 0));
-        UserCard betaSCard = userCardRepository.save(saveCard(beta.getUserId(), activeS, 45, 45, 45, 0, 0, 0));
-        UserCard betaACard = userCardRepository.save(saveCard(beta.getUserId(), activeA, 20, 20, 20, 0, 0, 0));
-        UserCard hiddenCountCard = userCardRepository.save(saveCard(alpha.getUserId(), hiddenCard, 30, 30, 30, 0, 0, 0));
+        userCardRepository.save(saveCard(alpha.getUserId(), activeS, 40, 40, 40, 0, 0, 0));
+        userCardRepository.save(saveCard(beta.getUserId(), activeS, 45, 45, 45, 0, 0, 0));
+        userCardRepository.save(saveCard(beta.getUserId(), activeA, 20, 20, 20, 0, 0, 0));
+        userCardRepository.save(saveCard(alpha.getUserId(), hiddenCard, 30, 30, 30, 0, 0, 0));
+
         UserCard deletedCard = userCardRepository.save(saveCard(alpha.getUserId(), activeA, 10, 10, 10, 0, 0, 0));
         softDeleteCard(deletedCard.getId());
-        UserCard withdrawnCard = userCardRepository.save(saveCard(withdrawn.getUserId(), activeS, 50, 50, 50, 0, 0, 0));
+
+        userCardRepository.save(saveCard(withdrawn.getUserId(), activeS, 50, 50, 50, 0, 0, 0));
 
         UserCard highestStatCard = userCardRepository.save(saveCard(gamma.getUserId(), highCard, 70, 70, 40, 0, 0, 0));
         UserCard olderTieCard = userCardRepository.save(saveCard(alpha.getUserId(), tieCard, 50, 50, 50, 0, 0, 0));
-        UserCard laterTieCard = userCardRepository.save(saveCard(beta.getUserId(), tieCard, 40, 40, 40, 10, 10, 10));
+        UserCard alphaLaterTieCard = userCardRepository.save(saveCard(alpha.getUserId(), tieCard, 40, 40, 40, 10, 10, 10));
+        UserCard betaTieCard = userCardRepository.save(saveCard(beta.getUserId(), tieCard, 40, 40, 40, 10, 10, 10));
 
         LocalDateTime oldCreatedAt = LocalDateTime.now().minusDays(2);
-        LocalDateTime newerCreatedAt = LocalDateTime.now().minusDays(1);
+        LocalDateTime alphaLaterCreatedAt = LocalDateTime.now().minusDays(1);
+        LocalDateTime betaBaseCreatedAt = LocalDateTime.now().minusHours(12);
         LocalDateTime successAt = LocalDateTime.now().minusHours(6);
+        LocalDateTime gammaCardCreatedAt = LocalDateTime.now().minusHours(8);
 
         updateCardCreatedAt(olderTieCard.getId(), oldCreatedAt);
-        updateCardCreatedAt(laterTieCard.getId(), newerCreatedAt);
-        updateCardCreatedAt(highestStatCard.getId(), LocalDateTime.now().minusHours(8));
+        updateCardCreatedAt(alphaLaterTieCard.getId(), alphaLaterCreatedAt);
+        updateCardCreatedAt(betaTieCard.getId(), betaBaseCreatedAt);
+        updateCardCreatedAt(highestStatCard.getId(), gammaCardCreatedAt);
 
         enhancementLogRepository.save(EnhancementLog.builder()
                 .userId(beta.getUserId())
-                .userCardId(laterTieCard.getId())
+                .userCardId(betaTieCard.getId())
                 .tryNo(1)
                 .success(true)
                 .beforeSuccessCount(0)
@@ -172,16 +189,18 @@ class RankingBatchIntegrationTest {
         assertThat(execution.getExitStatus().getExitCode()).isEqualTo("COMPLETED");
 
         var goldSnapshots = userGoldRankingSnapshotRepository.findAllByOrderByRankAsc();
-        assertThat(goldSnapshots).hasSize(3);
+        assertThat(goldSnapshots).hasSize(4);
         assertThat(goldSnapshots.get(0).getNickname()).isEqualTo("alpha");
         assertThat(goldSnapshots.get(0).getGold()).isEqualTo(100L);
         assertThat(goldSnapshots.get(1).getNickname()).isEqualTo("beta");
         assertThat(goldSnapshots.get(1).getGold()).isEqualTo(100L);
         assertThat(goldSnapshots.get(2).getNickname()).isEqualTo("gamma");
         assertThat(goldSnapshots.get(2).getGold()).isEqualTo(0L);
+        assertThat(goldSnapshots.get(3).getNickname()).isEqualTo("delta");
+        assertThat(goldSnapshots.get(3).getGold()).isEqualTo(0L);
 
         var gradeSnapshots = userCardGradeRankingSnapshotRepository.findAllByOrderByRankAsc();
-        assertThat(gradeSnapshots).hasSize(3);
+        assertThat(gradeSnapshots).hasSize(4);
         assertThat(gradeSnapshots.get(0).getNickname()).isEqualTo("beta");
         assertThat(gradeSnapshots.get(0).getSCount()).isEqualTo(1L);
         assertThat(gradeSnapshots.get(0).getACount()).isEqualTo(1L);
@@ -191,19 +210,25 @@ class RankingBatchIntegrationTest {
         assertThat(gradeSnapshots.get(2).getNickname()).isEqualTo("gamma");
         assertThat(gradeSnapshots.get(2).getSCount()).isEqualTo(0L);
         assertThat(gradeSnapshots.get(2).getACount()).isEqualTo(0L);
+        assertThat(gradeSnapshots.get(3).getNickname()).isEqualTo("delta");
+        assertThat(gradeSnapshots.get(3).getSCount()).isEqualTo(0L);
+        assertThat(gradeSnapshots.get(3).getACount()).isEqualTo(0L);
 
         var statSnapshots = cardStatTotalRankingSnapshotRepository.findAllByOrderByRankAsc();
-        assertThat(statSnapshots).hasSize(6);
-        assertThat(statSnapshots.get(0).getCardName()).isEqualTo("High Card");
+        assertThat(statSnapshots).hasSize(4);
+        assertThat(statSnapshots.get(0).getNickname()).isEqualTo("gamma");
         assertThat(statSnapshots.get(0).getStatTotal()).isEqualTo(180);
-        assertThat(statSnapshots.get(1).getCardName()).isEqualTo("Tie Card");
-        assertThat(statSnapshots.get(1).getUserCardId()).isEqualTo(olderTieCard.getId());
+        assertThat(statSnapshots.get(0).getAchievedAt()).isEqualTo(gammaCardCreatedAt);
+        assertThat(statSnapshots.get(1).getNickname()).isEqualTo("alpha");
+        assertThat(statSnapshots.get(1).getStatTotal()).isEqualTo(150);
         assertThat(statSnapshots.get(1).getAchievedAt()).isEqualTo(oldCreatedAt);
-        assertThat(statSnapshots.get(2).getCardName()).isEqualTo("Tie Card");
-        assertThat(statSnapshots.get(2).getUserCardId()).isEqualTo(laterTieCard.getId());
+        assertThat(statSnapshots.get(2).getNickname()).isEqualTo("beta");
+        assertThat(statSnapshots.get(2).getStatTotal()).isEqualTo(150);
         assertThat(statSnapshots.get(2).getAchievedAt()).isEqualTo(successAt);
-        assertThat(statSnapshots).noneMatch(snapshot -> snapshot.getUserCardId().equals(hiddenCountCard.getId()));
-        assertThat(statSnapshots).noneMatch(snapshot -> snapshot.getUserCardId().equals(withdrawnCard.getId()));
+        assertThat(statSnapshots.get(3).getNickname()).isEqualTo("delta");
+        assertThat(statSnapshots.get(3).getStatTotal()).isEqualTo(0);
+        assertThat(statSnapshots.get(3).getAchievedAt()).isEqualTo(deltaCreatedAt);
+        assertThat(statSnapshots).noneMatch(snapshot -> snapshot.getNickname().equals("withdrawn"));
     }
 
     private User saveUser(String privyId, String nickname, LocalDateTime deletedAt) {
@@ -240,5 +265,9 @@ class RankingBatchIntegrationTest {
 
     private void updateCardCreatedAt(Long userCardId, LocalDateTime createdAt) {
         jdbcTemplate.update("UPDATE user_card SET created_at = ? WHERE user_card_id = ?", createdAt, userCardId);
+    }
+
+    private void updateUserCreatedAt(Long userId, LocalDateTime createdAt) {
+        jdbcTemplate.update("UPDATE users SET created_at = ? WHERE user_id = ?", createdAt, userId);
     }
 }

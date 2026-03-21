@@ -9,7 +9,7 @@ public interface RankingAggregationRepository {
 
     List<CardGradeCountRankingAggregate> findTopCardGradeCountRankings(int limit);
 
-    List<CardStatTotalRankingAggregate> findTopCardStatTotalRankings(int limit);
+    List<CardStatTotalRankingAggregate> findCardStatTotalRankings();
 
     record GoldRankingAggregate(
             Long userId,
@@ -27,8 +27,8 @@ public interface RankingAggregationRepository {
     }
 
     record CardStatTotalRankingAggregate(
-            Long userCardId,
-            String cardName,
+            Long userId,
+            String nickname,
             int statTotal,
             LocalDateTime achievedAt
     ) {

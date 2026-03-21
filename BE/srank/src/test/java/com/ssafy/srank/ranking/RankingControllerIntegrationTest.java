@@ -52,9 +52,11 @@ class RankingControllerIntegrationTest {
     @MockBean
     private PrivyTokenService privyTokenService;
 
+    private User testUser;
+
     @BeforeEach
     void setUp() {
-        userRepository.save(User.builder()
+        testUser = userRepository.save(User.builder()
                 .privyId("did:privy:test-user")
                 .email("test-user@test.com")
                 .walletAddress("wallet-test-user")
@@ -127,13 +129,24 @@ class RankingControllerIntegrationTest {
     }
 
     @Test
-    void cardStatTotalRankingReturnsSnapshots() throws Exception {
+    void cardStatTotalRankingReturnsTopTenAndMyRanking() throws Exception {
+        for (int rank = 1; rank <= 11; rank++) {
+            cardStatTotalRankingSnapshotRepository.save(CardStatTotalRankingSnapshot.builder()
+                    .rank(rank)
+                    .userId(100L + rank)
+                    .nickname("user-" + rank)
+                    .statTotal(300 - rank)
+                    .achievedAt(LocalDateTime.now().minusHours(rank))
+                    .snapshotAt(LocalDateTime.now())
+                    .build());
+        }
+
         cardStatTotalRankingSnapshotRepository.save(CardStatTotalRankingSnapshot.builder()
-                .rank(1)
-                .userCardId(99L)
-                .cardName("Top Card")
-                .statTotal(250)
-                .achievedAt(LocalDateTime.now().minusHours(1))
+                .rank(12)
+                .userId(testUser.getUserId())
+                .nickname(testUser.getNickname())
+                .statTotal(100)
+                .achievedAt(LocalDateTime.now().minusDays(1))
                 .snapshotAt(LocalDateTime.now())
                 .build());
 
@@ -141,8 +154,12 @@ class RankingControllerIntegrationTest {
                         .header("Authorization", "Bearer valid"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].rank").value(1))
-                .andExpect(jsonPath("$.data[0].cardName").value("Top Card"))
-                .andExpect(jsonPath("$.data[0].statTotal").value(250));
+                .andExpect(jsonPath("$.data.topRankings.length()").value(10))
+                .andExpect(jsonPath("$.data.topRankings[0].rank").value(1))
+                .andExpect(jsonPath("$.data.topRankings[0].nickname").value("user-1"))
+                .andExpect(jsonPath("$.data.topRankings[0].statTotal").value(299))
+                .andExpect(jsonPath("$.data.myRanking.rank").value(12))
+                .andExpect(jsonPath("$.data.myRanking.nickname").value("tester"))
+                .andExpect(jsonPath("$.data.myRanking.statTotal").value(100));
     }
 }

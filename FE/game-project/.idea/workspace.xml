@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="abed5463-651f-4355-b963-e027636d770b" name="변경" comment="" />
+    <list default="true" id="abed5463-651f-4355-b963-e027636d770b" name="변경" comment="">
+      <change beforePath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/application/dto/response/CardStatTotalRankingItemResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/application/dto/response/CardStatTotalRankingItemResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/application/service/RankingQueryService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/application/service/RankingQueryService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/application/service/RankingQueryServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/application/service/RankingQueryServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/application/service/RankingSnapshotRefreshServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/application/service/RankingSnapshotRefreshServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/domain/entity/CardStatTotalRankingSnapshot.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/domain/entity/CardStatTotalRankingSnapshot.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/presentation/controller/RankingController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/presentation/controller/RankingController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/repository/CardStatTotalRankingSnapshotRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/repository/CardStatTotalRankingSnapshotRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/repository/RankingAggregationRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/repository/RankingAggregationRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/repository/RankingAggregationRepositoryImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../BE/srank/src/main/java/com/ssafy/srank/ranking/repository/RankingAggregationRepositoryImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../BE/srank/src/test/java/com/ssafy/srank/ranking/RankingBatchIntegrationTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../BE/srank/src/test/java/com/ssafy/srank/ranking/RankingBatchIntegrationTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../BE/srank/src/test/java/com/ssafy/srank/ranking/RankingControllerIntegrationTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../BE/srank/src/test/java/com/ssafy/srank/ranking/RankingControllerIntegrationTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -26,7 +39,7 @@
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "git-widget-placeholder": "BE/feat/auth",
+    "git-widget-placeholder": "BE/feat/rank",
     "js.debugger.nextJs.config.created.client": "true",
     "js.debugger.nextJs.config.created.server": "true",
     "kotlin-language-version-configured": "true",
@@ -74,6 +87,7 @@
       <workItem from="1773963356381" duration="5256000" />
       <workItem from="1773981452474" duration="4125000" />
       <workItem from="1773989288748" duration="630000" />
+      <workItem from="1774076376946" duration="594000" />
     </task>
     <servers />
   </component>
