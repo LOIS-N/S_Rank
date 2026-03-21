@@ -4,8 +4,8 @@ import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.ranking.application.dto.response.CardGradeCountRankingItemResponse;
 import com.ssafy.srank.ranking.application.dto.response.CardStatTotalRankingItemResponse;
-import com.ssafy.srank.ranking.application.dto.response.CardStatTotalRankingResponse;
 import com.ssafy.srank.ranking.application.dto.response.GoldRankingItemResponse;
+import com.ssafy.srank.ranking.application.dto.response.RankingResponse;
 import com.ssafy.srank.ranking.repository.CardStatTotalRankingSnapshotRepository;
 import com.ssafy.srank.ranking.repository.UserCardGradeRankingSnapshotRepository;
 import com.ssafy.srank.ranking.repository.UserGoldRankingSnapshotRepository;
@@ -25,19 +25,29 @@ public class RankingQueryServiceImpl implements RankingQueryService {
     private final CardStatTotalRankingSnapshotRepository cardStatTotalRankingSnapshotRepository;
 
     @Override
-    public List<GoldRankingItemResponse> getGoldRankings() {
-        return userGoldRankingSnapshotRepository.findAllByOrderByRankAsc().stream()
+    public RankingResponse<GoldRankingItemResponse> getGoldRankings(Long userId) {
+        List<GoldRankingItemResponse> topRankings = userGoldRankingSnapshotRepository.findTop10ByOrderByRankAsc().stream()
                 .map(snapshot -> new GoldRankingItemResponse(
                         snapshot.getRank(),
                         snapshot.getNickname(),
                         snapshot.getGold()
                 ))
                 .toList();
+
+        GoldRankingItemResponse myRanking = userGoldRankingSnapshotRepository.findByUserId(userId)
+                .map(snapshot -> new GoldRankingItemResponse(
+                        snapshot.getRank(),
+                        snapshot.getNickname(),
+                        snapshot.getGold()
+                ))
+                .orElseThrow(() -> new BusinessException(ErrorCode.RANKING_NOT_FOUND));
+
+        return new RankingResponse<>(topRankings, myRanking);
     }
 
     @Override
-    public List<CardGradeCountRankingItemResponse> getCardGradeCountRankings() {
-        return userCardGradeRankingSnapshotRepository.findAllByOrderByRankAsc().stream()
+    public RankingResponse<CardGradeCountRankingItemResponse> getCardGradeCountRankings(Long userId) {
+        List<CardGradeCountRankingItemResponse> topRankings = userCardGradeRankingSnapshotRepository.findTop10ByOrderByRankAsc().stream()
                 .map(snapshot -> new CardGradeCountRankingItemResponse(
                         snapshot.getRank(),
                         snapshot.getNickname(),
@@ -45,10 +55,21 @@ public class RankingQueryServiceImpl implements RankingQueryService {
                         snapshot.getACount()
                 ))
                 .toList();
+
+        CardGradeCountRankingItemResponse myRanking = userCardGradeRankingSnapshotRepository.findByUserId(userId)
+                .map(snapshot -> new CardGradeCountRankingItemResponse(
+                        snapshot.getRank(),
+                        snapshot.getNickname(),
+                        snapshot.getSCount(),
+                        snapshot.getACount()
+                ))
+                .orElseThrow(() -> new BusinessException(ErrorCode.RANKING_NOT_FOUND));
+
+        return new RankingResponse<>(topRankings, myRanking);
     }
 
     @Override
-    public CardStatTotalRankingResponse getCardStatTotalRankings(Long userId) {
+    public RankingResponse<CardStatTotalRankingItemResponse> getCardStatTotalRankings(Long userId) {
         List<CardStatTotalRankingItemResponse> topRankings = cardStatTotalRankingSnapshotRepository.findTop10ByOrderByRankAsc().stream()
                 .map(snapshot -> new CardStatTotalRankingItemResponse(
                         snapshot.getRank(),
@@ -65,6 +86,6 @@ public class RankingQueryServiceImpl implements RankingQueryService {
                 ))
                 .orElseThrow(() -> new BusinessException(ErrorCode.RANKING_NOT_FOUND));
 
-        return new CardStatTotalRankingResponse(topRankings, myRanking);
+        return new RankingResponse<>(topRankings, myRanking);
     }
 }

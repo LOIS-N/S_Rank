@@ -89,12 +89,22 @@ class RankingControllerIntegrationTest {
     }
 
     @Test
-    void goldRankingReturnsSnapshots() throws Exception {
+    void goldRankingReturnsTopTenAndMyRanking() throws Exception {
+        for (int rank = 1; rank <= 11; rank++) {
+            userGoldRankingSnapshotRepository.save(UserGoldRankingSnapshot.builder()
+                    .rank(rank)
+                    .userId(100L + rank)
+                    .nickname("gold-user-" + rank)
+                    .gold(1000L - rank)
+                    .snapshotAt(LocalDateTime.now())
+                    .build());
+        }
+
         userGoldRankingSnapshotRepository.save(UserGoldRankingSnapshot.builder()
-                .rank(1)
-                .userId(1L)
-                .nickname("alpha")
-                .gold(123L)
+                .rank(12)
+                .userId(testUser.getUserId())
+                .nickname(testUser.getNickname())
+                .gold(100L)
                 .snapshotAt(LocalDateTime.now())
                 .build());
 
@@ -102,19 +112,34 @@ class RankingControllerIntegrationTest {
                         .header("Authorization", "Bearer valid"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].rank").value(1))
-                .andExpect(jsonPath("$.data[0].nickname").value("alpha"))
-                .andExpect(jsonPath("$.data[0].gold").value(123));
+                .andExpect(jsonPath("$.data.topRankings.length()").value(10))
+                .andExpect(jsonPath("$.data.topRankings[0].rank").value(1))
+                .andExpect(jsonPath("$.data.topRankings[0].nickname").value("gold-user-1"))
+                .andExpect(jsonPath("$.data.topRankings[0].gold").value(999))
+                .andExpect(jsonPath("$.data.myRanking.rank").value(12))
+                .andExpect(jsonPath("$.data.myRanking.nickname").value("tester"))
+                .andExpect(jsonPath("$.data.myRanking.gold").value(100));
     }
 
     @Test
-    void cardGradeRankingReturnsSnapshots() throws Exception {
+    void cardGradeRankingReturnsTopTenAndMyRanking() throws Exception {
+        for (int rank = 1; rank <= 11; rank++) {
+            userCardGradeRankingSnapshotRepository.save(UserCardGradeRankingSnapshot.builder()
+                    .rank(rank)
+                    .userId(200L + rank)
+                    .nickname("grade-user-" + rank)
+                    .sCount(20L - rank)
+                    .aCount(30L - rank)
+                    .snapshotAt(LocalDateTime.now())
+                    .build());
+        }
+
         userCardGradeRankingSnapshotRepository.save(UserCardGradeRankingSnapshot.builder()
-                .rank(1)
-                .userId(1L)
-                .nickname("beta")
-                .sCount(2L)
-                .aCount(3L)
+                .rank(12)
+                .userId(testUser.getUserId())
+                .nickname(testUser.getNickname())
+                .sCount(1L)
+                .aCount(2L)
                 .snapshotAt(LocalDateTime.now())
                 .build());
 
@@ -122,10 +147,15 @@ class RankingControllerIntegrationTest {
                         .header("Authorization", "Bearer valid"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].rank").value(1))
-                .andExpect(jsonPath("$.data[0].nickname").value("beta"))
-                .andExpect(jsonPath("$.data[0].sCount").value(2))
-                .andExpect(jsonPath("$.data[0].aCount").value(3));
+                .andExpect(jsonPath("$.data.topRankings.length()").value(10))
+                .andExpect(jsonPath("$.data.topRankings[0].rank").value(1))
+                .andExpect(jsonPath("$.data.topRankings[0].nickname").value("grade-user-1"))
+                .andExpect(jsonPath("$.data.topRankings[0].sCount").value(19))
+                .andExpect(jsonPath("$.data.topRankings[0].aCount").value(29))
+                .andExpect(jsonPath("$.data.myRanking.rank").value(12))
+                .andExpect(jsonPath("$.data.myRanking.nickname").value("tester"))
+                .andExpect(jsonPath("$.data.myRanking.sCount").value(1))
+                .andExpect(jsonPath("$.data.myRanking.aCount").value(2));
     }
 
     @Test
@@ -133,8 +163,8 @@ class RankingControllerIntegrationTest {
         for (int rank = 1; rank <= 11; rank++) {
             cardStatTotalRankingSnapshotRepository.save(CardStatTotalRankingSnapshot.builder()
                     .rank(rank)
-                    .userId(100L + rank)
-                    .nickname("user-" + rank)
+                    .userId(300L + rank)
+                    .nickname("stat-user-" + rank)
                     .statTotal(300 - rank)
                     .achievedAt(LocalDateTime.now().minusHours(rank))
                     .snapshotAt(LocalDateTime.now())
@@ -156,7 +186,7 @@ class RankingControllerIntegrationTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.topRankings.length()").value(10))
                 .andExpect(jsonPath("$.data.topRankings[0].rank").value(1))
-                .andExpect(jsonPath("$.data.topRankings[0].nickname").value("user-1"))
+                .andExpect(jsonPath("$.data.topRankings[0].nickname").value("stat-user-1"))
                 .andExpect(jsonPath("$.data.topRankings[0].statTotal").value(299))
                 .andExpect(jsonPath("$.data.myRanking.rank").value(12))
                 .andExpect(jsonPath("$.data.myRanking.nickname").value("tester"))
