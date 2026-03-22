@@ -66,4 +66,11 @@ public class DeskServiceImpl implements DeskService {
                 .deskTemplate(template)
                 .build());
     }
+
+    @Override
+    public void validateDeskUnlocked(Long userId, Long deskId) {
+        if (userDeskRepository.existsByIdAndUserId(userId, deskId)) {
+            throw new BusinessException(ErrorCode.DESK_NOT_FOUND);
+        }
+    }
 }

@@ -30,6 +30,9 @@ public class UserMainQuest extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private QuestStatus status;
 
+    @Column(name = "user_desk_id", nullable = false)
+    private Long userDeskId;
+
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt;
 

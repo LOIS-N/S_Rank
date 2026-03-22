@@ -2,10 +2,13 @@ package com.ssafy.srank.quest.application.service;
 
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.MainQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.domain.entity.MainQuestTemplate;
+import com.ssafy.srank.quest.domain.entity.QuestStatus;
+import com.ssafy.srank.quest.domain.entity.UserMainQuest;
 import com.ssafy.srank.quest.repository.MainQuestTemplateRepository;
 import com.ssafy.srank.quest.repository.UserMainQuestRepository;
 import com.ssafy.srank.user.application.service.UserService;
@@ -27,6 +30,43 @@ public class MainQuestServiceImpl implements MainQuestService {
     private final MainQuestTemplateRepository mainQuestTemplateRepository;
     private final UserMainQuestRepository userMainQuestRepository;
     private final UserService userService;
+
+
+    @Override
+    public List<InProcessQuestResponse> getUserMainQuestList(Long userId) {
+        return userMainQuestRepository.findByUserId(userId).stream()
+                .map(InProcessQuestResponse::fromUserMainQuest).toList();
+    }
+
+    @Override
+    public UserMainQuest startMainQuest(Long userId, Long questTemplateId, MainQuestRequest request) {
+        // 사용자 메인 퀘스트 저장
+        UserMainQuest mainQuest = UserMainQuest.builder()
+                .userId(userId)
+                .mainQuestTemplate(MainQuestTemplate.builder().id(questTemplateId).build())
+                .status(QuestStatus.IN_PROGRESS)
+                .userDeskId(request.deskId())
+                .startedAt(request.startAt())
+                .endAt(request.endAt())
+                .build();
+        return userMainQuestRepository.save(mainQuest);
+    }
+
+    @Override
+    public void completeMainQuest(Long userId, Long questId) {
+        UserMainQuest mainQuest = userMainQuestRepository.findByIdAndUserIdAndStatus(questId, userId, QuestStatus.IN_PROGRESS)
+                .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
+
+        mainQuest.completeStatus();
+    }
+
+    @Override
+    public Long claimRewardMainQuest(Long userId, Long questId) {
+        UserMainQuest mainQuest = userMainQuestRepository.findByIdAndUserIdAndStatus(questId, userId, QuestStatus.COMPLETED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_COMPLETED));
+        userMainQuestRepository.delete(mainQuest);
+        return (long) mainQuest.getMainQuestTemplate().getRewardGold();
+    }
 
     public List<MainQuestResponse> getMainQuestList(Long userId) {
         int chapter = userService.getMyInfo(userId).getLevel();

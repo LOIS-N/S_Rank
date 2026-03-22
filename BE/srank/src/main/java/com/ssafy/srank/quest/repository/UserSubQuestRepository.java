@@ -12,6 +12,8 @@ import java.util.Optional;
 
 public interface UserSubQuestRepository extends JpaRepository<UserSubQuest, Long> {
 
+    List<UserSubQuest> findByUserId(Long userId);
+
     // 유저의 특정 템플릿들에 대한 상태 조회
     @Query("SELECT u FROM UserSubQuest u WHERE u.userId = :userId AND u.subQuestTemplate.id IN :templateIds")
     List<UserSubQuest> findByUserIdAndTemplateIds(@Param("userId") Long userId, @Param("templateIds") List<Long> templateIds);
