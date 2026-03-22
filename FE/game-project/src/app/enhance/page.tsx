@@ -4,7 +4,9 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
-import "./card-list.css";
+import { simulateEnhance, EnhanceResult, getEnhanceData } from "@/lib/enhanceLogic";
+import { EnhanceAnimationOverlay } from "./EnhanceAnimationOverlay";
+import "./enhance.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -86,14 +88,29 @@ interface CardDetailData {
   name: string;
   stats: { [key: string]: number };
   enhanceLevel: number;
+  enhanceTries?: number; // fallback for current non-existing API data
 }
 
 // --- 스킬 필터 옵션 ---
 const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEV", "DESIGN"] as const;
 
-export default function CardListPage() {
+interface LocalEnhanceState {
+  enhanceLevel: number;
+  enhanceTries: number;
+  addedStats: { skill1: number; skill2: number; skill3: number };
+}
+
+export default function EnhancePage() {
   const { getAccessToken } = usePrivy();
-  const { accessToken } = useGameStore();
+  const { accessToken, gold, increaseGold } = useGameStore();
+
+  // --- 로컬 강화 상태 ---
+  const [localEnhancements, setLocalEnhancements] = useState<Record<number, LocalEnhanceState>>({});
+  const [enhanceResult, setEnhanceResult] = useState<(EnhanceResult & { previousStats: { skill1: number; skill2: number; skill3: number } }) | null>(null);
+
+  // --- 애니메이션 상태 ---
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [pendingResult, setPendingResult] = useState<(EnhanceResult & { previousStats: { skill1: number; skill2: number; skill3: number } }) | null>(null);
 
   // --- 카드 목록 상태 ---
   const [cards, setCards] = useState<CardListItem[]>([]);
@@ -198,6 +215,16 @@ export default function CardListPage() {
   const selectedListCard = useMemo(() => {
     return cards.find(c => c.cardId === selectedCardId) || null;
   }, [cards, selectedCardId]);
+
+  // --- 추가된 로컬 상탯값 계산 ---
+  const currentEnhancement = selectedCardId ? localEnhancements[selectedCardId] : null;
+
+  const displayEnhanceLevel = currentEnhancement ? currentEnhancement.enhanceLevel : (selectedDetail?.enhanceLevel || 0);
+  const displayEnhanceTries = currentEnhancement ? currentEnhancement.enhanceTries : (selectedDetail?.enhanceTries || 0);
+
+  const displaySkill1 = selectedListCard ? selectedListCard.skill1.value + (currentEnhancement?.addedStats.skill1 || 0) : 0;
+  const displaySkill2 = selectedListCard ? selectedListCard.skill2.value + (currentEnhancement?.addedStats.skill2 || 0) : 0;
+  const displaySkill3 = selectedListCard ? selectedListCard.skill3.value + (currentEnhancement?.addedStats.skill3 || 0) : 0;
 
   // --- 스크롤 관련 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0);
@@ -315,7 +342,7 @@ export default function CardListPage() {
           borderScale={0.4}
           className="cardlist-page-title-box"
         >
-          <h1 className="cardlist-page-title">카드 목록 보기</h1>
+          <h1 className="cardlist-page-title">카드 강화</h1>
         </NineSliceBox>
       </div>
 
@@ -454,38 +481,140 @@ export default function CardListPage() {
 
               {/* 우측 정보 */}
               <div className="cardlist-info-col">
-                {/* 이름 + 등급 + 강화 */}
-                <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
-                  <div className="cardlist-info-header-text">
-                    {selectedListCard.name}({selectedListCard.grade}등급)
-                  </div>
-                </NineSliceBox>
-
-                {selectedListCard.specialAbility ? (
+                {!enhanceResult ? (
                   <>
-                    {/* S등급: 능력치 + 특수능력 박스 나란히 */}
-                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
-                      <div className="cardlist-info-title">능력치</div>
-                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{selectedListCard.skill1.value}</div>
-                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{selectedListCard.skill2.value}</div>
-                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{selectedListCard.skill3.value}</div>
-                    </NineSliceBox>
-                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
-                      <div className="cardlist-info-text">
-                        능력 : {selectedListCard.specialAbility.name}
+                    {/* 1. 이름 + 등급 + 강화 레벨 */}
+                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
+                      <div className="cardlist-info-header-text">
+                        {selectedListCard.name}({selectedListCard.grade}등급)
+                        {displayEnhanceLevel ? ` +${displayEnhanceLevel}` : ''}
                       </div>
                     </NineSliceBox>
+
+                    {/* 2. 능력치 및 남은 강화 횟수 */}
+                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
+                      <div className="cardlist-info-title" style={{ marginBottom: '8px' }}>능력치</div>
+                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{displaySkill1}</div>
+                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{displaySkill2}</div>
+                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{displaySkill3}</div>
+                      <div className="cardlist-info-text" style={{ marginTop: '8px', color: '#111' }}>
+                        남은 강화횟수 : {Math.max(0, 7 - displayEnhanceTries)}
+                      </div>
+                    </NineSliceBox>
+
+                    {/* 3. 강화 상수 정보 */}
+                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel enhance-info-box">
+                      <div className="cardlist-info-text">강화 성공 확률 : {getEnhanceData(selectedListCard.grade).prob}%</div>
+                      <div className="cardlist-info-text">강화 비용 : {getEnhanceData(selectedListCard.grade).cost.toLocaleString()}G</div>
+                      <div className="cardlist-info-text">성공 시 능력치 분배량 : +{getEnhanceData(selectedListCard.grade).statIncrease}</div>
+                    </NineSliceBox>
+
+                    {/* 4. 강화 버튼 */}
+                    <button
+                      className="enhance-action-btn"
+                      // TODO: 테스트 모드 — 골드 부족해도 강화 가능 (BE 연동 시 골드 체크 복원)
+                      disabled={displayEnhanceTries >= 7}
+                      onClick={() => {
+                        const result = simulateEnhance(selectedListCard.grade, displayEnhanceTries, gold);
+                        if (result.error === 'MAX_TRIES') {
+                          alert('강화 횟수를 초과했습니다.');
+                          return;
+                        }
+
+                        increaseGold(-result.cost);
+
+                        setPendingResult({
+                          ...result,
+                          previousStats: {
+                            skill1: displaySkill1,
+                            skill2: displaySkill2,
+                            skill3: displaySkill3,
+                          }
+                        });
+                        setIsAnimating(true);
+                      }}
+                    >
+                      강화하기
+                    </button>
                   </>
                 ) : (
-                  /* 비-S등급: 능력치 박스를 남은 공간 중앙에 배치 */
-                  <div className="cardlist-stats-center-wrapper">
-                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
-                      <div className="cardlist-info-title">능력치</div>
-                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{selectedListCard.skill1.value}</div>
-                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{selectedListCard.skill2.value}</div>
-                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{selectedListCard.skill3.value}</div>
-                    </NineSliceBox>
-                  </div>
+                  <NineSliceBox 
+                    src={`${ASSET_BASE}/assets/008/questInf_001.webp`} 
+                    slice={[108, 260, 129, 340]} 
+                    framePadding={20} 
+                    borderScale={0.35} 
+                    className="cardlist-info-panel enhance-result-panel fade-in-up" 
+                    style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
+                  >
+                    <div className="enhance-modal-title" style={{ fontSize: '28px', marginBottom: '20px', color: enhanceResult.success ? '#222' : '#888' }}>
+                      강화 {enhanceResult.success ? '성공!' : '실패'}
+                    </div>
+
+                    <div style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                      {enhanceResult.success && enhanceResult.statsAdded && (
+                        <div className="enhance-modal-content" style={{ textAlign: 'center' }}>
+                          <div className="enhance-modal-text" style={{ marginBottom: 8 }}>
+                            {displaySkillType(selectedListCard.skill1.skillType)} {enhanceResult.previousStats.skill1} &rarr; {enhanceResult.previousStats.skill1 + enhanceResult.statsAdded.skill1} <span style={{color: '#4caf50', fontWeight: 'bold'}}>(+{enhanceResult.statsAdded.skill1})</span>
+                          </div>
+                          <div className="enhance-modal-text" style={{ marginBottom: 8 }}>
+                            {displaySkillType(selectedListCard.skill2.skillType)} {enhanceResult.previousStats.skill2} &rarr; {enhanceResult.previousStats.skill2 + enhanceResult.statsAdded.skill2} <span style={{color: '#4caf50', fontWeight: 'bold'}}>(+{enhanceResult.statsAdded.skill2})</span>
+                          </div>
+                          <div className="enhance-modal-text" style={{ marginBottom: 8 }}>
+                            {displaySkillType(selectedListCard.skill3.skillType)} {enhanceResult.previousStats.skill3} &rarr; {enhanceResult.previousStats.skill3 + enhanceResult.statsAdded.skill3} <span style={{color: '#4caf50', fontWeight: 'bold'}}>(+{enhanceResult.statsAdded.skill3})</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!enhanceResult.success && (
+                        <div className="enhance-modal-content" style={{ textAlign: 'center', marginTop: 10 }}>
+                          <div className="enhance-modal-text" style={{ color: '#ff6b6b', fontSize: '18px' }}>(스탯 변화 없음)</div>
+                        </div>
+                      )}
+                      
+                      <div className="enhance-modal-tries" style={{ marginTop: 20, marginBottom: 20, fontSize: '16px', color: '#111' }}>
+                        남은 강화횟수 : {Math.max(0, 7 - (displayEnhanceTries))}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: 'auto' }}>
+                      <button 
+                        className="enhance-action-btn"
+                        style={{ marginTop: 0 }}
+                        // TODO: 테스트 모드 — 골드 부족해도 강화 가능 (BE 연동 시 골드 체크 복원)
+                        disabled={displayEnhanceTries >= 7}
+                        onClick={() => {
+                          setEnhanceResult(null);
+
+                          const result = simulateEnhance(selectedListCard.grade, displayEnhanceTries, gold);
+                          if (result.error === 'MAX_TRIES') {
+                            alert('강화 횟수를 초과했습니다.');
+                            return;
+                          }
+
+                          increaseGold(-result.cost);
+
+                          setPendingResult({
+                            ...result,
+                            previousStats: {
+                              skill1: displaySkill1,
+                              skill2: displaySkill2,
+                              skill3: displaySkill3,
+                            }
+                          });
+                          setIsAnimating(true);
+                        }}
+                      >
+                        연속 강화
+                      </button>
+                      <button 
+                        className="enhance-action-btn"
+                        style={{ background: '#7a7a7a', borderColor: '#4d4d4d', marginTop: 0 }}
+                        onClick={() => setEnhanceResult(null)}
+                      >
+                        확인
+                      </button>
+                    </div>
+                  </NineSliceBox>
                 )}
               </div>
             </div>
@@ -497,6 +626,44 @@ export default function CardListPage() {
         </NineSliceBox>
 
       </div>
+
+      {/* Phaser 애미메이션 렌더링 컨테이너 */}
+      {isAnimating && pendingResult && selectedListCard && (
+        <EnhanceAnimationOverlay
+          card={selectedListCard}
+          isSuccess={pendingResult.success}
+          onShowResult={() => {
+            // 애니메이션 진행 중(3.5초 지점) 카드 왼쪽 슬라이드와 함께 실제 상태 반영 & 결과 모달 표출
+            let newLevel = displayEnhanceLevel;
+            const prevAddedStats = currentEnhancement?.addedStats || { skill1: 0, skill2: 0, skill3: 0 };
+            const newAddedStats = { ...prevAddedStats };
+
+            if (pendingResult.success && pendingResult.statsAdded) {
+              newLevel += 1;
+              newAddedStats.skill1 += pendingResult.statsAdded.skill1;
+              newAddedStats.skill2 += pendingResult.statsAdded.skill2;
+              newAddedStats.skill3 += pendingResult.statsAdded.skill3;
+            }
+
+            setLocalEnhancements(prev => ({
+              ...prev,
+              [selectedListCard.cardId]: {
+                enhanceLevel: newLevel,
+                enhanceTries: displayEnhanceTries + 1,
+                addedStats: newAddedStats,
+              }
+            }));
+
+            // 결과 모달 띄우기 (컴포넌트 마운트 및 CSS fade-in)
+            setEnhanceResult(pendingResult);
+          }}
+          onComplete={() => {
+            // 모든 연출 완전 종료 시 (4.5초) Phaser 컨테이너만 언마운트
+            setIsAnimating(false);
+            setPendingResult(null);
+          }}
+        />
+      )}
     </div>
   );
 }
