@@ -224,6 +224,7 @@ export default function GachaPage() {
           grade_a: gradeCounts["A"] ?? 0,
           grade_b: gradeCounts["B"] ?? 0,
           grade_c: gradeCounts["C"] ?? 0,
+          grade_d: gradeCounts["D"] ?? 0,
         });
 
         if (drawData.remainingGold != null) {
