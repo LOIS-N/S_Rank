@@ -293,7 +293,7 @@ export default function GameCanvas() {
                       const RESULT_DELAY_MS = 60 * 1000;
                       const displayRemainMs = remainMs + RESULT_DELAY_MS;
 
-                      if (displayRemainMs <= 0) {
+                      if (quest.status === 'COMPLETED' || displayRemainMs <= 0) {
                         deskData.resultIcon.setVisible(true);
                         deskData.timerBg.setVisible(false);
                         deskData.timerText.setVisible(false);

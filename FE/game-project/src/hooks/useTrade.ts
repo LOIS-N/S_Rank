@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { parseUnits } from "ethers";
+import { useWallets } from "@privy-io/react-auth";
 import { useContracts } from "./useContracts";
 import { CONTRACT_ADDRESSES } from "@/contracts/addresses";
 
@@ -15,6 +16,33 @@ import { CONTRACT_ADDRESSES } from "@/contracts/addresses";
  */
 export function useTrade() {
   const { getNFTContract, getTokenContract, getMarketContract } = useContracts();
+  const { wallets } = useWallets();
+
+  /**
+   * CardMarket에 대한 setApprovalForAll 상태 확인 + 미승인 시 실행
+   * @returns true  → 이번에 새로 승인함
+   *          false → 이미 승인되어 있었음
+   */
+  const checkAndApproveAll = useCallback(async (
+    onStep?: (msg: string) => void,
+  ): Promise<boolean> => {
+    const userAddress =
+      wallets.find((w) => w.walletClientType === "privy")?.address ??
+      wallets[0]?.address;
+    if (!userAddress) throw new Error("지갑이 연결되지 않았습니다.");
+
+    const nft = await getNFTContract();
+    const isApproved: boolean = await nft.isApprovedForAll(
+      userAddress,
+      CONTRACT_ADDRESSES.CARD_MARKET,
+    );
+    if (isApproved) return false;
+
+    onStep?.("거래 활성화 중...");
+    const tx = await nft.setApprovalForAll(CONTRACT_ADDRESSES.CARD_MARKET, true);
+    await tx.wait();
+    return true;
+  }, [getNFTContract, wallets]);
 
   /**
    * 판매 등록 온체인 처리
@@ -72,5 +100,5 @@ export function useTrade() {
     return buyTx.hash as string;
   }, [getTokenContract, getMarketContract]);
 
-  return { listOnChain, buyOnChain };
+  return { listOnChain, buyOnChain, checkAndApproveAll };
 }

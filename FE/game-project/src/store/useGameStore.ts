@@ -59,7 +59,7 @@ interface GameState {
   setQuestInfoModal: (data: { questTitle: string; rewardGold: number; remainMs: number; endAt: string | null } | null) => void;
   setQuestFetchTrigger: (data: { questId: number; questType: 'main' | 'sub'; remainMs: number; endAt: string | null } | null) => void;
   setCompleteQuestTrigger: (data: { deskId: number; questId: number; questType: 'MAIN' | 'SUB' } | null) => void;
-  syncActiveQuests: (activeDesks: Array<{ deskId: number; questId: number; questType: 'main' | 'sub'; title: string; rewardGold: number; endAt: string }>) => void;
+  syncActiveQuests: (activeDesks: Array<{ deskId: number; questId: number; questType: 'main' | 'sub'; title: string; rewardGold: number; endAt: string; status?: string }>) => void;
   setSessionExpiredModal: (v: boolean) => void;
 }
 
@@ -172,7 +172,7 @@ export const useGameStore = create<GameState>()(
     });
     return { quests: updated };
   }),
-  // BE deskId(1-5) → store quest id(0-4)로 매핑해 IN_PROGRESS 동기화
+  // BE deskId(1-5) → store quest id(0-4)로 매핑해 IN_PROGRESS/COMPLETED 동기화
   syncActiveQuests: (activeDesks) => set((state) => {
     // BE가 timezone 없이 반환하는 날짜 문자열을 UTC ISO로 정규화
     // "2026-03-19 15:23:49.837" → "2026-03-19T15:23:49.837Z"
@@ -181,12 +181,14 @@ export const useGameStore = create<GameState>()(
 
     const updated = state.quests.map(q => {
       const active = activeDesks.find(d => d.deskId === q.id + 1);
-      if (active && q.status === 'IDLE') {
+      if (active) {
         const endAt = active.endAt ? toUtcIso(active.endAt) : null;
-        const endTime = endAt ? new Date(endAt).getTime() : Date.now() + 60 * 60 * 1000;
+        const endTime = endAt ? new Date(endAt).getTime() : (q.endTime ?? Date.now() + 60 * 60 * 1000);
+        const apiStatus = active.status?.toUpperCase();
+        const newStatus: QuestStatus = apiStatus === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS';
         return {
           ...q,
-          status: 'IN_PROGRESS' as QuestStatus,
+          status: newStatus,
           title: active.title,
           reward: active.rewardGold,
           questId: active.questId,
@@ -194,12 +196,6 @@ export const useGameStore = create<GameState>()(
           endAt,
           endTime,
         };
-      }
-      // 이미 IN_PROGRESS/COMPLETED면 title/questId/questType/endAt 갱신
-      if (active && q.status === 'IN_PROGRESS') {
-        const endAt = active.endAt ? toUtcIso(active.endAt) : null;
-        const endTime = endAt ? new Date(endAt).getTime() : q.endTime;
-        return { ...q, title: active.title, questId: active.questId, questType: active.questType, endAt, endTime };
       }
       // BE 활성 목록에 없는데 IN_PROGRESS/COMPLETED 상태면 IDLE로 초기화 (stale 데이터 제거)
       if (!active && (q.status === 'IN_PROGRESS' || q.status === 'COMPLETED')) {
