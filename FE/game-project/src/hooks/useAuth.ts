@@ -6,6 +6,7 @@ import { useUserStore } from '@/store/useUserStore';
 import { useGameStore } from '@/store/useGameStore';
 import client from '@/lib/axios';
 import { useRouter } from 'next/navigation';
+import { sendGAEvent } from '@/lib/gtag';
 
 export const useAuth = () => {
   const { ready, authenticated, user, getAccessToken } = usePrivy();
@@ -57,6 +58,11 @@ export const useAuth = () => {
 
           if (response.data.success) {
             setAuth(accessToken, response.data.data);
+            // GA: 지갑 연결 성공
+            sendGAEvent("wallet_connect", {
+              is_new_user: response.data.data.isNewUser ?? false,
+              wallet_address: user?.wallet?.address ?? "",
+            });
 
             if (response.data.data.isNewUser) {
               router.push('/onboarding');

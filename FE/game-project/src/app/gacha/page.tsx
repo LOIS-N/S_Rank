@@ -7,6 +7,7 @@ import { GachaRevealCard } from "./GachaRevealCard";
 import { GachaAnimationOverlay } from "./GachaAnimationOverlay";
 import "./gacha.css";
 import api from "@/lib/axios";
+import { sendGAEvent } from "@/lib/gtag";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -182,6 +183,12 @@ export default function GachaPage() {
     if (gold < cost) return;
 
     setIsPulling(true);
+    // GA: 뽑기 시작
+    sendGAEvent("gacha_start", {
+      gacha_type: currentTab,
+      pull_count: count,
+      gold_spent: cost,
+    });
     try {
       const token = await getAuthToken();
       const { data: resData } = await api.post(
@@ -202,6 +209,21 @@ export default function GachaPage() {
             skill2: { skillType: (s2?.skillType || s2?.type) as string, value: s2?.value as number },
             skill3: { skillType: (s3?.skillType || s3?.type) as string, value: s3?.value as number },
           };
+        });
+
+        // GA: 뽑기 결과 (카드별로 개별 이벤트 + 전체 요약)
+        const gradeCounts = normalized.reduce<Record<string, number>>((acc, card) => {
+          const g = (card.grade as string) ?? "?";
+          acc[g] = (acc[g] ?? 0) + 1;
+          return acc;
+        }, {});
+        sendGAEvent("gacha_result", {
+          gacha_type: currentTab,
+          pull_count: count,
+          grade_s: gradeCounts["S"] ?? 0,
+          grade_a: gradeCounts["A"] ?? 0,
+          grade_b: gradeCounts["B"] ?? 0,
+          grade_c: gradeCounts["C"] ?? 0,
         });
 
         if (drawData.remainingGold != null) {

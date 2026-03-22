@@ -5,6 +5,8 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useUserStore } from "@/store/useUserStore";
 import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
+import { useTrade } from "@/hooks/useTrade";
+import { sendGAEvent } from "@/lib/gtag";
 import "./trade.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -109,6 +111,7 @@ interface TradeListing {
   listingId: number; cardId: number; grade: string; name: string; imageUrl: string;
   skill1: TradeCardSkill; skill2: TradeCardSkill; skill3: TradeCardSkill;
   price: number; sellerNickname: string; enhanceLevel: number; remainEnhanceCount: number;
+  tokenId?: number; // BE mint 완료 후 채워짐
 }
 interface MyCardItem {
   cardId: number; grade: string; name: string; imageUrl: string;
@@ -265,6 +268,8 @@ export default function TradePage() {
   const [sellPrice, setSellPrice] = useState("");
   const [isSellLoading, setIsSellLoading] = useState(false);
   const [isSelling, setIsSelling] = useState(false);
+  const [sellStep, setSellStep] = useState("");
+  const [buyStep, setBuyStep] = useState("");
   const [sellGridHeight, setSellGridHeight] = useState(0);
   const [sellWrapHeight, setSellWrapHeight] = useState(0);
   const sellGridRef = useRef<HTMLDivElement>(null);
@@ -281,6 +286,7 @@ export default function TradePage() {
   const histScroll = useCustomScroll(histListHeight, histWrapHeight);
 
   const getToken = useCallback(async () => accessToken || await getAccessToken(), [accessToken, getAccessToken]);
+  const { listOnChain, buyOnChain } = useTrade();
 
   // 샘플 데이터 클라이언트 필터링
   const filterSampleListings = useCallback((items: TradeListing[]) => {
@@ -427,14 +433,21 @@ export default function TradePage() {
     if (!selectedListing) return;
     setIsBuying(true);
     try {
+      // 1. 온체인 구매 (token.approve → market.buyCard)
+      if (selectedListing.tokenId != null) {
+        await buyOnChain(selectedListing.tokenId, selectedListing.price, setBuyStep);
+      }
+      // 2. BE에 구매 완료 기록
       const token = await getToken();
       await api.post(`/api/v1/trade/listings/${selectedListing.listingId}/buy`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSelectedListing(null);
+      setBuyStep("");
       fetchListings();
     } catch (e: any) {
-      alert(e?.response?.data?.error?.message ?? "구매 중 오류가 발생했습니다.");
+      setBuyStep("");
+      alert((e as any)?.response?.data?.error?.message ?? "구매 중 오류가 발생했습니다.");
     } finally {
       setIsBuying(false);
     }
@@ -447,15 +460,34 @@ export default function TradePage() {
     if (isNaN(price) || price <= 0) { alert("올바른 가격을 입력해주세요."); return; }
     setIsSelling(true);
     try {
+      // 1. BE에 민팅 요청 → tokenId 수령
       const token = await getToken();
-      await api.post("/api/v1/trade/listings", {
+      const { data } = await api.post("/api/v1/trade/listings", {
         cardId: selectedMyCard.cardId, price,
       }, { headers: { Authorization: `Bearer ${token}` } });
+      const tokenId: number | undefined = data?.data?.tokenId;
+
+      // 2. 온체인 판매 등록 (nft.approve → market.listCard)
+      if (tokenId != null) {
+        await listOnChain(tokenId, price, setSellStep);
+        // GA: NFT 민팅(온체인 등록) 완료
+        sendGAEvent("nft_mint", {
+          card_id: selectedMyCard.cardId,
+          card_name: selectedMyCard.name,
+          card_grade: selectedMyCard.grade,
+          token_id: tokenId,
+          price_cff: price,
+          success: true,
+        });
+      }
+
+      setSellStep("");
       setSellPrice("");
       setSelectedMyCard(null);
       fetchMyCards();
     } catch (e: any) {
-      alert(e?.response?.data?.error?.message ?? "판매 등록 중 오류가 발생했습니다.");
+      setSellStep("");
+      alert((e as any)?.response?.data?.error?.message ?? "판매 등록 중 오류가 발생했습니다.");
     } finally {
       setIsSelling(false);
     }
@@ -567,7 +599,7 @@ export default function TradePage() {
               </div>
             </NineSliceBox>
             <button className="trade-buy-btn" onClick={handleBuyClick} disabled={isBuying}>
-              {isBuying ? "구매 중..." : "구매하기"}
+              {isBuying ? (buyStep || "구매 중...") : "구매하기"}
             </button>
           </div>
         ) : (
@@ -654,7 +686,7 @@ export default function TradePage() {
               </div>
             </div>
             <button className="trade-sell-btn" onClick={handleSell} disabled={isSelling || !sellPrice}>
-              {isSelling ? "등록 중..." : "판매 등록"}
+              {isSelling ? (sellStep || "등록 중...") : "판매 등록"}
             </button>
           </div>
         ) : (
@@ -789,7 +821,7 @@ export default function TradePage() {
             <p className="trade-modal-sub">현재 소지한 커피는 {(coffee ?? 0).toLocaleString()}잔입니다.</p>
             <div className="trade-modal-btns">
               <button className="trade-modal-btn-buy" onClick={handleBuyConfirm} disabled={isBuying}>
-                {isBuying ? "구매 중..." : "구매하기"}
+                {isBuying ? (buyStep || "구매 중...") : "구매하기"}
               </button>
               <button className="trade-modal-btn-cancel" onClick={() => setShowBuyConfirm(false)}>돌아가기</button>
             </div>

@@ -8,6 +8,7 @@ import DiscordModal from "./modals/DiscordModal";
 import NotificationModal from "./modals/NotificationModal";
 import AchievementModal from "./modals/AchievementModal";
 import { toggleBgm, isBgmMuted } from "./BgmPlayer";
+import { useTokenBalance } from "@/hooks/useTokenBalance";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -18,6 +19,7 @@ export default function MainHUD() {
   const { gold, coffee, nickname, openComingSoonModal, setHUDModalOpen } = useGameStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [bgmMuted, setBgmMuted] = useState(() => isBgmMuted());
+  const { balance: cffBalance } = useTokenBalance();
 
   const openModal = (id: string) => {
     setActiveModal(id);
@@ -71,6 +73,30 @@ export default function MainHUD() {
               </div>
               <img
                 src={`${ASSET_BASE}/assets/002/coin_002.webp`} alt="gold"
+                className="absolute z-10"
+                style={{ left: "-0.96cqw", top: "0.6cqw", width: "2.56cqw", height: "2.56cqw", imageRendering: "pixelated" }}
+              />
+            </div>
+
+            {/* CFF Token Container */}
+            <div className="relative flex items-center"
+              style={{ height: "3.76cqw", width: "12.6cqw" }}>
+              <div
+                className="absolute right-0 top-0 bottom-0 text-black font-bold flex items-center justify-end overflow-hidden"
+                style={{
+                  left: "1.6cqw",
+                  paddingRight: "0.8cqw",
+                  paddingLeft: "0.4cqw",
+                  fontSize: "1.2cqw",
+                  backgroundImage: `url('${ASSET_BASE}/assets/002/upperBlank_002.webp')`,
+                  backgroundSize: "100% 100%",
+                }}
+              >
+                <span className="tabular-nums">{cffBalance ?? "..."}</span>
+                <span style={{ marginLeft: "0.32cqw", fontSize: "1.12cqw" }}>CFF</span>
+              </div>
+              <img
+                src={`${ASSET_BASE}/assets/002/coffee_002.webp`} alt="CFF"
                 className="absolute z-10"
                 style={{ left: "-0.96cqw", top: "0.6cqw", width: "2.56cqw", height: "2.56cqw", imageRendering: "pixelated" }}
               />
