@@ -18,5 +18,5 @@ public interface UserCardService {
     );
 
     UserCardResponse getUserCardDetail(Long userId, Long cardId);
-    Set<Long> getUsedUserCardList(Long userId);
+    void validateCardsOwned(Long userId, List<Long> cards);
 }

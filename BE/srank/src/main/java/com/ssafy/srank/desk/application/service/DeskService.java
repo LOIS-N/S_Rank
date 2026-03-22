@@ -7,4 +7,5 @@ import java.util.List;
 public interface DeskService {
     List<DeskTemplateResponse> getDeskTemplateList(Long userId);
     void unlockDesk(Long userId, Long deskTemplateId);
+    void validateDeskUnlocked(Long userId, Long deskId);
 }

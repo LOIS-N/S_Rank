@@ -6,6 +6,7 @@ import com.ssafy.srank.card.application.service.UserCardService;
 import com.ssafy.srank.card.domain.enums.PositionType;
 import com.ssafy.srank.card.domain.enums.SortType;
 import com.ssafy.srank.common.response.ApiResponse;
+import com.ssafy.srank.quest.application.service.QuestFacadeService;
 import com.ssafy.srank.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/cards")
@@ -24,6 +24,7 @@ import java.util.Set;
 public class UserCardController {
 
     private final UserCardService userCardService;
+    private final QuestFacadeService questFacadeService;
 
     /**
      * GET /api/v1/cards?statType={position}&cursor={token}&limit={n}
@@ -50,7 +51,7 @@ public class UserCardController {
     }
 
     @GetMapping("/used")
-    public ResponseEntity<ApiResponse<Set<Long>>> getUsedUserCard(){
-        return ResponseEntity.ok(ApiResponse.success(userCardService.getUsedUserCardList(SecurityUtil.getCurrentUserId())));
+    public ResponseEntity<ApiResponse<List<Long>>> getUsedUserCard(){
+        return ResponseEntity.ok(ApiResponse.success(questFacadeService.getUsedUserCardList(SecurityUtil.getCurrentUserId())));
     }
 }
