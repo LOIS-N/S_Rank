@@ -1,13 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import client from "@/lib/axios";
+import { sendGAEvent } from "@/lib/gtag";
 
 export default function GlobalModals() {
+  const router = useRouter();
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [completeError, setCompleteError] = useState(false);
+  const { logout: privyLogout } = usePrivy();
   const {
     comingSoonModal, closeComingSoonModal,
     activeRewardModal, closeRewardModal,
@@ -15,7 +21,15 @@ export default function GlobalModals() {
     questInfoModal, setQuestInfoModal,
     questFetchTrigger, setQuestFetchTrigger,
     completeQuestTrigger, setCompleteQuestTrigger,
+    sessionExpiredModal, setSessionExpiredModal,
   } = useGameStore();
+  const { clearUser, accessToken } = useUserStore();
+
+  const handleSessionExpiredConfirm = async () => {
+    setSessionExpiredModal(false);
+    clearUser();
+    await privyLogout();
+  };
 
   useEffect(() => {
     if (!questFetchTrigger) return;
@@ -54,13 +68,24 @@ export default function GlobalModals() {
     const doComplete = async () => {
       try {
         const token = useUserStore.getState().accessToken;
-        await client.post('/api/v1/quests/complete',
+        const res = await client.post('/api/v1/quests/complete',
           { questId, questType },
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        if (res.status !== 200) {
+          setCompleteError(true);
+          return;
+        }
       } catch (e) {
         console.error('[CompleteQuest] API error:', e);
+        setCompleteError(true);
+        return;
       }
+      // GA: 퀘스트 완료
+      sendGAEvent("quest_complete", {
+        quest_id: questId,
+        quest_type: questType,
+      });
       useGameStore.getState().completeQuest(deskId);
     };
 
@@ -85,8 +110,6 @@ export default function GlobalModals() {
     const s = (totalSec % 60).toString().padStart(2, '0');
     return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
   };
-  const { accessToken } = useUserStore();
-
   const handleUnlock = async () => {
     if (!activeUnlockConfirm) return;
     const deskId = activeUnlockConfirm.deskId;
@@ -110,6 +133,41 @@ export default function GlobalModals() {
 
   return (
     <>
+      {/* --- Complete Quest Error Modal --- */}
+      {completeError && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 font-dot pointer-events-auto">
+          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-8 text-center max-w-sm shadow-[8px_8px_0px_#4a5d73]">
+            <p className="text-2xl mb-8 leading-relaxed text-slate-900 font-bold">
+              에러가 발생했습니다.<br />잠시 후 다시 요청해주세요.
+            </p>
+            <button
+              onClick={() => { setCompleteError(false); router.push('/'); }}
+              className="w-full py-4 bg-[#ffcc00] text-black border-b-4 border-r-4 border-[#cc9900] active:border-0 active:translate-y-1 transition-all font-bold text-xl"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- Session Expired Modal --- */}
+      {sessionExpiredModal && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 font-dot pointer-events-auto">
+          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]">
+            <h2 className="text-3xl mb-4 text-slate-900 font-bold">세션 만료</h2>
+            <p className="text-xl mb-8 leading-relaxed text-slate-700 font-bold">
+              로그인 세션이 만료되었습니다.<br/>다시 로그인해주세요.
+            </p>
+            <button
+              onClick={handleSessionExpiredConfirm}
+              className="w-full py-5 bg-[#ffcc00] text-black border-b-4 border-r-4 border-[#cc9900] active:border-0 active:translate-y-1 transition-all text-2xl font-bold"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* --- Coming Soon Modal --- */}
       {comingSoonModal?.isOpen && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 font-dot pointer-events-auto">

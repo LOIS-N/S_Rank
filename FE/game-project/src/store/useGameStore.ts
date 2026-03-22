@@ -33,6 +33,7 @@ interface GameState {
   questFetchTrigger: { questId: number; questType: 'main' | 'sub'; remainMs: number; endAt: string | null } | null;
   completeQuestTrigger: { deskId: number; questId: number; questType: 'MAIN' | 'SUB' } | null;
   isHUDModalOpen: boolean;
+  sessionExpiredModal: boolean;
   setAuth: (token: string | null) => void;
   increaseScore: (by: number) => void;
   increaseGold: (by: number) => void;
@@ -59,6 +60,7 @@ interface GameState {
   setQuestFetchTrigger: (data: { questId: number; questType: 'main' | 'sub'; remainMs: number; endAt: string | null } | null) => void;
   setCompleteQuestTrigger: (data: { deskId: number; questId: number; questType: 'MAIN' | 'SUB' } | null) => void;
   syncActiveQuests: (activeDesks: Array<{ deskId: number; questId: number; questType: 'main' | 'sub'; title: string; rewardGold: number; endAt: string }>) => void;
+  setSessionExpiredModal: (v: boolean) => void;
 }
 
 export const useGameStore = create<GameState>()(
@@ -87,6 +89,7 @@ export const useGameStore = create<GameState>()(
   questFetchTrigger: null,
   completeQuestTrigger: null,
   isHUDModalOpen: false,
+  sessionExpiredModal: false,
 
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
@@ -160,6 +163,7 @@ export const useGameStore = create<GameState>()(
   setQuestInfoModal: (data) => set({ questInfoModal: data }),
   setQuestFetchTrigger: (data) => set({ questFetchTrigger: data }),
   setCompleteQuestTrigger: (data) => set({ completeQuestTrigger: data }),
+  setSessionExpiredModal: (v) => set({ sessionExpiredModal: v }),
   setDesksFromApi: (desks) => set((state) => {
     const updated = state.quests.map(q => {
       const desk = desks.find(d => d.deskTemplateId === q.id + 1);

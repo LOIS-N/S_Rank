@@ -39,32 +39,6 @@ export default function Home() {
     }
   }, [isAuthenticated, isNewUser, nickname, gameStatus, setNickname, startGame, setGameStatus]);
 
-  // 배경음악 자동 재생 (브라우저 정책 우회)
-  useEffect(() => {
-    const audio = document.getElementById("main-bgm") as HTMLAudioElement;
-    if (!audio) return;
-
-    audio.volume = 0.5;
-
-    const playAudio = () => {
-      audio.play().catch(e => console.log('Audio play blocked:', e));
-      window.removeEventListener('click', playAudio);
-      window.removeEventListener('keydown', playAudio);
-      window.removeEventListener('touchstart', playAudio);
-    };
-
-    window.addEventListener('click', playAudio);
-    window.addEventListener('keydown', playAudio);
-    window.addEventListener('touchstart', playAudio);
-
-    audio.play().catch(() => {});
-
-    return () => {
-      window.removeEventListener('click', playAudio);
-      window.removeEventListener('keydown', playAudio);
-      window.removeEventListener('touchstart', playAudio);
-    };
-  }, []);
 
   // 서버 동기화 20초 타임아웃
   useEffect(() => {
@@ -91,8 +65,6 @@ export default function Home() {
 
   return (
     <main className="absolute inset-0 overflow-hidden bg-black text-white font-dot">
-      <audio id="main-bgm" src={`${ASSET_BASE}/assets/7번.mp3`} preload="none" loop className="hidden" />
-
       {/* 0. 게임 캔버스 (배경, PLAYING 상태에서만 표시) */}
       <div className="absolute inset-0 z-0">
         <GameCanvas />

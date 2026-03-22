@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
+import { sendGAEvent } from "@/lib/gtag";
 import "./quest.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -599,6 +600,14 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
         console.error("퀘스트 시작 응답:", res.data);
         throw new Error(res.data?.message || '퀘스트 시작 실패');
       }
+
+      // GA: 퀘스트 배치 성공
+      sendGAEvent("quest_assign", {
+        quest_type: type,
+        quest_title: quest.title,
+        card_count: selectedCards.length,
+        reward_gold: rewardInfo.reward,
+      });
 
       // FE 인덱스(0~4)로 store 업데이트, BE 템플릿 ID(1~5)와 혼용 방지
       const feDeskIndex = selectingDeskId ?? 0;
