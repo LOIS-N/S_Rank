@@ -2,9 +2,12 @@ package com.ssafy.srank.quest.application.service;
 
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
+import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
+import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.application.dto.response.SubQuestResponse;
-import com.ssafy.srank.quest.domain.entity.SubQuestTemplate;
+import com.ssafy.srank.quest.domain.entity.*;
 import com.ssafy.srank.quest.repository.SubQuestTemplateRepository;
 import com.ssafy.srank.quest.repository.UserSubQuestRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,18 +29,51 @@ public class SubQuestServiceImpl implements SubQuestService {
     private final SubQuestTemplateRepository subQuestTemplateRepository;
     private final UserSubQuestRepository userSubQuestRepository;
 
+
+    @Override
+    public List<InProcessQuestResponse> getUserSubQuestList(Long userId) {
+        return userSubQuestRepository.findByUserId(userId).stream()
+                .map(InProcessQuestResponse::fromUserSubQuest).toList();
+    }
+
+
+    @Override
+    public UserSubQuest startSubQuest(Long userId, Long questTemplateId, SubQuestRequest request) {
+        // 사용자 서브 퀘스트 저장
+        UserSubQuest subQuest = UserSubQuest.builder()
+                .userId(userId)
+                .subQuestTemplate(SubQuestTemplate.builder().id(questTemplateId).build())
+                .status(QuestStatus.IN_PROGRESS)
+                .userDeskId(request.deskId())
+                .startedAt(request.startAt())
+                .endAt(request.endAt())
+                .build();
+        return userSubQuestRepository.save(subQuest);
+    }
+
+    @Override
+    public void completeSubQuest(Long userId, Long questId) {
+        UserSubQuest subQuest = userSubQuestRepository.findByIdAndUserIdAndStatus(questId, userId, QuestStatus.IN_PROGRESS)
+                .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
+
+        subQuest.completeStatus();
+    }
+
+    @Override
+    public Long claimRewardSubQuest(Long userId, Long questId) {
+        UserSubQuest subQuest = userSubQuestRepository.findByIdAndUserIdAndStatus(questId, userId, QuestStatus.COMPLETED)
+                .orElseThrow(()-> new BusinessException(ErrorCode.QUEST_NOT_COMPLETED));
+        userSubQuestRepository.delete(subQuest);
+        return (long) subQuest.getSubQuestTemplate().getRewardGold();
+    }
+
     public List<SubQuestResponse> getSubQuests(Long userId) {
         LocalDate today = LocalDate.now();
 
-        log.debug("[SubQuest] 오늘의 서브 퀘스트 목록 조회 - userId={}, today={}", userId, today);
-
-        log.debug("[SubQuest] subQuestTemplateRepository.findTodaySubQuests 호출 전 - today={}", today);
         List<SubQuestTemplate> templates = subQuestTemplateRepository.findTodaySubQuests(today);
-        log.debug("[SubQuest] subQuestTemplateRepository.findTodaySubQuests 호출 후 - today={}, templateCount={}", today, templates.size());
 
         List<Long> templateIds = templates.stream().map(SubQuestTemplate::getId).toList();
 
-        log.debug("[SubQuest] userSubQuestRepository.findByUserIdAndTemplateIds 호출 전 - userId={}, templateCount={}", userId, templateIds.size());
         Map<Long, String> statusMap = userSubQuestRepository
                 .findByUserIdAndTemplateIds(userId, templateIds)
                 .stream()
@@ -46,7 +82,6 @@ public class SubQuestServiceImpl implements SubQuestService {
                         uq -> uq.getStatus().name(),
                         (existing, replacement) -> existing
                 ));
-        log.debug("[SubQuest] userSubQuestRepository.findByUserIdAndTemplateIds 호출 후 - 상태 보유 퀘스트 수={}", statusMap.size());
 
         return templates.stream()
                 .map(template -> SubQuestResponse.from(template, statusMap.get(template.getId())))
@@ -58,28 +93,18 @@ public class SubQuestServiceImpl implements SubQuestService {
     * */
     @Override
     public QuestDetailResponse getSubQuestDetail(Long userId, Long questId) {
-        log.debug("[SubQuest] 서브 퀘스트 상세 조회 (템플릿 기준) - userId={}, questId={}", userId, questId);
-
-        log.debug("[SubQuest] subQuestTemplateRepository.findById 호출 전 - questId={}", questId);
         SubQuestTemplate template = subQuestTemplateRepository.findById(questId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_FOUND));
-        log.debug("[SubQuest] subQuestTemplateRepository.findById 호출 후 - questId={}, title={}", questId, template.getTitle());
-
-        log.debug("[SubQuest] userSubQuestRepository.findByUserIdAndTemplateId 호출 전 - userId={}, questId={}", userId, questId);
         String status = userSubQuestRepository
                 .findByUserIdAndTemplateId(userId, questId)
                 .map(uq -> uq.getStatus().name())
                 .orElse(null);
-        log.debug("[SubQuest] userSubQuestRepository.findByUserIdAndTemplateId 호출 후 - userId={}, questId={}, status={}", userId, questId, status);
 
         return QuestDetailResponse.fromSub(template, status);
     }
 
     @Override
     public QuestDetailResponse getUserSubQuestDetail(Long userId, Long questId) {
-        log.debug("[SubQuest] 사용자 서브 퀘스트 상세 조회 (user_sub_quest 기준) - userId={}, questId={}", userId, questId);
-
-        log.debug("[SubQuest] userSubQuestRepository.findByIdAndUserId 호출 전 - userId={}, questId={}", userId, questId);
         return QuestDetailResponse.userDetailSub(userSubQuestRepository.findByIdAndUserId(questId, userId).orElseThrow(
                 ()-> new BusinessException(ErrorCode.QUEST_NOT_FOUND)));
     }

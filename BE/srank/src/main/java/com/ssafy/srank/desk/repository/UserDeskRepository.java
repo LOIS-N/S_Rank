@@ -13,4 +13,6 @@ public interface UserDeskRepository extends JpaRepository<UserDesk, Long> {
     boolean existsByUserIdAndDeskTemplate_Id(Long userId, Long deskTemplateId);
 
     Optional<UserDesk> findByUserIdAndDeskTemplateId(Long userId, Long deskId);
+
+    boolean existsByIdAndUserId(Long id, Long userId);
 }

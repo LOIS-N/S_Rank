@@ -11,6 +11,9 @@ import java.util.Optional;
 
 public interface UserMainQuestRepository extends JpaRepository<UserMainQuest, Long> {
 
+    //사용자 진행중인(+완료) 메인퀘스트 전체 조회
+    List<UserMainQuest> findByUserId(Long userId);
+
     // 유저의 특정 템플릿들에 대한 상태 조회
     @Query("SELECT u FROM UserMainQuest u WHERE u.userId = :userId AND u.mainQuestTemplate.id IN :templateIds")
     List<UserMainQuest> findByUserIdAndTemplateIds(@Param("userId") Long userId, @Param("templateIds") List<Long> templateIds);
