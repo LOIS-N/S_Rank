@@ -418,7 +418,6 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
-  justify-content: center;
 }
 
 /* 정보 상자 체계 고정 크기 할당 */
@@ -441,6 +440,16 @@
 /* S등급 추가 설명 란 */
 .cardlist-s-grade-desc {
   flex: 0 0 calc((100% - 86px) / 2); /* 능력치 박스와 동일 크기 고정 */
+}
+
+/* 비-S등급: 능력치 박스를 남은 공간 중앙에 배치하는 래퍼 */
+.cardlist-stats-center-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  min-height: 0;
 }
 
 /* 내부 콘텐츠 중앙 정렬 공통 */

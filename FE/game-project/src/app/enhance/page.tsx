@@ -506,26 +506,23 @@ export default function EnhancePage() {
                     <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel enhance-info-box">
                       <div className="cardlist-info-text">강화 성공 확률 : {getEnhanceData(selectedListCard.grade).prob}%</div>
                       <div className="cardlist-info-text">강화 비용 : {getEnhanceData(selectedListCard.grade).cost.toLocaleString()}G</div>
-                      <div className="cardlist-info-text">강화 성공 능력치 합산 : +{getEnhanceData(selectedListCard.grade).statIncrease}</div>
+                      <div className="cardlist-info-text">성공 시 능력치 분배량 : +{getEnhanceData(selectedListCard.grade).statIncrease}</div>
                     </NineSliceBox>
 
                     {/* 4. 강화 버튼 */}
                     <button
                       className="enhance-action-btn"
-                      disabled={gold < getEnhanceData(selectedListCard.grade).cost || displayEnhanceTries >= 7}
+                      // TODO: 테스트 모드 — 골드 부족해도 강화 가능 (BE 연동 시 골드 체크 복원)
+                      disabled={displayEnhanceTries >= 7}
                       onClick={() => {
                         const result = simulateEnhance(selectedListCard.grade, displayEnhanceTries, gold);
-                        if (result.error === 'INSUFFICIENT_GOLD') {
-                          alert('골드가 부족합니다.');
-                          return;
-                        }
                         if (result.error === 'MAX_TRIES') {
                           alert('강화 횟수를 초과했습니다.');
                           return;
                         }
 
                         increaseGold(-result.cost);
-                        
+
                         setPendingResult({
                           ...result,
                           previousStats: {
@@ -583,22 +580,19 @@ export default function EnhancePage() {
                       <button 
                         className="enhance-action-btn"
                         style={{ marginTop: 0 }}
-                        disabled={gold < getEnhanceData(selectedListCard.grade).cost || displayEnhanceTries >= 7}
+                        // TODO: 테스트 모드 — 골드 부족해도 강화 가능 (BE 연동 시 골드 체크 복원)
+                        disabled={displayEnhanceTries >= 7}
                         onClick={() => {
                           setEnhanceResult(null);
-                          
+
                           const result = simulateEnhance(selectedListCard.grade, displayEnhanceTries, gold);
-                          if (result.error === 'INSUFFICIENT_GOLD') {
-                            alert('골드가 부족합니다.');
-                            return;
-                          }
                           if (result.error === 'MAX_TRIES') {
                             alert('강화 횟수를 초과했습니다.');
                             return;
                           }
 
                           increaseGold(-result.cost);
-                          
+
                           setPendingResult({
                             ...result,
                             previousStats: {

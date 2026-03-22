@@ -458,26 +458,34 @@ export default function CardListPage() {
                 <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-header-box">
                   <div className="cardlist-info-header-text">
                     {selectedListCard.name}({selectedListCard.grade}등급)
-                    {/* TODO: 강화 레벨 표시 - 카드 상세 API에서 enhanceLevel 필드가 내려오면 아래 주석 해제
-                      */}
                   </div>
                 </NineSliceBox>
 
-                {/* 능력치 */}
-                <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
-                  <div className="cardlist-info-title">능력치</div>
-                  <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{selectedListCard.skill1.value}</div>
-                  <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{selectedListCard.skill2.value}</div>
-                  <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{selectedListCard.skill3.value}</div>
-                </NineSliceBox>
-
-                {/* 특수 능력 (있을 때만 표시) */}
-                {selectedListCard.specialAbility && (
-                  <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
-                    <div className="cardlist-info-text">
-                      능력 : {selectedListCard.specialAbility.name}
-                    </div>
-                  </NineSliceBox>
+                {selectedListCard.specialAbility ? (
+                  <>
+                    {/* S등급: 능력치 + 특수능력 박스 나란히 */}
+                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
+                      <div className="cardlist-info-title">능력치</div>
+                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{selectedListCard.skill1.value}</div>
+                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{selectedListCard.skill2.value}</div>
+                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{selectedListCard.skill3.value}</div>
+                    </NineSliceBox>
+                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
+                      <div className="cardlist-info-text">
+                        능력 : {selectedListCard.specialAbility.name}
+                      </div>
+                    </NineSliceBox>
+                  </>
+                ) : (
+                  /* 비-S등급: 능력치 박스를 남은 공간 중앙에 배치 */
+                  <div className="cardlist-stats-center-wrapper">
+                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
+                      <div className="cardlist-info-title">능력치</div>
+                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{selectedListCard.skill1.value}</div>
+                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{selectedListCard.skill2.value}</div>
+                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{selectedListCard.skill3.value}</div>
+                    </NineSliceBox>
+                  </div>
                 )}
               </div>
             </div>

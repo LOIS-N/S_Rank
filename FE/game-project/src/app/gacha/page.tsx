@@ -45,6 +45,49 @@ interface GachaCardResult {
   specialAbility: { name: string; description: string; effects: string } | null;
 }
 
+// --- Mock 카드 생성 (박람회/공채 테스트용, 카드 목록에 저장 안 됨) ---
+const MOCK_NAMES = [
+  "싸피생1", "싸피생2", "싸피생3", "싸피생4", "싸피생5",
+  "싸피생6", "싸피생7", "싸피생8", "싸피생9", "싸피생10",
+];
+const MOCK_IMAGES = Array.from({ length: 10 }, (_, i) => `/assets/008/SCardImage_00${i}.webp`);
+const SKILL_TYPES = ["BE", "FE", "DEVOPS"];
+
+function pickGrade(tab: TabType): string {
+  const r = Math.random() * 100;
+  if (tab === 'fair') {
+    // 박람회: S 5%, A 15%, B 30%, C 30%, D 20%
+    if (r < 5) return 'S';
+    if (r < 20) return 'A';
+    if (r < 50) return 'B';
+    if (r < 80) return 'C';
+    return 'D';
+  }
+  // 공채: S 10%, A 25%, B 30%, C 25%, D 10%
+  if (r < 10) return 'S';
+  if (r < 35) return 'A';
+  if (r < 65) return 'B';
+  if (r < 90) return 'C';
+  return 'D';
+}
+
+function generateMockCards(tab: TabType, count: number): GachaCardResult[] {
+  return Array.from({ length: count }, (_, i) => {
+    const grade = pickGrade(tab);
+    const idx = Math.floor(Math.random() * MOCK_NAMES.length);
+    return {
+      cardId: -(Date.now() + i), // 음수 ID로 실제 카드와 구분
+      grade,
+      name: MOCK_NAMES[idx],
+      imageUrl: MOCK_IMAGES[idx],
+      skill1: { skillType: SKILL_TYPES[0], value: Math.floor(Math.random() * 100) + 1 },
+      skill2: { skillType: SKILL_TYPES[1], value: Math.floor(Math.random() * 100) + 1 },
+      skill3: { skillType: SKILL_TYPES[2], value: Math.floor(Math.random() * 100) + 1 },
+      specialAbility: grade === 'S' ? { name: '특수 능력', description: '테스트용 특수 능력', effects: '공격력 +10%' } : null,
+    };
+  });
+}
+
 // --- Phaser Particle Effect Overlay ---
 // A등급: 1초, S등급: 2초 파티클 연출
 function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () => void }) {
@@ -161,7 +204,7 @@ function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () 
 export default function GachaPage() {
   const [currentTab, setCurrentTab] = useState<TabType>('flyer');
   const [phase, setPhase] = useState<PhaseType>('select');
-  const { gold, coffee, setResources, increaseGold, openComingSoonModal, accessToken } = useGameStore();
+  const { gold, coffee, setResources, increaseGold, accessToken } = useGameStore();
   const { getAccessToken } = usePrivy();
   const [drawnCards, setDrawnCards] = useState<GachaCardResult[]>([]);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
@@ -169,8 +212,9 @@ export default function GachaPage() {
   const [gachaEffect, setGachaEffect] = useState<EffectGrade | null>(null);
   const [lastPullCount, setLastPullCount] = useState<1 | 10>(1);
 
-  const canPull1 = gold >= GACHA_COSTS[currentTab].single;
-  const canPull10 = gold >= GACHA_COSTS[currentTab].ten;
+  // TODO: 테스트 모드 — 항상 뽑기 가능 (BE 연동 시 골드 체크로 복원)
+  const canPull1 = true;
+  const canPull10 = true;
 
   const getAuthToken = useCallback(async () => {
     return accessToken || await getAccessToken();
@@ -180,7 +224,8 @@ export default function GachaPage() {
   const handlePull = async (count: 1 | 10) => {
     if (isPulling) return;
     const cost = count === 1 ? GACHA_COSTS[currentTab].single : GACHA_COSTS[currentTab].ten;
-    if (gold < cost) return;
+    // TODO: 테스트 모드 — 골드 부족해도 뽑기 가능 (BE 연동 시 아래 주석 해제)
+    // if (gold < cost) return;
 
     setIsPulling(true);
     // GA: 뽑기 시작
@@ -189,6 +234,19 @@ export default function GachaPage() {
       pull_count: count,
       gold_spent: cost,
     });
+
+    // 박람회/공채: Mock 뽑기 (BE 호출 없음, 카드 목록 저장 안 됨)
+    if (currentTab === 'fair' || currentTab === 'public') {
+      const mockCards = generateMockCards(currentTab, count);
+      increaseGold(-cost);
+      setDrawnCards(mockCards);
+      setSelectedCardIndex(null);
+      setLastPullCount(count);
+      setPhase('animating');
+      setIsPulling(false);
+      return;
+    }
+
     try {
       const token = await getAuthToken();
       const { data: resData } = await api.post(
@@ -352,8 +410,8 @@ export default function GachaPage() {
           </div>
           <div className="gacha-tab-wrapper">
             <div
-              className={`gacha-tab ${currentTab === 'fair' ? 'active' : ''} brightness-75`}
-              onClick={() => { openComingSoonModal(); }}
+              className={`gacha-tab ${currentTab === 'fair' ? 'active' : ''}`}
+              onClick={() => { setCurrentTab('fair'); handleReturn(); }}
             >
               <div className="gacha-tab-inner" />
               <span>박람회 뽑기</span>
@@ -361,8 +419,8 @@ export default function GachaPage() {
           </div>
           <div className="gacha-tab-wrapper">
             <div
-              className={`gacha-tab ${currentTab === 'public' ? 'active' : ''} brightness-75`}
-              onClick={() => { openComingSoonModal(); }}
+              className={`gacha-tab ${currentTab === 'public' ? 'active' : ''}`}
+              onClick={() => { setCurrentTab('public'); handleReturn(); }}
             >
               <div className="gacha-tab-inner" />
               <span>공채 뽑기</span>

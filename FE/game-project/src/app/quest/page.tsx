@@ -272,11 +272,12 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { q
 }
 
 // --- Phase 2: 카드 배치 콘텐츠 ---
-function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest | null, onCancel: () => void, onShowUsedCardModal: () => void }) {
+function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () => void }) {
   const router = useRouter();
   const { selectingDeskId, startQuest, accessToken, quests: storeQuests } = useGameStore();
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
+  const [usedCardWarning, setUsedCardWarning] = useState(false);
 
   // --- 보유 카드 목록 (API) ---
   const [cards, setCards] = useState<CardListItem[]>([]);
@@ -537,7 +538,8 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
   // --- 카드 선택 (cardSlotCount 제한) ---
   const handleCardClick = (id: number) => {
     if (usedCardIds.includes(id)) {
-      onShowUsedCardModal();
+      setUsedCardWarning(true);
+      setTimeout(() => setUsedCardWarning(false), 2000);
       return;
     }
     setWarningMessage(null);
@@ -833,6 +835,13 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
             </div>
           </div>
         </NineSliceBox>
+
+        {/* 사용 중 카드 경고 (왼쪽 카드 목록 위 오버레이) */}
+        {usedCardWarning && (
+          <div className="phase2-warning-overlay">
+            <div className="phase2-warning-text">이미 퀘스트에서 사용 중인 카드입니다.</div>
+          </div>
+        )}
       </div>
 
       {/* ──── 중간: 스크롤바 ──── */}
@@ -876,6 +885,9 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
                 return (
                   <div key={card.cardId} className="phase2-fan-card" style={style} onClick={() => handleCardClick(card.cardId)}>
                     <img src={card.imageUrl} alt={card.name} draggable={false} />
+                    <span className="phase2-fan-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                    <span className="phase2-fan-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                    <span className="phase2-fan-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                   </div>
                 );
               });
@@ -979,7 +991,6 @@ export default function QuestPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [chapterNumber, setChapterNumber] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [showUsedCardModal, setShowUsedCardModal] = useState(false);
   const [showInProgressModal, setShowInProgressModal] = useState(false);
 
   // --- 인증 토큰 가져오기 ---
@@ -1355,24 +1366,9 @@ export default function QuestPage() {
 
         {/* === Phase 2: 카드 배치 화면 === */}
         <div className="quest-content phase-2-content" style={{ pointerEvents: phase === 'select' ? 'none' : 'auto' }}>
-          <Phase2Content quest={selectedQuest} onCancel={() => setPhase('select')} onShowUsedCardModal={() => setShowUsedCardModal(true)} />
+          <Phase2Content quest={selectedQuest} onCancel={() => setPhase('select')} />
         </div>
       </div>
-
-      {/* ──── 사용 중인 카드 모달 ──── */}
-      {showUsedCardModal && (
-        <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-black/50 font-dot pointer-events-auto">
-          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-8 text-center max-w-sm shadow-[4px_4px_0px_#4a5d73]">
-            <p className="text-xl mb-6 font-bold text-slate-800">이미 퀘스트에서 사용 중인 카드입니다.</p>
-            <button
-              onClick={() => setShowUsedCardModal(false)}
-              className="px-8 py-2 bg-[#ffcc00] text-black border-b-2 border-r-2 border-[#cc9900] active:border-0 active:translate-y-0.5 transition-all text-xl font-bold"
-            >
-              확인
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ──── 이미 진행 중인 퀘스트 모달 (portal: container-type 우회) ──── */}
       {showInProgressModal && createPortal(
