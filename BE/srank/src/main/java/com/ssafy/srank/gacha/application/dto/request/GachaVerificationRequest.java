@@ -1,6 +1,7 @@
 package com.ssafy.srank.gacha.application.dto.request;
 
 import com.ssafy.srank.gacha.domain.enums.GachaType;
+import com.ssafy.srank.gacha.domain.enums.ProofAlgorithmVersion;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
@@ -9,7 +10,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class GachaDrawRequest {
+public class GachaVerificationRequest {
 
     @NotNull
     private GachaType type;
@@ -18,5 +19,20 @@ public class GachaDrawRequest {
     private Integer count;
 
     @NotBlank
+    private String requestId;
+
+    @NotBlank
     private String clientSeed;
+
+    @NotBlank
+    private String revealedServerSeed;
+
+    @NotBlank
+    private String serverSeedHash;
+
+    @NotBlank
+    private String requestNonce;
+
+    @NotNull
+    private ProofAlgorithmVersion algorithmVersion;
 }

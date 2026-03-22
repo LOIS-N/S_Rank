@@ -3,8 +3,13 @@ package com.ssafy.srank.log.application.command;
 import com.ssafy.srank.card.domain.enums.CardGrade;
 
 public record GachaDrawnCardLogCommand(
+        int drawIndex,
+        int gradeRoll,
+        int templateRoll,
+        Integer skillRoll,
         Long userCardId,
         CardGrade grade,
+        Long templateId,
         String skillType1,
         int skillValue1,
         String skillType2,
