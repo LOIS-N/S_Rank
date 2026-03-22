@@ -6,6 +6,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import client from "@/lib/axios";
+import { sendGAEvent } from "@/lib/gtag";
 
 export default function GlobalModals() {
   const router = useRouter();
@@ -80,6 +81,11 @@ export default function GlobalModals() {
         setCompleteError(true);
         return;
       }
+      // GA: 퀘스트 완료
+      sendGAEvent("quest_complete", {
+        quest_id: questId,
+        quest_type: questType,
+      });
       useGameStore.getState().completeQuest(deskId);
     };
 
