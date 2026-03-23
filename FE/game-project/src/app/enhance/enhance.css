@@ -20,7 +20,10 @@
 .cardlist-page-container::before {
   content: "";
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-image: url('/assets/008/cardListMain_000.webp');
   background-size: cover;
   background-position: center;
@@ -28,7 +31,7 @@
   z-index: 0;
 }
 
-.cardlist-page-container > * {
+.cardlist-page-container>* {
   position: relative;
   z-index: 1;
 }
@@ -54,7 +57,8 @@
 }
 
 /* --- 메인 콘텐츠 애니메이션 래퍼 --- */
-.cardlist-content-padding {
+/* enhance-page 스코프: card-list.css와 클래스명 충돌 방지 */
+.enhance-page .cardlist-content-padding {
   display: flex;
   flex: 1;
   padding: 0 24px calc(100px + var(--game-clip-y, 0px)) 24px;
@@ -80,7 +84,8 @@
   gap: 12px;
   align-items: center;
   position: absolute;
-  top: -46px; /* Place above the list box */
+  top: -46px;
+  /* Place above the list box */
   left: 8px;
   z-index: 10;
 }
@@ -101,7 +106,7 @@
   color: #111;
   padding: 6px 32px 6px 12px;
   cursor: pointer;
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
   outline: none;
 }
 
@@ -132,7 +137,7 @@
   color: #111;
   padding: 5px 10px;
   cursor: pointer;
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
   outline: none;
   transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
 }
@@ -146,7 +151,7 @@
   background-color: #ffd700;
   border-color: #b8960f;
   color: #2a2a40;
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.5), inset 0 0 6px rgba(255, 215, 0, 0.3);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5), inset 0 0 6px rgba(255, 215, 0, 0.3);
 }
 
 /* 카드 목록 박스 */
@@ -171,7 +176,8 @@
 /* 카드 그리드 영역 */
 .cardlist-grid-wrapper {
   flex: 1;
-  clip-path: inset(0 -15px); /* 상하는 0으로 깎아 테두리 침범 방지, 좌우는 -15px로 두어 호버 효과 잘림 방지 */
+  clip-path: inset(0 -15px);
+  /* 상하는 0으로 깎아 테두리 침범 방지, 좌우는 -15px로 두어 호버 효과 잘림 방지 */
   position: relative;
   min-height: 0;
   touch-action: none;
@@ -197,6 +203,7 @@
   transform-origin: center center;
   aspect-ratio: 104 / 144;
 }
+
 .cardlist-card-item img {
   width: 100%;
   height: 100%;
@@ -226,9 +233,17 @@
   pointer-events: none;
 }
 
-.cardlist-card-stat.stat-1 { bottom: 26%; }
-.cardlist-card-stat.stat-2 { bottom: 16%; }
-.cardlist-card-stat.stat-3 { bottom: 5%; }
+.cardlist-card-stat.stat-1 {
+  bottom: 26%;
+}
+
+.cardlist-card-stat.stat-2 {
+  bottom: 16%;
+}
+
+.cardlist-card-stat.stat-3 {
+  bottom: 5%;
+}
 
 /* ============================
    등급별 선택 테두리 + 회전 애니메이션
@@ -239,7 +254,10 @@
 .cardlist-card-item.selected::before {
   content: "";
   position: absolute;
-  top: -3px; left: 7px; right: 7px; bottom: -3px;
+  top: -3px;
+  left: 7px;
+  right: 7px;
+  bottom: -3px;
   border-radius: 8px;
   z-index: -1;
   animation: borderRotate 2.5s linear infinite;
@@ -249,8 +267,9 @@
 /* --- S등급: 다이아몬드 (시안~화이트 반짝임) --- */
 .cardlist-card-item.selected[data-grade="S"]::before {
   background: conic-gradient(from var(--border-angle, 0deg),
-    #b9f2ff, #00e5ff, #ffffff, #76d7ff, #00e5ff, #b9f2ff);
+      #b9f2ff, #00e5ff, #ffffff, #76d7ff, #00e5ff, #b9f2ff);
 }
+
 .cardlist-card-item.selected[data-grade="S"] {
   filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.7));
 }
@@ -258,8 +277,9 @@
 /* --- A등급: 금색 --- */
 .cardlist-card-item.selected[data-grade="A"]::before {
   background: conic-gradient(from var(--border-angle, 0deg),
-    #ffd700, #ffec80, #b8860b, #fff4b0, #ffd700, #ffd700);
+      #ffd700, #ffec80, #b8860b, #fff4b0, #ffd700, #ffd700);
 }
+
 .cardlist-card-item.selected[data-grade="A"] {
   filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
 }
@@ -267,8 +287,9 @@
 /* --- B등급: 은색 --- */
 .cardlist-card-item.selected[data-grade="B"]::before {
   background: conic-gradient(from var(--border-angle, 0deg),
-    #c0c0c0, #e8e8e8, #888888, #f0f0f0, #c0c0c0, #c0c0c0);
+      #c0c0c0, #e8e8e8, #888888, #f0f0f0, #c0c0c0, #c0c0c0);
 }
+
 .cardlist-card-item.selected[data-grade="B"] {
   filter: drop-shadow(0 0 8px rgba(192, 192, 192, 0.6));
 }
@@ -276,8 +297,9 @@
 /* --- C등급: 동색 (브론즈) --- */
 .cardlist-card-item.selected[data-grade="C"]::before {
   background: conic-gradient(from var(--border-angle, 0deg),
-    #cd7f32, #e8a860, #8b4513, #daa06d, #cd7f32, #cd7f32);
+      #cd7f32, #e8a860, #8b4513, #daa06d, #cd7f32, #cd7f32);
 }
+
 .cardlist-card-item.selected[data-grade="C"] {
   filter: drop-shadow(0 0 8px rgba(205, 127, 50, 0.5));
 }
@@ -285,8 +307,9 @@
 /* --- D등급: 진한 파랑색 --- */
 .cardlist-card-item.selected[data-grade="D"]::before {
   background: conic-gradient(from var(--border-angle, 0deg),
-    #1a3a8a, #2b5fcf, #0d2266, #3a7af0, #1a3a8a, #1a3a8a);
+      #1a3a8a, #2b5fcf, #0d2266, #3a7af0, #1a3a8a, #1a3a8a);
 }
+
 .cardlist-card-item.selected[data-grade="D"] {
   filter: drop-shadow(0 0 8px rgba(26, 58, 138, 0.6));
 }
@@ -299,8 +322,13 @@
 }
 
 @keyframes borderRotate {
-  from { --border-angle: 0deg; }
-  to   { --border-angle: 360deg; }
+  from {
+    --border-angle: 0deg;
+  }
+
+  to {
+    --border-angle: 360deg;
+  }
 }
 
 /* 스크롤바 컬럼 */
@@ -319,14 +347,17 @@
   width: 80px;
   flex: 1;
   min-height: 80px;
-  max-height: none; /* 추가: Phase2와 동일하게 제한 해제 */
-  background-image: url('/assets/003-02/scrollBar_000.webp'); /* 008 -> 003-02 */
+  max-height: none;
+  /* 추가: Phase2와 동일하게 제한 해제 */
+  background-image: url('/assets/003-02/scrollBar_000.webp');
+  /* 008 -> 003-02 */
   background-size: 518% 108%;
   background-position: 50% 50%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
   position: relative;
-  overflow: visible; /* 추가: 썸이 삐져나올 수 있게 */
+  overflow: visible;
+  /* 추가: 썸이 삐져나올 수 있게 */
 }
 
 .scrollbar-thumb {
@@ -335,14 +366,16 @@
   transform: translateX(-50%);
   width: 100px;
   height: 100px;
-  background-image: url('/assets/003-02/scrollButton_000.webp'); /* 008 -> 003-02 */
+  background-image: url('/assets/003-02/scrollButton_000.webp');
+  /* 008 -> 003-02 */
   background-size: 84% 48%;
   background-position: 50% 49%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
   cursor: grab;
   z-index: 2;
-  touch-action: none; /* 드래그 중 브라우저 스크롤 방지 */
+  touch-action: none;
+  /* 드래그 중 브라우저 스크롤 방지 */
 }
 
 .scrollbar-thumb:active {
@@ -361,11 +394,18 @@
   min-width: 0;
 }
 
+/* nineslice-content가 box-sizing: border-box 부모에서 height: 100%를 잘못 해석(H 전체 → padding 포함)하는
+   Safari/iOS 버그 방지: align-self: stretch 기반 크기결정을 사용 */
+.enhance-page .cardlist-right-box .nineslice-content {
+  height: auto !important;
+}
+
 /* 우측 레이아웃 - 좌: 큰카드, 우: 정보패널 */
-.cardlist-detail-split {
+.enhance-page .cardlist-detail-split {
   display: flex;
+  flex: 1;
+  min-height: 0;
   width: 100%;
-  height: 100%;
   gap: 20px;
   min-width: 0;
 }
@@ -391,7 +431,7 @@
   display: block;
   object-fit: contain;
   image-rendering: pixelated;
-  filter: drop-shadow(4px 4px 8px rgba(0,0,0,0.6));
+  filter: drop-shadow(4px 4px 8px rgba(0, 0, 0, 0.6));
 }
 
 /* 상세 카드 능력치 오버레이 (각 칸에 개별 배치) */
@@ -408,17 +448,78 @@
   pointer-events: none;
 }
 
-.cardlist-big-card-stat.stat-1 { bottom: 26%; }
-.cardlist-big-card-stat.stat-2 { bottom: 15.5%; }
-.cardlist-big-card-stat.stat-3 { bottom: 5%; }
+.cardlist-big-card-stat.stat-1 {
+  bottom: 24.5%;
+}
 
-.cardlist-info-col {
+.cardlist-big-card-stat.stat-2 {
+  bottom: 14.5%;
+}
+
+.cardlist-big-card-stat.stat-3 {
+  bottom: 4%;
+}
+
+.enhance-page .cardlist-info-col {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
-  justify-content: center;
+  min-height: 0;
+  justify-content: space-between;
+}
+
+/* --- 재화 정보 표시 (오른쪽 상단) --- */
+.enhance-currency-info-wrapper {
+  position: absolute;
+  top: -6.5cqw; /* 오른쪽 박스 위쪽 외곽으로 이동 (약 5px 여백 확보) */
+  left: -1.2cqw; /* 위치 반응형으로 조정 */
+  z-index: 20;
+  pointer-events: none;
+}
+
+.currency-info-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 4.5cqw; /* 전체적인 크기 키움 */
+  width: 13.5cqw; /* 전체적인 크기 키움 */
+}
+
+.currency-info-blank {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  left: 2cqw;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 1cqw;
+  padding-left: 0.5cqw;
+  background-image: url('/assets/002/upperBlank_002.webp');
+  background-size: 100% 100%;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 1.4cqw; /* 글자 크기 키움 */
+  color: #111;
+  overflow: hidden;
+}
+
+.currency-unit {
+  margin-left: 0.3cqw;
+  font-size: 1.2cqw;
+}
+
+.currency-icon {
+  position: absolute;
+  left: -0.7cqw;
+  top: 0.7cqw;
+  width: 3.2cqw; /* 아이콘 크기 키움 */
+  height: 3.2cqw;
+  image-rendering: pixelated;
+  z-index: 1;
 }
 
 /* 정보 상자 체계 고정 크기 할당 */
@@ -430,22 +531,27 @@
   width: 100%;
 }
 
-.cardlist-info-header-box {
-  flex: 0 0 54px; /* 이름, 등급은 고정 높이 */
+.enhance-page .cardlist-info-header-box {
+  flex: 0 0 44px;
+  /* 이름, 등급은 고정 높이 */
 }
 
-.cardlist-info-stats-box, .enhance-info-box {
-  flex: 1; /* 가변 할당 */
+.enhance-page .cardlist-info-stats-box,
+.enhance-page .enhance-info-box {
+  flex: 0 1 160px;
+  /* 최대 160px, 필요 시 축소 가능 (기존 120px에서 상향) */
+  min-height: 80px;
+  /* 기존 60px에서 상향 */
 }
 
 /* 내부 콘텐츠 중앙 정렬 공통 */
-.cardlist-info-stats-box .nineslice-content,
-.enhance-info-box .nineslice-content {
+.enhance-page .cardlist-info-stats-box .nineslice-content,
+.enhance-page .enhance-info-box .nineslice-content {
   justify-content: center;
   align-items: center;
 }
 
-.cardlist-info-title {
+.enhance-page .cardlist-info-title {
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
   font-size: 20px;
@@ -453,7 +559,7 @@
   margin-bottom: 12px;
 }
 
-.cardlist-info-text {
+.enhance-page .cardlist-info-text {
   font-family: 'Stardust', sans-serif;
   font-weight: bold;
   font-size: 16px;
@@ -462,7 +568,7 @@
 }
 
 /* 강조 텍스트 (이름/등급) */
-.cardlist-info-header-text {
+.enhance-page .cardlist-info-header-text {
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
   font-size: 18px;
@@ -480,11 +586,11 @@
   color: #111;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
-  height: 50px;
-  width: 60%;
-  align-self: center;
+  height: 44px;
+  width: 100%;
+  flex-shrink: 0;
   transition: filter 0.15s, transform 0.1s;
 }
 
@@ -504,6 +610,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -512,20 +619,26 @@
 
 /* --- 강화 결과 모달 --- */
 .cardlist-right-box {
-  position: relative; /* 오버레이의 기준점이 되도록 설정 */
+  position: relative;
+  /* 오버레이의 기준점이 되도록 설정 */
 }
 
 .enhance-modal-overlay {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-end;
-  padding-right: 15px; /* 약간 여백 */
+  padding-right: 15px;
+  /* 약간 여백 */
   z-index: 100;
   cursor: pointer;
-  background-color: rgba(0, 0, 0, 0.1); /* 카드 쪽을 가리지 않게 아주 옅은 딤 처리만 */
+  background-color: rgba(0, 0, 0, 0.1);
+  /* 카드 쪽을 가리지 않게 아주 옅은 딤 처리만 */
   border-radius: 8px;
 }
 
@@ -535,10 +648,12 @@
   border-radius: 12px;
   padding: 30px 40px;
   text-align: center;
-  box-shadow: 4px 4px 12px rgba(0,0,0,0.6);
-  width: 48%; /* 오른쪽 절반 정도 차지 */
+  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.6);
+  width: 48%;
+  /* 오른쪽 절반 정도 차지 */
   min-width: 0;
-  cursor: default; /* 오버레이 클릭 방지 안쪽 영역 */
+  cursor: default;
+  /* 오버레이 클릭 방지 안쪽 영역 */
 }
 
 .enhance-modal-title {
@@ -589,7 +704,8 @@
   appearance: none;
   background-image: url('/assets/002/lowerButton_001.webp');
   background-size: 100% 100%;
-  image-rendering: auto; /* Buttons scale better with auto or pixelated depending on source. using auto to ease */
+  image-rendering: auto;
+  /* Buttons scale better with auto or pixelated depending on source. using auto to ease */
   border: none;
   background-color: transparent;
   color: #111;
@@ -626,8 +742,13 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeInUp {
@@ -635,6 +756,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

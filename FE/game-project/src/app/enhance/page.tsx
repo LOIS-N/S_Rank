@@ -331,7 +331,7 @@ export default function EnhancePage() {
   }, []);
 
   return (
-    <div className="cardlist-page-container">
+    <div className="cardlist-page-container enhance-page">
 
       {/* 상단 타이틀 */}
       <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -467,6 +467,17 @@ export default function EnhancePage() {
           borderScale={0.5}
           className="cardlist-right-box"
         >
+          {/* 재화 정보 표시 */}
+          <div className="enhance-currency-info-wrapper">
+            <div className="currency-info-container">
+              <div className="currency-info-blank">
+                <span className="tabular-nums">{gold.toLocaleString()}</span>
+                <span className="currency-unit">G</span>
+              </div>
+              <img src={`${ASSET_BASE}/assets/002/coin_002.webp`} alt="gold" className="currency-icon" />
+            </div>
+          </div>
+
           {selectedListCard ? (
             <div className="cardlist-detail-split animate-detail" key={selectedListCard.cardId}>
               {/* 큰 카드 이미지 */}
@@ -543,8 +554,8 @@ export default function EnhancePage() {
                     slice={[108, 260, 129, 340]} 
                     framePadding={20} 
                     borderScale={0.35} 
-                    className="cardlist-info-panel enhance-result-panel fade-in-up" 
-                    style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
+                    className="cardlist-info-panel enhance-result-panel fade-in-up"
+                    style={{ flex: 1 }}
                   >
                     <div className="enhance-modal-title" style={{ fontSize: '28px', marginBottom: '20px', color: enhanceResult.success ? '#222' : '#888' }}>
                       강화 {enhanceResult.success ? '성공!' : '실패'}

@@ -245,8 +245,7 @@
   width: 80px;
   /* 36px -> 80px */
   flex: 1;
-  max-height: calc(100% - 200px);
-  /* Phase1 특유의 하단 버튼 공간 확보 유지 */
+  max-height: none;
   background-image: url('/assets/003-02/scrollBar_000.webp');
   /* Phase2 자산 사용 */
   background-size: 518% 108%;
@@ -257,6 +256,11 @@
   position: relative;
   overflow: visible;
   /* Phase2와 동일하게 썸이 삐져나올 수 있게 */
+}
+
+/* Phase1 특유의 하단 버튼 공간 확보: .scrollbar-column 안에서만 제한 */
+.scrollbar-column .scrollbar-track {
+  max-height: calc(100% - 200px);
 }
 
 /* 스크롤바 썸 (움직이는 손잡이) - Phase2 스타일로 통일 */
