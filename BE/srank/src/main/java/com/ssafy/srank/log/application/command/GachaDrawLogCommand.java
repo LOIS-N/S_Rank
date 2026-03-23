@@ -8,15 +8,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record GachaDrawLogCommand(
-        String requestId,
         Long userId,
         GachaType gachaType,
         int drawCount,
         long totalCost,
         String clientSeed,
-        String serverSeedHash,
-        String revealedServerSeed,
-        String requestNonce,
+        String serverSeed,
         ProofAlgorithmVersion algorithmVersion,
         String anchorPayload,
         BlockchainStatus blockchainStatus,

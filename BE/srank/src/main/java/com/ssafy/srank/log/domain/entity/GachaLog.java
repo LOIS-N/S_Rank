@@ -37,9 +37,6 @@ public class GachaLog {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "request_id", nullable = false, length = 64)
-    private String requestId;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "gacha_type", nullable = false, length = 20)
     private GachaType gachaType;
@@ -100,14 +97,9 @@ public class GachaLog {
     @Column(name = "client_seed", nullable = false, length = 255)
     private String clientSeed;
 
-    @Column(name = "server_seed_hash", nullable = false, length = 128)
-    private String serverSeedHash;
-
+    // Keep the legacy column name to avoid a data migration for the retained server seed field.
     @Column(name = "revealed_server_seed", nullable = false, length = 128)
-    private String revealedServerSeed;
-
-    @Column(name = "request_nonce", nullable = false, length = 128)
-    private String requestNonce;
+    private String serverSeed;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "algorithm_version", nullable = false, length = 20)

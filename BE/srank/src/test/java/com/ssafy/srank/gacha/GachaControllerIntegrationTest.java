@@ -172,10 +172,7 @@ class GachaControllerIntegrationTest {
             };
         });
         when(provablyFairContextFactory.create()).thenReturn(new ProvablyFairContext(
-                "req-test-1",
                 "server-seed-test",
-                "8f25fbec3db8c6d4adca4d4a3fcd27c3f29d59c3470df71c2d30e0e27f1c5022",
-                "nonce-test-1",
                 ProofAlgorithmVersion.PF_V1
         ));
     }
@@ -212,16 +209,11 @@ class GachaControllerIntegrationTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.gachaType").value("FLYER"))
-                .andExpect(jsonPath("$.data.drawCount").value(1))
-                .andExpect(jsonPath("$.data.spentGold").value(10000))
                 .andExpect(jsonPath("$.data.remainingGold").value(490000))
                 .andExpect(jsonPath("$.data.cards.length()").value(1))
-                .andExpect(jsonPath("$.data.proof.requestId").value("req-test-1"))
                 .andExpect(jsonPath("$.data.proof.algorithmVersion").value("PF_V1"))
-                .andExpect(jsonPath("$.data.proof.revealedServerSeed").value("server-seed-test"))
+                .andExpect(jsonPath("$.data.proof.serverSeed").value("server-seed-test"))
                 .andExpect(jsonPath("$.data.proof.clientSeed").value("seed-flyer-1"))
-                .andExpect(jsonPath("$.data.proof.drawProofs.length()").value(1))
                 .andExpect(jsonPath("$.data.blockchainStatus").value("NOT_REQUESTED"));
 
         assertThat(userCardRepository.countActiveByUserId(highLevelUser.getUserId())).isEqualTo(1);
@@ -243,11 +235,8 @@ class GachaControllerIntegrationTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.drawCount").value(10))
-                .andExpect(jsonPath("$.data.spentGold").value(90000))
                 .andExpect(jsonPath("$.data.remainingGold").value(410000))
-                .andExpect(jsonPath("$.data.cards.length()").value(10))
-                .andExpect(jsonPath("$.data.proof.drawProofs.length()").value(10));
+                .andExpect(jsonPath("$.data.cards.length()").value(10));
 
         List<UserCard> cards = userCardRepository.findAll();
         assertThat(cards).hasSize(10);
@@ -256,8 +245,8 @@ class GachaControllerIntegrationTest {
         assertThat(userGoldLogRepository.findAll().get(0).getAmount()).isEqualTo(-90_000L);
         assertThat(gachaLogRepository.findAll()).hasSize(10);
         assertThat(gachaLogRepository.findAll())
-                .extracting(log -> log.getRequestId())
-                .containsOnly("req-test-1");
+                .extracting(log -> log.getServerSeed())
+                .containsOnly("server-seed-test");
     }
 
     @Test
@@ -397,9 +386,7 @@ class GachaControllerIntegrationTest {
                                 {"type":"EXPO","count":1,"clientSeed":"seed-expo-ok"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.gachaType").value("EXPO"))
-                .andExpect(jsonPath("$.data.spentGold").value(15000))
-                .andExpect(jsonPath("$.data.proof.drawProofs.length()").value(1));
+                .andExpect(jsonPath("$.data.remainingGold").value(485000));
     }
 
     @Test
@@ -411,9 +398,7 @@ class GachaControllerIntegrationTest {
                                 {"type":"OPEN_RECRUIT","count":10,"clientSeed":"seed-open-recruit"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.gachaType").value("OPEN_RECRUIT"))
-                .andExpect(jsonPath("$.data.spentGold").value(360000))
-                .andExpect(jsonPath("$.data.proof.drawProofs.length()").value(10));
+                .andExpect(jsonPath("$.data.remainingGold").value(140000));
     }
 
     @Test
@@ -424,20 +409,14 @@ class GachaControllerIntegrationTest {
                                 {
                                   "type":"FLYER",
                                   "count":1,
-                                  "requestId":"req-test-1",
                                   "clientSeed":"seed-flyer-1",
-                                  "revealedServerSeed":"server-seed-test",
-                                  "serverSeedHash":"8f25fbec3db8c6d4adca4d4a3fcd27c3f29d59c3470df71c2d30e0e27f1c5022",
-                                  "requestNonce":"nonce-test-1",
+                                  "serverSeed":"server-seed-test",
                                   "algorithmVersion":"PF_V1"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.cards.length()").value(1))
-                .andExpect(jsonPath("$.data.gachaType").value("FLYER"))
-                .andExpect(jsonPath("$.data.drawCount").value(1))
-                .andExpect(jsonPath("$.data.serverSeedHashVerified").value(true))
-                .andExpect(jsonPath("$.data.proof.requestId").value("req-test-1"));
+                .andExpect(jsonPath("$.data.proof.serverSeed").value("server-seed-test"));
     }
 }

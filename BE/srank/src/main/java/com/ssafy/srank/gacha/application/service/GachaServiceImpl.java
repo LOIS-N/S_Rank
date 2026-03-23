@@ -42,11 +42,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -129,8 +127,6 @@ public class GachaServiceImpl implements GachaService {
                 .toList();
         String resultDigest = buildResultDigest(type, count, proofItems, preparedDraws);
         String anchorPayload = anchorPayloadFactory.createAnchorPayload(
-                pfContext.requestId(),
-                pfContext.serverSeedHash(),
                 pfContext.serverSeed(),
                 type,
                 count,
@@ -140,15 +136,12 @@ public class GachaServiceImpl implements GachaService {
         );
 
         gachaLogFacade.recordDraw(new GachaDrawLogCommand(
-                pfContext.requestId(),
                 userId,
                 type,
                 count,
                 cost,
                 clientSeed,
-                pfContext.serverSeedHash(),
                 pfContext.serverSeed(),
-                pfContext.requestNonce(),
                 pfContext.algorithmVersion(),
                 anchorPayload,
                 BlockchainStatus.NOT_REQUESTED,
@@ -163,28 +156,14 @@ public class GachaServiceImpl implements GachaService {
                 .map(GachaDrawCardResponse::from)
                 .toList();
         GachaProofResponse proof = new GachaProofResponse(
-                pfContext.requestId(),
                 pfContext.algorithmVersion(),
-                pfContext.serverSeedHash(),
                 pfContext.serverSeed(),
-                clientSeed,
-                pfContext.requestNonce(),
-                resultDigest,
-                proofItems
+                clientSeed
         );
-        String nextCursor = savedCards.isEmpty() ? null : encodeCursor(savedCards.get(savedCards.size() - 1));
-        boolean hasMore = userCardRepository.countActiveByUserId(userId) > savedCards.size();
-
         return new GachaDrawResponse(
                 cards,
-                nextCursor,
-                hasMore,
-                type,
-                count,
-                cost,
                 user.getGold(),
-                proof,
-                BlockchainStatus.NOT_REQUESTED
+                proof
         );
     }
 
@@ -192,30 +171,16 @@ public class GachaServiceImpl implements GachaService {
     public GachaVerificationResponse verify(GachaVerificationRequest request) {
         int count = validateCount(request.getCount());
         ProvablyFairContext pfContext = new ProvablyFairContext(
-                request.getRequestId().trim(),
-                request.getRevealedServerSeed().trim(),
-                request.getServerSeedHash().trim(),
-                request.getRequestNonce().trim(),
+                request.getServerSeed().trim(),
                 request.getAlgorithmVersion()
         );
         String clientSeed = request.getClientSeed().trim();
-        boolean serverSeedHashVerified = provablyFairCalculator.sha256Hex(pfContext.serverSeed())
-                .equalsIgnoreCase(pfContext.serverSeedHash());
 
         List<PreparedDraw> preparedDraws = createPreparedDraws(null, request.getType(), clientSeed, pfContext, count);
-        List<GachaDrawProofItemResponse> proofItems = preparedDraws.stream()
-                .map(PreparedDraw::proofItem)
-                .toList();
-        String resultDigest = buildResultDigest(request.getType(), count, proofItems, preparedDraws);
         GachaProofResponse proof = new GachaProofResponse(
-                pfContext.requestId(),
                 pfContext.algorithmVersion(),
-                pfContext.serverSeedHash(),
                 pfContext.serverSeed(),
-                clientSeed,
-                pfContext.requestNonce(),
-                resultDigest,
-                proofItems
+                clientSeed
         );
 
         List<GachaDrawCardResponse> cards = preparedDraws.stream()
@@ -226,12 +191,7 @@ public class GachaServiceImpl implements GachaService {
 
         return new GachaVerificationResponse(
                 cards,
-                null,
-                false,
-                request.getType(),
-                count,
-                proof,
-                serverSeedHashVerified
+                proof
         );
     }
 
@@ -269,7 +229,6 @@ public class GachaServiceImpl implements GachaService {
         int gradeRoll = provablyFairCalculator.roll(
                 pfContext.serverSeed(),
                 clientSeed,
-                pfContext.requestNonce(),
                 drawIndex,
                 RollPurpose.GRADE.key(),
                 gachaPolicyRegistry.getRollBound()
@@ -327,7 +286,6 @@ public class GachaServiceImpl implements GachaService {
         int templateRoll = provablyFairCalculator.roll(
                 pfContext.serverSeed(),
                 clientSeed,
-                pfContext.requestNonce(),
                 drawIndex,
                 RollPurpose.TEMPLATE.key(type.name() + "_" + grade.name()),
                 candidates.size()
@@ -351,7 +309,6 @@ public class GachaServiceImpl implements GachaService {
             int index = provablyFairCalculator.roll(
                     pfContext.serverSeed(),
                     clientSeed,
-                    pfContext.requestNonce(),
                     drawIndex,
                     RollPurpose.POSITION.key(i + 1),
                     candidates.size()
@@ -374,7 +331,6 @@ public class GachaServiceImpl implements GachaService {
         int statRoll = provablyFairCalculator.roll(
                 pfContext.serverSeed(),
                 clientSeed,
-                pfContext.requestNonce(),
                 drawIndex,
                 RollPurpose.STAT.key(statIndex),
                 range
@@ -406,7 +362,6 @@ public class GachaServiceImpl implements GachaService {
         int skillRoll = provablyFairCalculator.roll(
                 pfContext.serverSeed(),
                 clientSeed,
-                pfContext.requestNonce(),
                 drawIndex,
                 RollPurpose.SKILL.key(),
                 candidates.size()
@@ -499,25 +454,6 @@ public class GachaServiceImpl implements GachaService {
                 userCard.getStat3().getTotalValue(),
                 userCard.getSpecialSkillTemplate() == null ? null : userCard.getSpecialSkillTemplate().getSkillCode()
         );
-    }
-
-    private String encodeCursor(UserCard card) {
-        int gradePriority = toGradePriority(card.getCardTemplate().getGrade());
-        int totalStat = card.getStat1().getTotalValue()
-                + card.getStat2().getTotalValue()
-                + card.getStat3().getTotalValue();
-        String raw = gradePriority + ":" + totalStat + ":" + card.getId();
-        return Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private int toGradePriority(CardGrade grade) {
-        return switch (grade) {
-            case S -> 5;
-            case A -> 4;
-            case B -> 3;
-            case C -> 2;
-            case D -> 1;
-        };
     }
 
     /**

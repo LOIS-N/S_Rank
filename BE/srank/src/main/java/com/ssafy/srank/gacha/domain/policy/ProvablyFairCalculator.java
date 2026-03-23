@@ -19,7 +19,6 @@ public class ProvablyFairCalculator {
     public int roll(
             String serverSeed,
             String clientSeed,
-            String requestNonce,
             int drawIndex,
             String purpose,
             int bound
@@ -27,7 +26,7 @@ public class ProvablyFairCalculator {
         if (bound <= 0) {
             throw new IllegalArgumentException("bound must be positive");
         }
-        byte[] digest = hmacSha256(serverSeed, clientSeed + ":" + requestNonce + ":" + drawIndex + ":" + purpose);
+        byte[] digest = hmacSha256(serverSeed, clientSeed + ":" + drawIndex + ":" + purpose);
         return new BigInteger(1, digest).mod(BigInteger.valueOf(bound)).intValue();
     }
 

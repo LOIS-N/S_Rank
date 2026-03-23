@@ -19,19 +19,10 @@ public class GachaVerificationRequest {
     private Integer count;
 
     @NotBlank
-    private String requestId;
-
-    @NotBlank
     private String clientSeed;
 
     @NotBlank
-    private String revealedServerSeed;
-
-    @NotBlank
-    private String serverSeedHash;
-
-    @NotBlank
-    private String requestNonce;
+    private String serverSeed;
 
     @NotNull
     private ProofAlgorithmVersion algorithmVersion;

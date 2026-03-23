@@ -19,9 +19,7 @@ public class AnchorPayloadFactory {
      * 현재는 BC를 직접 호출하지 않으므로, 나중에 그대로 보낼 수 있는 앵커 payload만 미리 저장한다.
      */
     public String createAnchorPayload(
-            String requestId,
-            String serverSeedHash,
-            String revealedServerSeed,
+            String serverSeed,
             GachaType type,
             int count,
             String clientSeed,
@@ -29,9 +27,7 @@ public class AnchorPayloadFactory {
             List<GachaDrawProofItemResponse> drawProofs
     ) {
         AnchorPayload payload = new AnchorPayload(
-                requestId,
-                serverSeedHash,
-                revealedServerSeed,
+                serverSeed,
                 type,
                 count,
                 clientSeed,
@@ -46,9 +42,7 @@ public class AnchorPayloadFactory {
     }
 
     private record AnchorPayload(
-            String requestId,
-            String serverSeedHash,
-            String revealedServerSeed,
+            String serverSeed,
             GachaType gachaType,
             int drawCount,
             String clientSeed,
