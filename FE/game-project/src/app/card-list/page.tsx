@@ -97,8 +97,9 @@ export default function CardListPage() {
 
 
   useEffect(() => {
-    const err = new Error("sentry dev test");
-    window.dispatchEvent(new ErrorEvent('error', { error: err, message: err.message }));
+    setTimeout(() => {
+      throw new Error("sentry dev test");
+    }, 0);
   }, []);
 
   // --- 카드 목록 상태 ---
