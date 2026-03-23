@@ -81,6 +81,12 @@ public class UserServiceImpl implements UserService {
         return user.getGold();
     }
 
+    @Override
+    public void levelUp(Long userId) {
+        User user = getActiveUser(userId);
+        user.levelUp();
+    }
+
     private void recordGoldLogIfNeeded(Long userId, Long amount, long balanceAfter, GoldLogReason reason) {
         if (reason == null) {
             return;

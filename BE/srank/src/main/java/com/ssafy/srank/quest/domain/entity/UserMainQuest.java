@@ -42,4 +42,5 @@ public class UserMainQuest extends BaseEntity {
     public void completeStatus(){
         this.status = QuestStatus.COMPLETED;
     }
+    public void claimRewardStatus() {this.status = QuestStatus.CLAIMED;}
 }
