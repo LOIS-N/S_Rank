@@ -1,15 +1,6 @@
 package com.ssafy.srank.gacha.application.service;
 
-import com.ssafy.srank.card.domain.entity.CardTemplate;
-import com.ssafy.srank.card.domain.entity.SkillStat;
-import com.ssafy.srank.card.domain.entity.SpecialSkillEffect;
-import com.ssafy.srank.card.domain.entity.SpecialSkillTemplate;
 import com.ssafy.srank.card.domain.entity.UserCard;
-import com.ssafy.srank.card.domain.enums.CardGrade;
-import com.ssafy.srank.card.domain.enums.ConditionType;
-import com.ssafy.srank.card.domain.enums.PositionType;
-import com.ssafy.srank.card.repository.CardTemplateRepository;
-import com.ssafy.srank.card.repository.SpecialSkillTemplateRepository;
 import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
@@ -18,22 +9,17 @@ import com.ssafy.srank.common.probablyfair.domain.ProbablyFairContext;
 import com.ssafy.srank.gacha.application.dto.request.GachaDrawRequest;
 import com.ssafy.srank.gacha.application.dto.request.GachaVerificationRequest;
 import com.ssafy.srank.gacha.application.dto.response.GachaDrawCardResponse;
-import com.ssafy.srank.gacha.application.dto.response.GachaDrawProofItemResponse;
 import com.ssafy.srank.gacha.application.dto.response.GachaDrawResponse;
 import com.ssafy.srank.gacha.application.dto.response.GachaProofResponse;
 import com.ssafy.srank.gacha.application.dto.response.GachaVerificationResponse;
-import com.ssafy.srank.gacha.domain.enums.GachaRollPurpose;
+import com.ssafy.srank.gacha.application.service.model.DrawContext;
+import com.ssafy.srank.gacha.application.service.model.GachaProofMaterial;
+import com.ssafy.srank.gacha.application.service.model.PreparedDraw;
 import com.ssafy.srank.gacha.domain.enums.GachaType;
-import com.ssafy.srank.gacha.domain.policy.AnchorPayloadFactory;
-import com.ssafy.srank.gacha.domain.policy.FlyerGachaPolicy;
 import com.ssafy.srank.gacha.domain.policy.GachaPolicyRegistry;
-import com.ssafy.srank.gacha.domain.policy.GachaRandomProvider;
-import com.ssafy.srank.log.application.command.GachaDrawLogCommand;
-import com.ssafy.srank.log.application.command.GachaDrawnCardLogCommand;
 import com.ssafy.srank.log.application.command.GoldLogCommand;
 import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.application.facade.GachaLogFacade;
-import com.ssafy.srank.log.domain.enums.BlockchainStatus;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
@@ -42,12 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -58,116 +39,44 @@ public class GachaServiceImpl implements GachaService {
 
     private final UserRepository userRepository;
     private final UserCardRepository userCardRepository;
-    private final CardTemplateRepository cardTemplateRepository;
-    private final SpecialSkillTemplateRepository specialSkillTemplateRepository;
     private final GachaPolicyRegistry gachaPolicyRegistry;
     private final ProbablyFairService probablyFairService;
-    private final AnchorPayloadFactory anchorPayloadFactory;
-
-    /**
-     * 구버전 전단 RNG 흐름 보존용 의존성이다.
-     * 현재 요청 경로에서는 Provably Fair 구현만 사용한다.
-     */
-    private final FlyerGachaPolicy flyerGachaPolicy;
-
-    /**
-     * 구버전 서버 RNG 흐름 보존용 의존성이다.
-     * 현재 요청 경로에서는 Provably Fair 구현만 사용한다.
-     */
-    private final GachaRandomProvider gachaRandomProvider;
+    private final GachaDrawPreparationService gachaDrawPreparationService;
+    private final GachaDigestBuilder gachaDigestBuilder;
+    private final GachaDrawLogCommandFactory gachaDrawLogCommandFactory;
     private final EconomyLogFacade economyLogFacade;
     private final GachaLogFacade gachaLogFacade;
 
     @Override
     @Transactional
     public GachaDrawResponse draw(Long userId, GachaDrawRequest request) {
-        GachaType type = request.getType();
-        int count = validateCount(request.getCount());
-        String clientSeed = request.getClientSeed().trim();
-        // draw와 verify가 같은 로직을 재연산할 수 있도록 요청 단위 PF context를 먼저 고정한다.
-        ProbablyFairContext pfContext = probablyFairService.issueContext();
-        LocalDateTime requestedAt = LocalDateTime.now();
+        // draw는 검증, 차감, 카드 준비, 저장, 로그, 응답 조립을 순서대로 오케스트레이션한다.
+        DrawContext context = buildDrawContext(userId, request);
+        spendGold(context);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        // 타입 해금 여부를 먼저 확인해 잠긴 뽑기에 대해 불필요한 계산과 차감을 막는다.
-        gachaPolicyRegistry.validateUnlocked(type, user.getLevel());
-
-        long currentCardCount = userCardRepository.countActiveByUserId(userId);
-        if (currentCardCount + count > MAX_CARD_INVENTORY) {
-            throw new BusinessException(ErrorCode.GACHA_INVENTORY_FULL);
-        }
-
-        long cost = gachaPolicyRegistry.calculateCost(type, count);
-
-        if (user.getGold() < cost) {
-            throw new BusinessException(ErrorCode.GACHA_GOLD_INSUFFICIENT);
-        }
-
-        // 차감과 로그는 실제로 결과를 생성하기 직전에 수행해 검증 이후 데이터만 남기게 한다.
-        user.spendGold(cost);
-        economyLogFacade.recordGoldChange(new GoldLogCommand(
-                userId,
-                -cost,
-                user.getGold(),
-                GoldLogReason.GACHA_SPEND,
-                requestedAt
-        ));
-
-        List<PreparedDraw> preparedDraws = createPreparedDraws(userId, type, clientSeed, pfContext, count);
-
-        List<UserCard> savedCards = userCardRepository.saveAll(preparedDraws.stream()
-                .map(PreparedDraw::userCard)
-                .toList());
-
-        List<GachaDrawProofItemResponse> proofItems = preparedDraws.stream()
-                .map(PreparedDraw::proofItem)
-                .toList();
-        String resultDigest = buildResultDigest(type, count, proofItems, preparedDraws);
-        String anchorPayload = anchorPayloadFactory.createAnchorPayload(
-                pfContext.serverSeed(),
-                type,
-                count,
-                clientSeed,
-                resultDigest,
-                proofItems
+        List<PreparedDraw> preparedDraws = gachaDrawPreparationService.createPreparedDraws(
+                context.userId(),
+                context.type(),
+                context.clientSeed(),
+                context.pfContext(),
+                context.count()
+        );
+        List<UserCard> savedCards = saveCards(preparedDraws);
+        GachaProofMaterial proofMaterial = gachaDigestBuilder.build(
+                context.type(),
+                context.count(),
+                context.clientSeed(),
+                context.pfContext(),
+                preparedDraws
         );
 
-        gachaLogFacade.recordDraw(new GachaDrawLogCommand(
-                userId,
-                type,
-                count,
-                cost,
-                clientSeed,
-                pfContext.serverSeed(),
-                pfContext.algorithmVersion(),
-                anchorPayload,
-                BlockchainStatus.NOT_REQUESTED,
-                null,
-                false,
-                buildLogCommands(savedCards, preparedDraws),
-                requestedAt
-        ));
-
-        List<GachaDrawCardResponse> cards = savedCards.stream()
-                .map(UserCard::toResponse)
-                .map(GachaDrawCardResponse::from)
-                .toList();
-        GachaProofResponse proof = new GachaProofResponse(
-                pfContext.algorithmVersion(),
-                pfContext.serverSeed(),
-                clientSeed
-        );
-        return new GachaDrawResponse(
-                cards,
-                user.getGold(),
-                proof
-        );
+        recordDrawLog(context, savedCards, preparedDraws, proofMaterial);
+        return buildDrawResponse(context, savedCards);
     }
 
     @Override
     public GachaVerificationResponse verify(GachaVerificationRequest request) {
+        // verify는 저장 없이 draw와 동일한 PF 계산 경로를 다시 수행해 결과를 재연산한다.
         int count = validateCount(request.getCount());
         ProbablyFairContext pfContext = new ProbablyFairContext(
                 request.getServerSeed().trim(),
@@ -175,13 +84,13 @@ public class GachaServiceImpl implements GachaService {
         );
         String clientSeed = request.getClientSeed().trim();
 
-        List<PreparedDraw> preparedDraws = createPreparedDraws(null, request.getType(), clientSeed, pfContext, count);
-        GachaProofResponse proof = new GachaProofResponse(
-                pfContext.algorithmVersion(),
-                pfContext.serverSeed(),
-                clientSeed
+        List<PreparedDraw> preparedDraws = gachaDrawPreparationService.createPreparedDraws(
+                null,
+                request.getType(),
+                clientSeed,
+                pfContext,
+                count
         );
-
         List<GachaDrawCardResponse> cards = preparedDraws.stream()
                 .map(PreparedDraw::userCard)
                 .map(UserCard::toResponse)
@@ -190,355 +99,112 @@ public class GachaServiceImpl implements GachaService {
 
         return new GachaVerificationResponse(
                 cards,
-                proof
-        );
-    }
-
-    private int validateCount(Integer count) {
-        if (count == null || (count != 1 && count != 10)) {
-            throw new BusinessException(ErrorCode.GACHA_INVALID_COUNT);
-        }
-        return count;
-    }
-
-    private List<PreparedDraw> createPreparedDraws(
-            Long userId,
-            GachaType type,
-            String clientSeed,
-            ProbablyFairContext pfContext,
-            int count
-    ) {
-        List<PreparedDraw> preparedDraws = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            // 10연에서도 카드 순번을 drawIndex로 고정해 verify 시 동일 결과를 재생성한다.
-            preparedDraws.add(createPreparedDraw(userId, type, clientSeed, pfContext, i));
-        }
-        return preparedDraws;
-    }
-
-    /**
-     * 등급 -> 템플릿 -> 특수능력 순서를 고정해 프론트가 같은 입력으로 동일 결과를 재계산할 수 있게 한다.
-     */
-    private PreparedDraw createPreparedDraw(
-            Long userId,
-            GachaType type,
-            String clientSeed,
-            ProbablyFairContext pfContext,
-            int drawIndex
-    ) {
-        int gradeRoll = probablyFairService.roll(
-                pfContext,
-                clientSeed,
-                drawIndex,
-                GachaRollPurpose.GRADE,
-                gachaPolicyRegistry.getRollBound()
-        );
-        CardGrade grade = gachaPolicyRegistry.selectGrade(type, gradeRoll);
-        TemplateSelection templateSelection = selectTemplate(type, grade, clientSeed, pfContext, drawIndex);
-        CardTemplate template = templateSelection.template();
-        List<PositionType> positions = pickDistinctPositions(clientSeed, pfContext, drawIndex);
-        SpecialSkillSelection skillSelection = selectSpecialSkill(grade, positions, clientSeed, pfContext, drawIndex);
-        int minStat = gachaPolicyRegistry.minStat(grade);
-        int maxStat = gachaPolicyRegistry.maxStat(grade);
-
-        UserCard userCard = UserCard.builder()
-                .userId(userId)
-                .cardTemplate(template)
-                .specialSkillTemplate(skillSelection.specialSkillTemplate())
-                .stat1(new SkillStat(positions.get(0), nextStatValue(clientSeed, pfContext, drawIndex, 1, minStat, maxStat), 0))
-                .stat2(new SkillStat(positions.get(1), nextStatValue(clientSeed, pfContext, drawIndex, 2, minStat, maxStat), 0))
-                .stat3(new SkillStat(positions.get(2), nextStatValue(clientSeed, pfContext, drawIndex, 3, minStat, maxStat), 0))
-                .enhanceTryCount(0)
-                .enhanceSuccessCount(0)
-                .build();
-
-        return new PreparedDraw(
-                userCard,
-                new GachaDrawProofItemResponse(
-                        drawIndex,
-                        gradeRoll,
-                        templateSelection.templateRoll(),
-                        skillSelection.skillRoll(),
-                        grade,
-                        template.getId(),
-                        skillSelection.specialSkillTemplate() == null
-                                ? null
-                                : skillSelection.specialSkillTemplate().getSkillCode()
+                new GachaProofResponse(
+                        pfContext.algorithmVersion(),
+                        pfContext.serverSeed(),
+                        clientSeed
                 )
         );
     }
 
-    private TemplateSelection selectTemplate(
-            GachaType type,
-            CardGrade grade,
-            String clientSeed,
-            ProbablyFairContext pfContext,
-            int drawIndex
-    ) {
-        List<CardTemplate> candidates = cardTemplateRepository
-                .findAllByGradeAndActiveTrueAndHiddenFalseAndDeletedFalseOrderByIdAsc(grade);
+    private DrawContext buildDrawContext(Long userId, GachaDrawRequest request) {
+        // 요청 정규화, 사용자 조회, 해금 여부, 인벤토리 한도, 비용 검증을 한 번에 묶는다.
+        GachaType type = request.getType();
+        int count = validateCount(request.getCount());
+        String clientSeed = request.getClientSeed().trim();
+        ProbablyFairContext pfContext = probablyFairService.issueContext();
+        LocalDateTime requestedAt = LocalDateTime.now();
 
-        if (candidates.isEmpty()) {
-            throw new IllegalStateException("No drawable card template for grade " + grade);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        gachaPolicyRegistry.validateUnlocked(type, user.getLevel());
+
+        long currentCardCount = userCardRepository.countActiveByUserId(userId);
+        if (currentCardCount + count > MAX_CARD_INVENTORY) {
+            throw new BusinessException(ErrorCode.GACHA_INVENTORY_FULL);
         }
 
-        // 템플릿 후보를 ID 순으로 고정 정렬해 검증 시 동일한 카드가 선택되게 한다.
-        int templateRoll = probablyFairService.roll(
-                pfContext,
+        long cost = gachaPolicyRegistry.calculateCost(type, count);
+        if (user.getGold() < cost) {
+            throw new BusinessException(ErrorCode.GACHA_GOLD_INSUFFICIENT);
+        }
+
+        return new DrawContext(
+                userId,
+                type,
+                count,
                 clientSeed,
-                drawIndex,
-                GachaRollPurpose.TEMPLATE.withSuffix(type.name() + "_" + grade.name()),
-                candidates.size()
+                pfContext,
+                user,
+                cost,
+                requestedAt
         );
-        return new TemplateSelection(candidates.get(templateRoll), templateRoll);
     }
 
-    /**
-     * 3개 스탯 포지션도 결정형으로 뽑아야 카드 결과 전체를 재현할 수 있다.
-     */
-    private List<PositionType> pickDistinctPositions(
-            String clientSeed,
-            ProbablyFairContext pfContext,
-            int drawIndex
-    ) {
-        int count = 3;
-        List<PositionType> candidates = new ArrayList<>(Arrays.asList(PositionType.values()));
-        List<PositionType> selected = new ArrayList<>(count);
-
-        for (int i = 0; i < count; i++) {
-            int index = probablyFairService.roll(
-                    pfContext,
-                    clientSeed,
-                    drawIndex,
-                    GachaRollPurpose.POSITION.withIndex(i + 1),
-                    candidates.size()
-            );
-            selected.add(candidates.remove(index));
-        }
-
-        return selected;
+    private void spendGold(DrawContext context) {
+        // 카드 생성 전에 골드를 차감하고 같은 시점으로 경제 로그를 남긴다.
+        context.user().spendGold(context.cost());
+        economyLogFacade.recordGoldChange(new GoldLogCommand(
+                context.userId(),
+                -context.cost(),
+                context.user().getGold(),
+                GoldLogReason.GACHA_SPEND,
+                context.requestedAt()
+        ));
     }
 
-    private int nextStatValue(
-            String clientSeed,
-            ProbablyFairContext pfContext,
-            int drawIndex,
-            int statIndex,
-            int min,
-            int max
-    ) {
-        int range = max - min + 1;
-        int statRoll = probablyFairService.roll(
-                pfContext,
-                clientSeed,
-                drawIndex,
-                GachaRollPurpose.STAT.withIndex(statIndex),
-                range
-        );
-        return min + statRoll;
+    private List<UserCard> saveCards(List<PreparedDraw> preparedDraws) {
+        // PF로 준비된 카드 엔티티만 일괄 저장한다.
+        return userCardRepository.saveAll(preparedDraws.stream()
+                .map(PreparedDraw::userCard)
+                .toList());
     }
 
-    private SpecialSkillSelection selectSpecialSkill(
-            CardGrade grade,
-            List<PositionType> positions,
-            String clientSeed,
-            ProbablyFairContext pfContext,
-            int drawIndex
+    private void recordDrawLog(
+            DrawContext context,
+            List<UserCard> savedCards,
+            List<PreparedDraw> preparedDraws,
+            GachaProofMaterial proofMaterial
     ) {
-        if (grade != CardGrade.S) {
-            return new SpecialSkillSelection(null, null);
-        }
+        // 저장 결과와 준비 과정의 proof를 합쳐 가챠 이력 로그 payload를 남긴다.
+        gachaLogFacade.recordDraw(gachaDrawLogCommandFactory.create(
+                context.userId(),
+                context.type(),
+                context.count(),
+                context.cost(),
+                context.clientSeed(),
+                context.pfContext(),
+                proofMaterial.anchorPayload(),
+                savedCards,
+                preparedDraws,
+                context.requestedAt()
+        ));
+    }
 
-        // S 등급이어도 무조건 특수능력을 주지 않고, 먼저 30% 지급 여부를 별도 roll로 판정한다.
-        int specialSkillGrantRoll = probablyFairService.roll(
-                pfContext,
-                clientSeed,
-                drawIndex,
-                GachaRollPurpose.SPECIAL_SKILL_GRANTED,
-                gachaPolicyRegistry.getRollBound()
-        );
-        if (!gachaPolicyRegistry.isSpecialSkillGranted(specialSkillGrantRoll)) {
-            return new SpecialSkillSelection(null, null);
-        }
-
-        List<SpecialSkillTemplate> candidates = specialSkillTemplateRepository.findAllByActiveTrueAndDeletedFalseOrderByIdAsc()
-                .stream()
-                .filter(skill -> isEligibleForPositions(skill, positions))
-                .sorted(Comparator.comparing(SpecialSkillTemplate::getId))
+    private GachaDrawResponse buildDrawResponse(DrawContext context, List<UserCard> savedCards) {
+        // 외부 응답은 저장된 카드와 최소 proof 정보만 노출한다.
+        List<GachaDrawCardResponse> cards = savedCards.stream()
+                .map(UserCard::toResponse)
+                .map(GachaDrawCardResponse::from)
                 .toList();
 
-        if (candidates.isEmpty()) {
-            throw new IllegalStateException("No drawable special skill for S grade");
-        }
-
-        // 지급이 확정된 경우에만 실제 특수능력 종류를 선택한다.
-        int skillRoll = probablyFairService.roll(
-                pfContext,
-                clientSeed,
-                drawIndex,
-                GachaRollPurpose.SKILL,
-                candidates.size()
-        );
-
-        return new SpecialSkillSelection(candidates.get(skillRoll), skillRoll);
-    }
-
-    private boolean isEligibleForPositions(SpecialSkillTemplate skillTemplate, List<PositionType> positions) {
-        Set<PositionType> referencedPositions = new HashSet<>();
-        for (SpecialSkillEffect effect : skillTemplate.getEffects()) {
-            if (effect.getConditionPosition() != null) {
-                referencedPositions.add(effect.getConditionPosition());
-            }
-            if (effect.getTargetPosition() != null) {
-                referencedPositions.add(effect.getTargetPosition());
-            }
-            if (effect.getConditionType() == ConditionType.WHEN_ASSIGNED_TO_POSITION && effect.getConditionPosition() != null) {
-                referencedPositions.add(effect.getConditionPosition());
-            }
-        }
-
-        if (referencedPositions.isEmpty()) {
-            return true;
-        }
-
-        return positions.stream().anyMatch(referencedPositions::contains);
-    }
-
-    private String buildResultDigest(
-            GachaType type,
-            int count,
-            List<GachaDrawProofItemResponse> proofItems,
-            List<PreparedDraw> preparedDraws
-    ) {
-        StringBuilder builder = new StringBuilder(type.name())
-                .append(':')
-                .append(count);
-
-        for (int i = 0; i < preparedDraws.size(); i++) {
-            PreparedDraw draw = preparedDraws.get(i);
-            GachaDrawProofItemResponse proofItem = proofItems.get(i);
-            builder.append('|')
-                    .append(proofItem.drawIndex())
-                    .append(':')
-                    .append(proofItem.selectedGrade())
-                    .append(':')
-                    .append(proofItem.selectedTemplateId())
-                    .append(':')
-                    .append(draw.userCard().getStat1().getSkillType())
-                    .append(':')
-                    .append(draw.userCard().getStat1().getTotalValue())
-                    .append(':')
-                    .append(draw.userCard().getStat2().getSkillType())
-                    .append(':')
-                    .append(draw.userCard().getStat2().getTotalValue())
-                    .append(':')
-                    .append(draw.userCard().getStat3().getSkillType())
-                    .append(':')
-                    .append(draw.userCard().getStat3().getTotalValue())
-                    .append(':')
-                    .append(proofItem.selectedSpecialSkillCode());
-        }
-
-        return probablyFairService.sha256Hex(builder.toString());
-    }
-
-    private List<GachaDrawnCardLogCommand> buildLogCommands(List<UserCard> savedCards, List<PreparedDraw> preparedDraws) {
-        List<GachaDrawnCardLogCommand> commands = new ArrayList<>(savedCards.size());
-        for (int i = 0; i < savedCards.size(); i++) {
-            commands.add(toGachaDrawnCardLogCommand(savedCards.get(i), preparedDraws.get(i).proofItem()));
-        }
-        return commands;
-    }
-
-    private GachaDrawnCardLogCommand toGachaDrawnCardLogCommand(UserCard userCard, GachaDrawProofItemResponse proofItem) {
-        return new GachaDrawnCardLogCommand(
-                proofItem.drawIndex(),
-                proofItem.gradeRoll(),
-                proofItem.templateRoll(),
-                proofItem.skillRoll(),
-                userCard.getId(),
-                userCard.getCardTemplate().getGrade(),
-                userCard.getCardTemplate().getId(),
-                userCard.getStat1().getSkillType().name(),
-                userCard.getStat1().getTotalValue(),
-                userCard.getStat2().getSkillType().name(),
-                userCard.getStat2().getTotalValue(),
-                userCard.getStat3().getSkillType().name(),
-                userCard.getStat3().getTotalValue(),
-                userCard.getSpecialSkillTemplate() == null ? null : userCard.getSpecialSkillTemplate().getSkillCode()
+        return new GachaDrawResponse(
+                cards,
+                context.user().getGold(),
+                new GachaProofResponse(
+                        context.pfContext().algorithmVersion(),
+                        context.pfContext().serverSeed(),
+                        context.clientSeed()
+                )
         );
     }
 
-    /**
-     * 구버전 RNG 기반 카드 생성 메서드다.
-     * 현재 요청 경로에서는 사용하지 않으며, 향후 이전 정책 비교가 필요할 때만 참고한다.
-     */
-    @Deprecated(forRemoval = false)
-    private UserCard createLegacyDrawnCard(Long userId) {
-        CardGrade grade = flyerGachaPolicy.selectGrade(gachaRandomProvider.nextDouble());
-        CardTemplate template = selectLegacyTemplate(grade);
-
-        List<PositionType> positions = pickLegacyDistinctPositions(3);
-        int minStat = flyerGachaPolicy.minStat(grade);
-        int maxStat = flyerGachaPolicy.maxStat(grade);
-
-        return UserCard.builder()
-                .userId(userId)
-                .cardTemplate(template)
-                .specialSkillTemplate(null)
-                .stat1(new SkillStat(positions.get(0), legacyStatValue(minStat, maxStat), 0))
-                .stat2(new SkillStat(positions.get(1), legacyStatValue(minStat, maxStat), 0))
-                .stat3(new SkillStat(positions.get(2), legacyStatValue(minStat, maxStat), 0))
-                .enhanceTryCount(0)
-                .enhanceSuccessCount(0)
-                .build();
-    }
-
-    @Deprecated(forRemoval = false)
-    private CardTemplate selectLegacyTemplate(CardGrade grade) {
-        List<CardTemplate> candidates = cardTemplateRepository
-                .findAllByGradeAndActiveTrueAndHiddenFalseAndDeletedFalse(grade);
-
-        if (candidates.isEmpty()) {
-            throw new IllegalStateException("No drawable card template for grade " + grade);
+    private int validateCount(Integer count) {
+        // 현재 가챠는 1회와 10회만 허용한다.
+        if (count == null || (count != 1 && count != 10)) {
+            throw new BusinessException(ErrorCode.GACHA_INVALID_COUNT);
         }
-
-        return candidates.get(gachaRandomProvider.nextInt(candidates.size()));
-    }
-
-    @Deprecated(forRemoval = false)
-    private List<PositionType> pickLegacyDistinctPositions(int count) {
-        List<PositionType> candidates = new ArrayList<>(Arrays.asList(PositionType.values()));
-        List<PositionType> selected = new ArrayList<>(count);
-
-        for (int i = 0; i < count; i++) {
-            int index = gachaRandomProvider.nextInt(candidates.size());
-            selected.add(candidates.remove(index));
-        }
-
-        return selected;
-    }
-
-    @Deprecated(forRemoval = false)
-    private int legacyStatValue(int min, int max) {
-        return min + gachaRandomProvider.nextInt(max - min + 1);
-    }
-
-    private record PreparedDraw(
-            UserCard userCard,
-            GachaDrawProofItemResponse proofItem
-    ) {
-    }
-
-    private record TemplateSelection(
-            CardTemplate template,
-            int templateRoll
-    ) {
-    }
-
-    private record SpecialSkillSelection(
-            SpecialSkillTemplate specialSkillTemplate,
-            Integer skillRoll
-    ) {
+        return count;
     }
 }
