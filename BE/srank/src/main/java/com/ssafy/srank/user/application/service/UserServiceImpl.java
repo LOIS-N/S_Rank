@@ -65,6 +65,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public long rewardGold(Long userId, Long gold, GoldLogReason reason) {
         User user = getActiveUser(userId);
         user.increaseGold(gold);
