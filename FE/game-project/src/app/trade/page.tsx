@@ -707,8 +707,8 @@ export default function TradePage() {
                 남은 강화 횟수 : {selectedMyCard.remainEnhanceCount}
               </div>
             </NineSliceBox>
-            <div className="trade-price-set-box">
-              <div className="trade-price-set-inner">
+            <div className="trade-sell-bottom-row">
+              <div className="trade-price-set-box">
                 <span className="trade-price-set-label">판매 가격 (골드)</span>
                 <input
                   className="trade-price-set-input"
@@ -717,10 +717,10 @@ export default function TradePage() {
                   onChange={e => setSellPrice(e.target.value)}
                 />
               </div>
+              <button className="trade-sell-btn" onClick={handleSell} disabled={isSelling || !sellPrice}>
+                {isSelling ? (sellStep || "등록 중...") : "판매 등록"}
+              </button>
             </div>
-            <button className="trade-sell-btn" onClick={handleSell} disabled={isSelling || !sellPrice}>
-              {isSelling ? (sellStep || "등록 중...") : "판매 등록"}
-            </button>
           </div>
         ) : (
           <div className="trade-right-empty">판매할 카드를 선택해주세요</div>
@@ -861,13 +861,6 @@ export default function TradePage() {
                 disabled={isApproving}
               >
                 {isApproving ? (approveStep || "처리 중...") : "거래 활성화"}
-              </button>
-              <button
-                className="trade-modal-btn-cancel"
-                onClick={() => setTab("BUY")}
-                disabled={isApproving}
-              >
-                취소
               </button>
             </div>
           </div>

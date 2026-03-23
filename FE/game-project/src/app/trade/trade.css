@@ -88,10 +88,12 @@
 }
 
 /* ── 콘텐츠 영역 ── */
+/* 활성 탭(88px) + tab-inner bottom(-20px) = 108px → 탭 영역(70px) 아래 38px 침범.
+   48px 상단 패딩으로 10px 여유를 두어 겹침 방지. */
 .trade-content {
   display: flex;
   flex: 1;
-  padding: 35px 24px calc(50px + var(--game-clip-y, 0px)) 24px;
+  padding: 48px 24px calc(100px + var(--game-clip-y, 0px)) 24px;
   gap: 0;
   min-height: 0;
   box-sizing: border-box;
@@ -114,6 +116,7 @@
   align-items: center;
   flex-shrink: 0;
   height: 36px;
+  margin-bottom: 4px;
   padding: 0;
   flex-wrap: nowrap;
 }
@@ -452,6 +455,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   gap: 8px;
 }
 
@@ -619,13 +623,24 @@
 .trade-sell-card-item:hover { transform: scale(1.05); filter: brightness(1.1); }
 .trade-sell-card-item.selected { filter: brightness(1.15) drop-shadow(0 0 8px rgba(255,200,0,0.8)); }
 
-/* 가격 입력 */
-.trade-price-set-box { flex-shrink: 0; }
+/* ── 판매 하단 행: 가격 입력(좌) + 판매 등록 버튼(우) ── */
+.trade-sell-bottom-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-top: auto;
+}
 
-.trade-price-set-inner {
+/* 가격 입력 박스 (좌측) */
+.trade-price-set-box {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 
@@ -649,10 +664,12 @@
   text-align: center;
 }
 
-/* 판매 등록 버튼 */
+/* 판매 등록 버튼 (우측) */
 .trade-sell-btn {
-  width: 100%;
-  padding: 11px 0;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 110px;
+  padding: 0 16px;
   background-color: #4aaa66;
   border: none;
   border-bottom: 4px solid #2d7a44;
