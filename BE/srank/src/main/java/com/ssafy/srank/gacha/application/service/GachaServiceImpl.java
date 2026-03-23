@@ -37,6 +37,7 @@ public class GachaServiceImpl implements GachaService {
 
     private static final int MAX_CARD_INVENTORY = 200;
 
+    // TODO: user/card 도메인 service가 준비되면 다른 패키지 repository 직접 접근을 해당 service 호출로 교체한다.
     private final UserRepository userRepository;
     private final UserCardRepository userCardRepository;
     private final GachaPolicyRegistry gachaPolicyRegistry;

@@ -33,6 +33,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class GachaDrawPreparationServiceImpl implements GachaDrawPreparationService {
 
+    // TODO: 카드 카탈로그/스킬 조회 service가 준비되면 다른 패키지 repository 직접 접근을 해당 service 호출로 교체한다.
     private final CardTemplateRepository cardTemplateRepository;
     private final SpecialSkillTemplateRepository specialSkillTemplateRepository;
     private final GachaPolicyRegistry gachaPolicyRegistry;
