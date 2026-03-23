@@ -8,7 +8,7 @@ import "./card-list.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-// --- 공용 JS 9-slice 컴포넌트 ---
+// --- 공용 JS 9-slice 컴포넌트 --- 빠이빠이
 interface NineSliceBoxProps {
   src: string;
   slice: [number, number, number, number];
@@ -95,11 +95,6 @@ export default function CardListPage() {
   const { getAccessToken } = usePrivy();
   const { accessToken } = useGameStore();
 
-// 테스트용 - 확인 후 삭제
-  const [testError] = useState(() => {
-    throw new Error("sentry dev test");
-  });
-
   // --- 카드 목록 상태 ---
   const [cards, setCards] = useState<CardListItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -130,7 +125,7 @@ export default function CardListPage() {
       const params: Record<string, string> = { limit: '30' };
       if (cursor) params.cursor = cursor;
       if (currentFilter && currentFilter !== 'ALL') {
-        params.statType = currentFilter;
+        params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
       }
       const { data: json } = await api.get('/api/v1/cards', {
         params,

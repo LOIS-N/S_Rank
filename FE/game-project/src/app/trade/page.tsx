@@ -314,7 +314,7 @@ export default function TradePage() {
     try {
       const token = await getToken();
       const params: Record<string, string> = {};
-      if (skillFilter !== "ALL") params.skillType = skillFilter;
+      if (skillFilter !== "ALL") params.skillType = skillFilter === 'DEV' ? 'DEVOPS' : skillFilter;
       if (minStat) params.minStat = minStat;
       if (maxStat) params.maxStat = maxStat;
       const { data } = await api.get("/api/v1/trade/listings", {
