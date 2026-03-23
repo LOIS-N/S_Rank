@@ -3,6 +3,7 @@ package com.ssafy.srank.quest.application.service;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
+import com.ssafy.srank.quest.application.dto.request.QuestDateTimeRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.MainQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
@@ -17,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,21 +36,24 @@ public class MainQuestServiceImpl implements MainQuestService {
 
 
     @Override
-    public List<InProcessQuestResponse> getUserMainQuestList(Long userId) {
+    public List<InProcessQuestResponse> getUserMainQuestList(Long userId, LocalDateTime now) {
         return userMainQuestRepository.findByUserId(userId).stream()
-                .map(InProcessQuestResponse::fromUserMainQuest).toList();
+                .map((quest) -> {
+                    Long second = Duration.between(now, quest.getEndAt()).getSeconds();
+                    return InProcessQuestResponse.fromUserMainQuest(quest, second);
+                }).toList();
     }
 
     @Override
-    public UserMainQuest startMainQuest(Long userId, Long questTemplateId, MainQuestRequest request) {
+    public UserMainQuest startMainQuest(Long userId, Long questTemplateId, MainQuestRequest request, QuestDateTimeRequest date) {
         // 사용자 메인 퀘스트 저장
         UserMainQuest mainQuest = UserMainQuest.builder()
                 .userId(userId)
                 .mainQuestTemplate(MainQuestTemplate.builder().id(questTemplateId).build())
                 .status(QuestStatus.IN_PROGRESS)
                 .userDeskId(request.deskId())
-                .startedAt(request.startAt())
-                .endAt(request.endAt())
+                .startedAt(date.getStartAt())
+                .endAt(date.getEndAt())
                 .build();
         return userMainQuestRepository.save(mainQuest);
     }

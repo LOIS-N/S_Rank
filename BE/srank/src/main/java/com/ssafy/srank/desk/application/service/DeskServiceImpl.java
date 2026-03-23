@@ -69,7 +69,7 @@ public class DeskServiceImpl implements DeskService {
 
     @Override
     public void validateDeskUnlocked(Long userId, Long deskId) {
-        if (userDeskRepository.existsByIdAndUserId(userId, deskId)) {
+        if (!userDeskRepository.existsByUserIdAndDeskTemplate_Id(userId, deskId)) {
             throw new BusinessException(ErrorCode.DESK_NOT_FOUND);
         }
     }
