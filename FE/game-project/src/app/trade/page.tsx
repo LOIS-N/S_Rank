@@ -862,6 +862,13 @@ export default function TradePage() {
               >
                 {isApproving ? (approveStep || "처리 중...") : "거래 활성화"}
               </button>
+              <button
+                className="trade-modal-btn-cancel"
+                onClick={() => setTab("BUY")}
+                disabled={isApproving}
+              >
+                취소
+              </button>
             </div>
           </div>
         </div>
