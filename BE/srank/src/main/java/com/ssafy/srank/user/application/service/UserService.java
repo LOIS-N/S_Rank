@@ -15,4 +15,6 @@ public interface UserService {
     long rewardGold(Long userId, Long gold, GoldLogReason reason);
 
     long spendGold(Long userId, Long gold, GoldLogReason reason);
+
+    void levelUp(Long userId);
 }

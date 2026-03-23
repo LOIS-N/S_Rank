@@ -37,7 +37,8 @@ public class SubQuestServiceImpl implements SubQuestService {
     public List<InProcessQuestResponse> getUserSubQuestList(Long userId, LocalDateTime now) {
         return userSubQuestRepository.findByUserId(userId).stream()
                 .map((quest)->{
-                    Long second = Duration.between(now, quest.getEndAt()).toSeconds();
+                    Long second = quest.getStatus() == QuestStatus.COMPLETED
+                            ? 0 : Duration.between(now, quest.getEndAt()).getSeconds();
                     return InProcessQuestResponse.fromUserSubQuest(quest, second);
                 }).toList();
     }
