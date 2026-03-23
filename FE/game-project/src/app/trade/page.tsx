@@ -62,19 +62,20 @@ function formatDate(dateStr: string | null): string {
 // ── 샘플 데이터 ──
 const SAMPLE_LISTINGS: TradeListing[] = [
   {
-    listingId: 1, cardId: 1, grade: "S", name: "싸피생1",
+    // tokenId: BE API 연동 시 실제 온체인 tokenId가 채워짐. 현재는 테스트용 임시값.
+    listingId: 1, cardId: 1, grade: "S", name: "싸피생1", tokenId: undefined,
     imageUrl: "/assets/008/SCardImage_000.webp",
     skill1: { skillType: "BE", value: 99 }, skill2: { skillType: "FE", value: 99 }, skill3: { skillType: "AI", value: 80 },
     price: 150000, sellerNickname: "판매자A", enhanceLevel: 2, remainEnhanceCount: 3,
   },
   {
-    listingId: 2, cardId: 2, grade: "A", name: "싸피생2",
+    listingId: 2, cardId: 2, grade: "A", name: "싸피생2", tokenId: undefined,
     imageUrl: "/assets/008/SCardImage_001.webp",
     skill1: { skillType: "BE", value: 99 }, skill2: { skillType: "FE", value: 80 }, skill3: { skillType: "AI", value: 99 },
     price: 200000, sellerNickname: "판매자B", enhanceLevel: 0, remainEnhanceCount: 5,
   },
   {
-    listingId: 3, cardId: 3, grade: "A", name: "싸피생3",
+    listingId: 3, cardId: 3, grade: "A", name: "싸피생3", tokenId: undefined,
     imageUrl: "/assets/008/SCardImage_002.webp",
     skill1: { skillType: "BE", value: 80 }, skill2: { skillType: "FE", value: 99 }, skill3: { skillType: "AI", value: 99 },
     price: 300000, sellerNickname: "판매자C", enhanceLevel: 1, remainEnhanceCount: 4,
@@ -286,7 +287,12 @@ export default function TradePage() {
   const histScroll = useCustomScroll(histListHeight, histWrapHeight);
 
   const getToken = useCallback(async () => accessToken || await getAccessToken(), [accessToken, getAccessToken]);
-  const { listOnChain, buyOnChain } = useTrade();
+  const { listOnChain, buyOnChain, checkAndApproveAll } = useTrade();
+
+  // ── 거래 활성화(setApprovalForAll) 상태 ──
+  const [approvalStatus, setApprovalStatus] = useState<"unknown" | "approved" | "not-approved">("unknown");
+  const [isApproving, setIsApproving] = useState(false);
+  const [approveStep, setApproveStep] = useState("");
 
   // 샘플 데이터 클라이언트 필터링
   const filterSampleListings = useCallback((items: TradeListing[]) => {
@@ -384,6 +390,32 @@ export default function TradePage() {
     setSelectedMyCard(null);
     setSelectedHistItem(null);
   }, [tab]);
+
+  // ── SELL 탭 진입 시 setApprovalForAll 상태 확인 ──
+  useEffect(() => {
+    if (tab !== "SELL") return;
+    setApprovalStatus("unknown");
+    checkAndApproveAll()
+      .then((wasNew) => {
+        setApprovalStatus("approved");
+        if (wasNew) console.log("[Trade] setApprovalForAll 완료");
+      })
+      .catch(() => setApprovalStatus("not-approved"));
+  }, [tab]);
+
+  // ── 거래 활성화 버튼 핸들러 ──
+  const handleApproveAll = async () => {
+    setIsApproving(true);
+    try {
+      await checkAndApproveAll(setApproveStep);
+      setApprovalStatus("approved");
+    } catch {
+      alert("거래 활성화 중 오류가 발생했습니다.");
+    } finally {
+      setIsApproving(false);
+      setApproveStep("");
+    }
+  };
 
   // DOM 높이 측정
   useEffect(() => {
@@ -493,8 +525,9 @@ export default function TradePage() {
     }
   };
 
-  // 판매 탭 필터링된 카드
+  // 판매 탭 필터링된 카드 (A/S 등급만, 스킬 필터 추가)
   const filteredMyCards = myCards.filter(card => {
+    if (card.grade !== "A" && card.grade !== "S") return false;
     if (sellSkillFilter === "ALL") return true;
     return [card.skill1, card.skill2, card.skill3].some(s =>
       displaySkillType(s.skillType) === sellSkillFilter || s.skillType.toUpperCase() === sellSkillFilter
@@ -809,6 +842,27 @@ export default function TradePage() {
           <div className="trade-modal-box">
             <p className="trade-modal-title">돈이 부족합니다</p>
             <button className="trade-modal-btn-ok" onClick={() => setShowInsufficientModal(false)}>확인</button>
+          </div>
+        </div>
+      )}
+
+      {/* 거래 활성화 모달 (setApprovalForAll 미승인 시) */}
+      {tab === "SELL" && approvalStatus === "not-approved" && (
+        <div className="trade-modal-overlay">
+          <div className="trade-modal-box">
+            <p className="trade-modal-title">거래 활성화 필요</p>
+            <p className="trade-modal-sub">
+              카드 판매를 위해 최초 1회 거래 활성화가 필요합니다.
+            </p>
+            <div className="trade-modal-btns">
+              <button
+                className="trade-modal-btn-buy"
+                onClick={handleApproveAll}
+                disabled={isApproving}
+              >
+                {isApproving ? (approveStep || "처리 중...") : "거래 활성화"}
+              </button>
+            </div>
           </div>
         </div>
       )}
