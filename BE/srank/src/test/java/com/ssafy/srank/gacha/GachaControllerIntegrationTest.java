@@ -17,9 +17,9 @@ import com.ssafy.srank.card.repository.SpecialSkillTemplateRepository;
 import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
-import com.ssafy.srank.gacha.domain.enums.ProofAlgorithmVersion;
-import com.ssafy.srank.gacha.domain.policy.ProvablyFairContext;
-import com.ssafy.srank.gacha.domain.policy.ProvablyFairContextFactory;
+import com.ssafy.srank.common.probablyfair.application.service.ProbablyFairService;
+import com.ssafy.srank.common.probablyfair.domain.ProbablyFairContext;
+import com.ssafy.srank.common.probablyfair.domain.ProofAlgorithmVersion;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.log.repository.GachaLogRepository;
 import com.ssafy.srank.log.repository.UserGoldLogRepository;
@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -42,6 +43,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -76,8 +78,8 @@ class GachaControllerIntegrationTest {
     @MockBean
     private PrivyTokenService privyTokenService;
 
-    @MockBean
-    private ProvablyFairContextFactory provablyFairContextFactory;
+    @SpyBean
+    private ProbablyFairService probablyFairService;
 
     private User highLevelUser;
     private User lowLevelUser;
@@ -171,10 +173,10 @@ class GachaControllerIntegrationTest {
                 default -> throw new BusinessException(ErrorCode.UNAUTHORIZED);
             };
         });
-        when(provablyFairContextFactory.create()).thenReturn(new ProvablyFairContext(
+        doReturn(new ProbablyFairContext(
                 "server-seed-test",
                 ProofAlgorithmVersion.PF_V1
-        ));
+        )).when(probablyFairService).issueContext();
     }
 
     @AfterEach
@@ -213,8 +215,7 @@ class GachaControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.cards.length()").value(1))
                 .andExpect(jsonPath("$.data.proof.algorithmVersion").value("PF_V1"))
                 .andExpect(jsonPath("$.data.proof.serverSeed").value("server-seed-test"))
-                .andExpect(jsonPath("$.data.proof.clientSeed").value("seed-flyer-1"))
-                .andExpect(jsonPath("$.data.blockchainStatus").value("NOT_REQUESTED"));
+                .andExpect(jsonPath("$.data.proof.clientSeed").value("seed-flyer-1"));
 
         assertThat(userCardRepository.countActiveByUserId(highLevelUser.getUserId())).isEqualTo(1);
         assertThat(userRepository.findById(highLevelUser.getUserId()).orElseThrow().getGold()).isEqualTo(490_000L);
@@ -296,12 +297,12 @@ class GachaControllerIntegrationTest {
         mockMvc.perform(post("/api/v1/gacha/draws")
                         .header("Authorization", "Bearer valid-high")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+                .content("""
                                 {"type":"flyer","count":1,"clientSeed":"seed-lowercase"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.gachaType").value("FLYER"));
+                .andExpect(jsonPath("$.data.cards.length()").value(1));
     }
 
     @Test

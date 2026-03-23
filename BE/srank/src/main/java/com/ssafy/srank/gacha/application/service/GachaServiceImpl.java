@@ -13,6 +13,8 @@ import com.ssafy.srank.card.repository.SpecialSkillTemplateRepository;
 import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.common.probablyfair.application.service.ProbablyFairService;
+import com.ssafy.srank.common.probablyfair.domain.ProbablyFairContext;
 import com.ssafy.srank.gacha.application.dto.request.GachaDrawRequest;
 import com.ssafy.srank.gacha.application.dto.request.GachaVerificationRequest;
 import com.ssafy.srank.gacha.application.dto.response.GachaDrawCardResponse;
@@ -20,15 +22,12 @@ import com.ssafy.srank.gacha.application.dto.response.GachaDrawProofItemResponse
 import com.ssafy.srank.gacha.application.dto.response.GachaDrawResponse;
 import com.ssafy.srank.gacha.application.dto.response.GachaProofResponse;
 import com.ssafy.srank.gacha.application.dto.response.GachaVerificationResponse;
+import com.ssafy.srank.gacha.domain.enums.GachaRollPurpose;
 import com.ssafy.srank.gacha.domain.enums.GachaType;
-import com.ssafy.srank.gacha.domain.enums.RollPurpose;
 import com.ssafy.srank.gacha.domain.policy.AnchorPayloadFactory;
 import com.ssafy.srank.gacha.domain.policy.FlyerGachaPolicy;
 import com.ssafy.srank.gacha.domain.policy.GachaPolicyRegistry;
 import com.ssafy.srank.gacha.domain.policy.GachaRandomProvider;
-import com.ssafy.srank.gacha.domain.policy.ProvablyFairCalculator;
-import com.ssafy.srank.gacha.domain.policy.ProvablyFairContext;
-import com.ssafy.srank.gacha.domain.policy.ProvablyFairContextFactory;
 import com.ssafy.srank.log.application.command.GachaDrawLogCommand;
 import com.ssafy.srank.log.application.command.GachaDrawnCardLogCommand;
 import com.ssafy.srank.log.application.command.GoldLogCommand;
@@ -62,8 +61,7 @@ public class GachaServiceImpl implements GachaService {
     private final CardTemplateRepository cardTemplateRepository;
     private final SpecialSkillTemplateRepository specialSkillTemplateRepository;
     private final GachaPolicyRegistry gachaPolicyRegistry;
-    private final ProvablyFairContextFactory provablyFairContextFactory;
-    private final ProvablyFairCalculator provablyFairCalculator;
+    private final ProbablyFairService probablyFairService;
     private final AnchorPayloadFactory anchorPayloadFactory;
 
     /**
@@ -86,7 +84,8 @@ public class GachaServiceImpl implements GachaService {
         GachaType type = request.getType();
         int count = validateCount(request.getCount());
         String clientSeed = request.getClientSeed().trim();
-        ProvablyFairContext pfContext = provablyFairContextFactory.create();
+        // draw와 verify가 같은 로직을 재연산할 수 있도록 요청 단위 PF context를 먼저 고정한다.
+        ProbablyFairContext pfContext = probablyFairService.issueContext();
         LocalDateTime requestedAt = LocalDateTime.now();
 
         User user = userRepository.findById(userId)
@@ -170,7 +169,7 @@ public class GachaServiceImpl implements GachaService {
     @Override
     public GachaVerificationResponse verify(GachaVerificationRequest request) {
         int count = validateCount(request.getCount());
-        ProvablyFairContext pfContext = new ProvablyFairContext(
+        ProbablyFairContext pfContext = new ProbablyFairContext(
                 request.getServerSeed().trim(),
                 request.getAlgorithmVersion()
         );
@@ -206,11 +205,12 @@ public class GachaServiceImpl implements GachaService {
             Long userId,
             GachaType type,
             String clientSeed,
-            ProvablyFairContext pfContext,
+            ProbablyFairContext pfContext,
             int count
     ) {
         List<PreparedDraw> preparedDraws = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
+            // 10연에서도 카드 순번을 drawIndex로 고정해 verify 시 동일 결과를 재생성한다.
             preparedDraws.add(createPreparedDraw(userId, type, clientSeed, pfContext, i));
         }
         return preparedDraws;
@@ -223,14 +223,14 @@ public class GachaServiceImpl implements GachaService {
             Long userId,
             GachaType type,
             String clientSeed,
-            ProvablyFairContext pfContext,
+            ProbablyFairContext pfContext,
             int drawIndex
     ) {
-        int gradeRoll = provablyFairCalculator.roll(
-                pfContext.serverSeed(),
+        int gradeRoll = probablyFairService.roll(
+                pfContext,
                 clientSeed,
                 drawIndex,
-                RollPurpose.GRADE.key(),
+                GachaRollPurpose.GRADE,
                 gachaPolicyRegistry.getRollBound()
         );
         CardGrade grade = gachaPolicyRegistry.selectGrade(type, gradeRoll);
@@ -272,7 +272,7 @@ public class GachaServiceImpl implements GachaService {
             GachaType type,
             CardGrade grade,
             String clientSeed,
-            ProvablyFairContext pfContext,
+            ProbablyFairContext pfContext,
             int drawIndex
     ) {
         List<CardTemplate> candidates = cardTemplateRepository
@@ -283,11 +283,11 @@ public class GachaServiceImpl implements GachaService {
         }
 
         // 템플릿 후보를 ID 순으로 고정 정렬해 검증 시 동일한 카드가 선택되게 한다.
-        int templateRoll = provablyFairCalculator.roll(
-                pfContext.serverSeed(),
+        int templateRoll = probablyFairService.roll(
+                pfContext,
                 clientSeed,
                 drawIndex,
-                RollPurpose.TEMPLATE.key(type.name() + "_" + grade.name()),
+                GachaRollPurpose.TEMPLATE.withSuffix(type.name() + "_" + grade.name()),
                 candidates.size()
         );
         return new TemplateSelection(candidates.get(templateRoll), templateRoll);
@@ -298,7 +298,7 @@ public class GachaServiceImpl implements GachaService {
      */
     private List<PositionType> pickDistinctPositions(
             String clientSeed,
-            ProvablyFairContext pfContext,
+            ProbablyFairContext pfContext,
             int drawIndex
     ) {
         int count = 3;
@@ -306,11 +306,11 @@ public class GachaServiceImpl implements GachaService {
         List<PositionType> selected = new ArrayList<>(count);
 
         for (int i = 0; i < count; i++) {
-            int index = provablyFairCalculator.roll(
-                    pfContext.serverSeed(),
+            int index = probablyFairService.roll(
+                    pfContext,
                     clientSeed,
                     drawIndex,
-                    RollPurpose.POSITION.key(i + 1),
+                    GachaRollPurpose.POSITION.withIndex(i + 1),
                     candidates.size()
             );
             selected.add(candidates.remove(index));
@@ -321,18 +321,18 @@ public class GachaServiceImpl implements GachaService {
 
     private int nextStatValue(
             String clientSeed,
-            ProvablyFairContext pfContext,
+            ProbablyFairContext pfContext,
             int drawIndex,
             int statIndex,
             int min,
             int max
     ) {
         int range = max - min + 1;
-        int statRoll = provablyFairCalculator.roll(
-                pfContext.serverSeed(),
+        int statRoll = probablyFairService.roll(
+                pfContext,
                 clientSeed,
                 drawIndex,
-                RollPurpose.STAT.key(statIndex),
+                GachaRollPurpose.STAT.withIndex(statIndex),
                 range
         );
         return min + statRoll;
@@ -342,10 +342,22 @@ public class GachaServiceImpl implements GachaService {
             CardGrade grade,
             List<PositionType> positions,
             String clientSeed,
-            ProvablyFairContext pfContext,
+            ProbablyFairContext pfContext,
             int drawIndex
     ) {
         if (grade != CardGrade.S) {
+            return new SpecialSkillSelection(null, null);
+        }
+
+        // S 등급이어도 무조건 특수능력을 주지 않고, 먼저 30% 지급 여부를 별도 roll로 판정한다.
+        int specialSkillGrantRoll = probablyFairService.roll(
+                pfContext,
+                clientSeed,
+                drawIndex,
+                GachaRollPurpose.SPECIAL_SKILL_GRANTED,
+                gachaPolicyRegistry.getRollBound()
+        );
+        if (!gachaPolicyRegistry.isSpecialSkillGranted(specialSkillGrantRoll)) {
             return new SpecialSkillSelection(null, null);
         }
 
@@ -359,11 +371,12 @@ public class GachaServiceImpl implements GachaService {
             throw new IllegalStateException("No drawable special skill for S grade");
         }
 
-        int skillRoll = provablyFairCalculator.roll(
-                pfContext.serverSeed(),
+        // 지급이 확정된 경우에만 실제 특수능력 종류를 선택한다.
+        int skillRoll = probablyFairService.roll(
+                pfContext,
                 clientSeed,
                 drawIndex,
-                RollPurpose.SKILL.key(),
+                GachaRollPurpose.SKILL,
                 candidates.size()
         );
 
@@ -426,7 +439,7 @@ public class GachaServiceImpl implements GachaService {
                     .append(proofItem.selectedSpecialSkillCode());
         }
 
-        return provablyFairCalculator.sha256Hex(builder.toString());
+        return probablyFairService.sha256Hex(builder.toString());
     }
 
     private List<GachaDrawnCardLogCommand> buildLogCommands(List<UserCard> savedCards, List<PreparedDraw> preparedDraws) {

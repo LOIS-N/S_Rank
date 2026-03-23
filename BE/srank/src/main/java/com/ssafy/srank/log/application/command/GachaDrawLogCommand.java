@@ -1,7 +1,7 @@
 package com.ssafy.srank.log.application.command;
 
 import com.ssafy.srank.gacha.domain.enums.GachaType;
-import com.ssafy.srank.gacha.domain.enums.ProofAlgorithmVersion;
+import com.ssafy.srank.common.probablyfair.domain.ProofAlgorithmVersion;
 import com.ssafy.srank.log.domain.enums.BlockchainStatus;
 
 import java.time.LocalDateTime;

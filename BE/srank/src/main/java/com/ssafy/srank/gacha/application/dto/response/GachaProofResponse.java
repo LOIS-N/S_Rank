@@ -1,6 +1,6 @@
 package com.ssafy.srank.gacha.application.dto.response;
 
-import com.ssafy.srank.gacha.domain.enums.ProofAlgorithmVersion;
+import com.ssafy.srank.common.probablyfair.domain.ProofAlgorithmVersion;
 
 public record GachaProofResponse(
         ProofAlgorithmVersion algorithmVersion,

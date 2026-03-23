@@ -2,7 +2,7 @@ package com.ssafy.srank.log.domain.entity;
 
 import com.ssafy.srank.card.domain.enums.CardGrade;
 import com.ssafy.srank.gacha.domain.enums.GachaType;
-import com.ssafy.srank.gacha.domain.enums.ProofAlgorithmVersion;
+import com.ssafy.srank.common.probablyfair.domain.ProofAlgorithmVersion;
 import com.ssafy.srank.log.domain.enums.BlockchainStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

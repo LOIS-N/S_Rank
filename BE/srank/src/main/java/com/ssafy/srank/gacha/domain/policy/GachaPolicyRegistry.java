@@ -15,6 +15,7 @@ public class GachaPolicyRegistry {
 
     private static final int PERCENT_SCALE = 100;
     private static final int ROLL_BOUND = 10_000;
+    private static final int SPECIAL_SKILL_GRANTED_THRESHOLD = 30 * PERCENT_SCALE;
 
     private final Map<GachaType, GachaPolicy> policies = new EnumMap<>(GachaType.class);
 
@@ -86,6 +87,11 @@ public class GachaPolicyRegistry {
 
     public int getRollBound() {
         return ROLL_BOUND;
+    }
+
+    // 10,000 스케일 기준으로 0~2,999를 특수능력 지급 성공으로 본다.
+    public boolean isSpecialSkillGranted(int grantRoll) {
+        return grantRoll < SPECIAL_SKILL_GRANTED_THRESHOLD;
     }
 
     public int minStat(CardGrade grade) {

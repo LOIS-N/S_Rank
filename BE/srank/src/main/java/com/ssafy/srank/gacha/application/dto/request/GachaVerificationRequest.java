@@ -1,7 +1,7 @@
 package com.ssafy.srank.gacha.application.dto.request;
 
+import com.ssafy.srank.common.probablyfair.domain.ProofAlgorithmVersion;
 import com.ssafy.srank.gacha.domain.enums.GachaType;
-import com.ssafy.srank.gacha.domain.enums.ProofAlgorithmVersion;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
