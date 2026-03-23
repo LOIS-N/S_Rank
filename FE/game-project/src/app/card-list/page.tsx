@@ -95,6 +95,11 @@ export default function CardListPage() {
   const { getAccessToken } = usePrivy();
   const { accessToken } = useGameStore();
 
+  useEffect(() => {
+    Promise.reject(new Error("sentry prod test"));
+  }, []);
+
+
   // --- 카드 목록 상태 ---
   const [cards, setCards] = useState<CardListItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
