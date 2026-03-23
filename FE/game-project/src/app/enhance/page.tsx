@@ -142,7 +142,7 @@ export default function EnhancePage() {
       const params: Record<string, string> = { limit: '30' };
       if (cursor) params.cursor = cursor;
       if (currentFilter && currentFilter !== 'ALL') {
-        params.statType = currentFilter;
+        params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
       }
       const { data: json } = await api.get('/api/v1/cards', {
         params,

@@ -84,6 +84,9 @@ interface CardListItem {
   specialAbility: { name: string; description: string; effects: string } | null;
 }
 
+// --- 스킬 필터 옵션 ---
+const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEV", "DESIGN"] as const;
+
 const GRADE_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
 
 function displaySkillType(type: string): string {
@@ -286,6 +289,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const [isCardLoading, setIsCardLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  // --- 필터 상태 ---
+  const [capacitySort, setCapacitySort] = useState<string>("ALL");
+
   // --- BE 책상 템플릿 ID 매핑 ---
   const [beDeskTemplateId, setBeDeskTemplateId] = useState<number | null>(null);
 
@@ -316,13 +322,17 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectingDeskId]);
 
-  const fetchCards = useCallback(async (cursor?: string | null) => {
+  const fetchCards = useCallback(async (cursor?: string | null, filterOverride?: string) => {
     if (isCardLoading) return;
     setIsCardLoading(true);
     try {
       const token = await getAuthToken();
+      const currentFilter = filterOverride ?? capacitySort;
       const params: Record<string, string> = { limit: '30' };
       if (cursor) params.cursor = cursor;
+      if (currentFilter && currentFilter !== 'ALL') {
+        params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
+      }
       const { data: json } = await api.get('/api/v1/cards', {
         params,
         headers: { Authorization: `Bearer ${token}` },
@@ -340,12 +350,17 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       setIsInitialLoad(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getAuthToken]);
+  }, [getAuthToken, capacitySort]);
 
   useEffect(() => {
-    fetchCards(null);
+    setCards([]);
+    setNextCursor(null);
+    setHasMore(true);
+    setP2ScrollRatio(0);
+    setIsInitialLoad(true);
+    fetchCards(null, capacitySort);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [capacitySort]);
 
   // 등급순 → 같은 등급 내 총합 능력치 내림차순 정렬
   const sortedCards = useMemo(() => sortCardsByGradeAndStat(cards), [cards]);
@@ -665,7 +680,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   // 스크롤 하단 도달 시 다음 페이지 로드
   useEffect(() => {
     if (p2ScrollRatio > 0.9 && hasMore && !isCardLoading && nextCursor) {
-      fetchCards(nextCursor);
+      fetchCards(nextCursor, capacitySort);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p2ScrollRatio, hasMore, isCardLoading, nextCursor]);
@@ -750,6 +765,21 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     <>
       {/* ──── 좌측: 카드 목록 (card-list 레이아웃 통일) ──── */}
       <div className="phase2-left-col">
+        {/* 스킬 필터 드롭다운 */}
+        <div className="quest-filters">
+          <div className="quest-select-wrapper">
+            <select
+              className="quest-select"
+              value={capacitySort}
+              onChange={(e) => setCapacitySort(e.target.value)}
+            >
+              {SKILL_FILTERS.map(filter => (
+                <option key={filter} value={filter}>{filter}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
           <div
             className="phase2-card-grid-wrapper"
