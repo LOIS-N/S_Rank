@@ -161,11 +161,8 @@ export default function GameCanvas() {
                     { key: 'bug_002', sx:   80, sy: -160, startDelay: 2250 },
                   ];
 
-                  const bugImages: Phaser.GameObjects.Image[] = [];
-
                   bugConfigs.forEach(({ key, sx, sy, startDelay }) => {
                     const img = sceneRef.add.image(sx, sy, key);
-                    bugImages.push(img);
                     img.setScale(floatScale);
                     img.setInteractive({ useHandCursor: true });
                     playContainer.add(img);
@@ -353,9 +350,6 @@ export default function GameCanvas() {
                     .sort((a, b) => a.posY - b.posY)
                     .forEach(d => playContainer.add(d.container));
 
-                  // 버그를 모든 오브젝트 위로 (데스크 추가 후 bringToTop)
-                  bugImages.forEach(img => playContainer.bringToTop(img));
-
                   sceneRef.registry.set('deskDataList', builtDeskDataList);
                   sceneRef.registry.set('originDeskScale', originDeskScale);
                   sceneRef.registry.set('playAssetsLoaded', true);
@@ -386,7 +380,6 @@ export default function GameCanvas() {
                       deskData.resultIcon.setVisible(false);
                       deskData.timerText.setVisible(false);
                       deskData.charImage.setVisible(false);
-                      deskData.sayingImage.setVisible(false);
                       return;
                     } else {
                       deskData.desk.clearTint();
@@ -399,7 +392,6 @@ export default function GameCanvas() {
                       deskData.resultIcon.setVisible(false);
                       deskData.timerText.setVisible(false);
                       deskData.charImage.setVisible(false);
-                      deskData.sayingImage.setVisible(false);
                     } else if (quest.status === 'IN_PROGRESS' || quest.status === 'COMPLETED') {
                       const now = Date.now();
                       const endTime = quest.endAt ? new Date(quest.endAt).getTime() : (quest.endTime || now);
@@ -411,11 +403,6 @@ export default function GameCanvas() {
                       deskData.charImage.scaleY = deskData.charImage.scaleX;
                       deskData.charImage.setY(0);
                       deskData.charImage.setVisible(true);
-
-                      deskData.sayingImage.displayWidth = deskData.charImage.displayWidth;
-                      deskData.sayingImage.scaleY = deskData.sayingImage.scaleX;
-                      deskData.sayingImage.setY(-(deskData.charImage.displayHeight / 2) - 50 - (deskData.sayingImage.displayHeight / 2));
-                      deskData.sayingImage.setVisible(true);
                       deskData.desk.setVisible(false);
                       deskData.newIcon.setVisible(false);
 
