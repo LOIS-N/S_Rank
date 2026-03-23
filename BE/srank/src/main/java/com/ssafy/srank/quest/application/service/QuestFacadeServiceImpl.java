@@ -40,7 +40,6 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
     private final SubQuestService subService;
 
 
-    //Todo : 분리해서 service가 담당하게 하기
     private final UserDeskQuestRepository deskQuestRepository; //얘 진짜 리팩토링하기 진짜....
     private final UserMainQuestRepository userMainQuestRepository;
     private final UserMainQuestCardRepository userMainQuestCardRepository;
