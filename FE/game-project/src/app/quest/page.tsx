@@ -586,14 +586,10 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       const targetDeskId = beDeskTemplateId ?? (selectingDeskId !== null ? selectingDeskId + 1 : 1);
       const durationMinutes = Math.min(estimatedTime ?? quest.durationMinutes, quest.durationMinutes);
 
-      const now = new Date();
-      const endAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
-
       const res = await api.post(`/api/v1/quests/${type}/${quest.questId}/start`, {
         deskId: targetDeskId,
         cardIds: selectedCards,
-        startAt: now.toISOString().replace('Z', ''),
-        endAt: endAt.toISOString().replace('Z', ''),
+        duration: durationMinutes * 60,  // 소요 시간 (초)
       }, {
         headers: { Authorization: `Bearer ${token}` },
       });

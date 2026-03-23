@@ -3,6 +3,14 @@ import { persist } from 'zustand/middleware';
 
 export type QuestStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
+export interface InAppNotification {
+  id: number;
+  title: string;
+  body: string;
+  createdAt: number;
+  isRead: boolean;
+}
+
 export interface DeskQuest {
   id: number;
   status: QuestStatus;
@@ -34,6 +42,7 @@ interface GameState {
   completeQuestTrigger: { deskId: number; questId: number; questType: 'MAIN' | 'SUB' } | null;
   isHUDModalOpen: boolean;
   sessionExpiredModal: boolean;
+  notifications: InAppNotification[];
   setAuth: (token: string | null) => void;
   increaseScore: (by: number) => void;
   increaseGold: (by: number) => void;
@@ -59,8 +68,11 @@ interface GameState {
   setQuestInfoModal: (data: { questTitle: string; rewardGold: number; remainMs: number; endAt: string | null } | null) => void;
   setQuestFetchTrigger: (data: { questId: number; questType: 'main' | 'sub'; remainMs: number; endAt: string | null } | null) => void;
   setCompleteQuestTrigger: (data: { deskId: number; questId: number; questType: 'MAIN' | 'SUB' } | null) => void;
-  syncActiveQuests: (activeDesks: Array<{ deskId: number; questId: number; questType: 'main' | 'sub'; title: string; rewardGold: number; endAt: string; status?: string }>) => void;
+  syncActiveQuests: (activeDesks: Array<{ deskId: number; questId: number; questType: 'main' | 'sub'; title: string; rewardGold: number; endAt: string; status?: string; baseDurationSeconds?: number }>) => void;
+  finishQuestByQuestId: (questId: number) => void;
   setSessionExpiredModal: (v: boolean) => void;
+  pushNotification: (title: string, body: string) => void;
+  markNotificationRead: (id: number) => void;
 }
 
 export const useGameStore = create<GameState>()(
@@ -90,6 +102,7 @@ export const useGameStore = create<GameState>()(
   completeQuestTrigger: null,
   isHUDModalOpen: false,
   sessionExpiredModal: false,
+  notifications: [],
 
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
@@ -164,12 +177,35 @@ export const useGameStore = create<GameState>()(
   setQuestFetchTrigger: (data) => set({ questFetchTrigger: data }),
   setCompleteQuestTrigger: (data) => set({ completeQuestTrigger: data }),
   setSessionExpiredModal: (v) => set({ sessionExpiredModal: v }),
+  pushNotification: (title, body) => set((state) => ({
+    notifications: [
+      { id: Date.now(), title, body, createdAt: Date.now(), isRead: false },
+      ...state.notifications,
+    ].slice(0, 50), // 최대 50개 유지
+    unreadNotifications: state.unreadNotifications + 1,
+  })),
+  markNotificationRead: (id) => set((state) => {
+    const target = state.notifications.find(n => n.id === id);
+    if (!target || target.isRead) return state;
+    return {
+      notifications: state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n),
+      unreadNotifications: Math.max(0, state.unreadNotifications - 1),
+    };
+  }),
   setDesksFromApi: (desks) => set((state) => {
     const updated = state.quests.map(q => {
       const desk = desks.find(d => d.deskTemplateId === q.id + 1);
       if (desk) return { ...q, isLocked: !desk.unlocked };
       return q;
     });
+    return { quests: updated };
+  }),
+  finishQuestByQuestId: (questId) => set((state) => {
+    const updated = state.quests.map(q =>
+      q.questId === questId && q.status === 'IN_PROGRESS'
+        ? { ...q, status: 'COMPLETED' as QuestStatus }
+        : q
+    );
     return { quests: updated };
   }),
   // BE deskId(1-5) → store quest id(0-4)로 매핑해 IN_PROGRESS/COMPLETED 동기화
@@ -183,7 +219,9 @@ export const useGameStore = create<GameState>()(
       const active = activeDesks.find(d => d.deskId === q.id + 1);
       if (active) {
         const endAt = active.endAt ? toUtcIso(active.endAt) : null;
-        const endTime = endAt ? new Date(endAt).getTime() : (q.endTime ?? Date.now() + 60 * 60 * 1000);
+        const endTime = active.baseDurationSeconds != null
+          ? Date.now() + active.baseDurationSeconds * 1000
+          : endAt ? new Date(endAt).getTime() : (q.endTime ?? Date.now() + 60 * 60 * 1000);
         const apiStatus = active.status?.toUpperCase();
         const newStatus: QuestStatus = apiStatus === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS';
         return {

@@ -22,13 +22,16 @@ export default function GlobalModals() {
     questFetchTrigger, setQuestFetchTrigger,
     completeQuestTrigger, setCompleteQuestTrigger,
     sessionExpiredModal, setSessionExpiredModal,
+    logout: gameLogout,
   } = useGameStore();
   const { clearUser, accessToken } = useUserStore();
 
   const handleSessionExpiredConfirm = async () => {
     setSessionExpiredModal(false);
     clearUser();
+    gameLogout();
     await privyLogout();
+    router.push('/');
   };
 
   useEffect(() => {

@@ -3,8 +3,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
 
-const ASSET_BASE = '';
-// const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'; (배포할 때는 여기 주석 해제할것)
+const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 
 
@@ -107,6 +106,8 @@ export default function GameCanvas() {
                   this.load.image(`people${i}_001`, `${ASSET_BASE}/assets/002/people${i}_001.webp`);
                   this.load.image(`people${i}_002`, `${ASSET_BASE}/assets/002/people${i}_002.webp`);
                 }
+                this.load.image("bug_001", `${ASSET_BASE}/assets/002/bug_001.webp`);
+                this.load.image("bug_002", `${ASSET_BASE}/assets/002/bug_002.webp`);
 
                 const sceneRef = this;
                 this.load.once('complete', () => {
@@ -125,6 +126,125 @@ export default function GameCanvas() {
                   playBg.setDisplaySize(1920, 1080);
                   playOfc.setDisplaySize(1920, 1080);
                   playContainer.add([playBg, playOfc]);
+
+                  // ── 플로팅 캐릭터 ──
+                  const floatScale = 0.0892 * 1.7;
+
+                  // Bug: 오피스 바닥(빨간 영역) 안에서 랜덤 아이소메트릭 2:1 사선으로 기어다님
+                  const BUG_BOUNDS = { xMin: -480, xMax: 480, yMin: -180, yMax: 280 };
+                  const ISO_STEPS = [
+                    { dx:  400, dy:  200 }, { dx: -400, dy:  200 },
+                    { dx:  400, dy: -200 }, { dx: -400, dy: -200 },
+                    { dx:  200, dy:  100 }, { dx: -200, dy:  100 },
+                    { dx:  200, dy: -100 }, { dx: -200, dy: -100 },
+                  ];
+                  const getNextBugPos = (cx: number, cy: number) => {
+                    const shuffled = [...ISO_STEPS].sort(() => Math.random() - 0.5);
+                    for (const s of shuffled) {
+                      const nx = cx + s.dx, ny = cy + s.dy;
+                      if (nx >= BUG_BOUNDS.xMin && nx <= BUG_BOUNDS.xMax &&
+                          ny >= BUG_BOUNDS.yMin && ny <= BUG_BOUNDS.yMax) {
+                        return { x: nx, y: ny };
+                      }
+                    }
+                    return { x: 0, y: 50 };
+                  };
+
+                  // bug_001 × 4, bug_002 × 3 — 총 7마리
+                  const bugConfigs = [
+                    { key: 'bug_001', sx: -420, sy:  200, startDelay:    0 },
+                    { key: 'bug_001', sx:  -80, sy:   60, startDelay:  900 },
+                    { key: 'bug_001', sx:  260, sy:  240, startDelay: 1800 },
+                    { key: 'bug_001', sx:  440, sy:   90, startDelay: 2700 },
+                    { key: 'bug_002', sx:  340, sy:  -70, startDelay:  450 },
+                    { key: 'bug_002', sx: -340, sy:  -50, startDelay: 1350 },
+                    { key: 'bug_002', sx:   80, sy: -160, startDelay: 2250 },
+                  ];
+
+                  const bugImages: Phaser.GameObjects.Image[] = [];
+
+                  bugConfigs.forEach(({ key, sx, sy, startDelay }) => {
+                    const img = sceneRef.add.image(sx, sy, key);
+                    bugImages.push(img);
+                    img.setScale(floatScale);
+                    img.setInteractive({ useHandCursor: true });
+                    playContainer.add(img);
+
+                    let active = true;
+
+                    const crawlNext = () => {
+                      if (!active) return;
+                      const dest = getNextBugPos(img.x, img.y);
+                      img.setFlipX(dest.x < img.x);
+                      const dist = Phaser.Math.Distance.Between(img.x, img.y, dest.x, dest.y);
+                      sceneRef.tweens.add({
+                        targets: img,
+                        x: dest.x,
+                        y: dest.y,
+                        duration: Math.max(1600, dist * 10),
+                        ease: 'Linear',
+                        onComplete: () => {
+                          if (!active) return;
+                          const landY = img.y;
+                          sceneRef.tweens.add({
+                            targets: img,
+                            y: landY - 26,
+                            duration: 170,
+                            yoyo: true,
+                            repeat: Phaser.Math.Between(1, 3),
+                            ease: 'Sine.easeOut',
+                            onComplete: () => { if (active) crawlNext(); },
+                          });
+                        },
+                      });
+                    };
+
+                    img.on('pointerdown', () => {
+                      if (!active) return;
+                      active = false;
+                      sceneRef.tweens.killTweensOf(img);
+
+                      // 랜덤 골드 (10~100) 텍스트 띄우기
+                      const gold = Phaser.Math.Between(10, 100);
+                      useGameStore.getState().increaseGold(gold);
+                      const floatText = sceneRef.add.text(img.x, img.y - 30, `+${gold}`, {
+                        fontFamily: 'Stardust, sans-serif',
+                        fontSize: '32px',
+                        color: '#ffdd00',
+                        stroke: '#000000',
+                        strokeThickness: 3,
+                      }).setOrigin(0.5);
+                      playContainer.add(floatText);
+                      sceneRef.tweens.add({
+                        targets: floatText,
+                        y: floatText.y - 70,
+                        alpha: 0,
+                        duration: 900,
+                        ease: 'Sine.easeOut',
+                        onComplete: () => floatText.destroy(),
+                      });
+
+                      // 깜짝 점프 후 사라짐
+                      sceneRef.tweens.add({
+                        targets: img,
+                        y: img.y - 52,
+                        duration: 140,
+                        ease: 'Back.easeOut',
+                        onComplete: () => {
+                          img.setVisible(false);
+                          // 10초 후 원위치 재등장
+                          sceneRef.time.delayedCall(10000, () => {
+                            active = true;
+                            img.setPosition(sx, sy);
+                            img.setVisible(true);
+                            crawlNext();
+                          });
+                        },
+                      });
+                    });
+
+                    sceneRef.time.delayedCall(startDelay, crawlNext);
+                  });
 
                   const isAnyModalOpen = () => {
                     const s = useGameStore.getState();
@@ -233,6 +353,9 @@ export default function GameCanvas() {
                     .sort((a, b) => a.posY - b.posY)
                     .forEach(d => playContainer.add(d.container));
 
+                  // 버그를 모든 오브젝트 위로 (데스크 추가 후 bringToTop)
+                  bugImages.forEach(img => playContainer.bringToTop(img));
+
                   sceneRef.registry.set('deskDataList', builtDeskDataList);
                   sceneRef.registry.set('originDeskScale', originDeskScale);
                   sceneRef.registry.set('playAssetsLoaded', true);
@@ -263,6 +386,7 @@ export default function GameCanvas() {
                       deskData.resultIcon.setVisible(false);
                       deskData.timerText.setVisible(false);
                       deskData.charImage.setVisible(false);
+                      deskData.sayingImage.setVisible(false);
                       return;
                     } else {
                       deskData.desk.clearTint();
@@ -275,6 +399,7 @@ export default function GameCanvas() {
                       deskData.resultIcon.setVisible(false);
                       deskData.timerText.setVisible(false);
                       deskData.charImage.setVisible(false);
+                      deskData.sayingImage.setVisible(false);
                     } else if (quest.status === 'IN_PROGRESS' || quest.status === 'COMPLETED') {
                       const now = Date.now();
                       const endTime = quest.endAt ? new Date(quest.endAt).getTime() : (quest.endTime || now);
@@ -286,30 +411,29 @@ export default function GameCanvas() {
                       deskData.charImage.scaleY = deskData.charImage.scaleX;
                       deskData.charImage.setY(0);
                       deskData.charImage.setVisible(true);
+
+                      deskData.sayingImage.displayWidth = deskData.charImage.displayWidth;
+                      deskData.sayingImage.scaleY = deskData.sayingImage.scaleX;
+                      deskData.sayingImage.setY(-(deskData.charImage.displayHeight / 2) - 50 - (deskData.sayingImage.displayHeight / 2));
+                      deskData.sayingImage.setVisible(true);
                       deskData.desk.setVisible(false);
                       deskData.newIcon.setVisible(false);
 
-                      // result 표기는 실제 종료 1분 후에 표시 (서버 처리 여유)
-                      const RESULT_DELAY_MS = 60 * 1000;
-                      const displayRemainMs = remainMs + RESULT_DELAY_MS;
-
-                      if (quest.status === 'COMPLETED' || displayRemainMs <= 0) {
+                      // result는 SSE 알림으로 COMPLETED 상태가 됐을 때만 표시
+                      if (quest.status === 'COMPLETED') {
                         deskData.resultIcon.setVisible(true);
                         deskData.timerBg.setVisible(false);
                         deskData.timerText.setVisible(false);
-                        if (quest.status === 'IN_PROGRESS') {
-                          useGameStore.getState().finishQuestTimer(quest.id);
-                        }
                       } else {
                         deskData.resultIcon.setVisible(false);
                         deskData.timerText.setVisible(true);
-                        // 남는 초를 올림하여 분 단위로 표시 (시간:분 형태)
-                        const totalMin = Math.ceil(displayRemainMs / 60000);
-                        const h = Math.floor(totalMin / 60).toString().padStart(2, '0');
-                        const m = (totalMin % 60).toString().padStart(2, '0');
-                        deskData.timerText.setText(`${h}:${m}`);
-                        // 시간에 따라 박스 색상 변경: 1h+ 초록, 10m+ 노랑, 10m 미만 빨강 (모두 뮤트톤)
-                        const bgColor = displayRemainMs > 3600000 ? 0x80c880 : displayRemainMs > 600000 ? 0xe0cc50 : 0xe07878;
+                        // MM:SS 형식
+                        const totalSec = Math.max(0, Math.ceil(remainMs / 1000));
+                        const mm = Math.floor(totalSec / 60).toString().padStart(2, '0');
+                        const ss = (totalSec % 60).toString().padStart(2, '0');
+                        deskData.timerText.setText(`${mm}:${ss}`);
+                        // 10분+ 초록, 1분+ 노랑, 1분 미만 빨강
+                        const bgColor = remainMs > 600000 ? 0x80c880 : remainMs > 60000 ? 0xe0cc50 : 0xe07878;
                         deskData.timerBg.clear();
                         deskData.timerBg.fillStyle(bgColor, 0.88);
                         deskData.timerBg.fillRoundedRect(-60, -19, 120, 36, 6);
@@ -319,6 +443,7 @@ export default function GameCanvas() {
                       }
                     }
                   });
+
                 }
               }
             } else {

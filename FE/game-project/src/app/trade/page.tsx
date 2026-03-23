@@ -289,11 +289,6 @@ export default function TradePage() {
   const getToken = useCallback(async () => accessToken || await getAccessToken(), [accessToken, getAccessToken]);
   const { listOnChain, buyOnChain, checkAndApproveAll } = useTrade();
 
-  // ── 거래 활성화(setApprovalForAll) 상태 ──
-  const [approvalStatus, setApprovalStatus] = useState<"unknown" | "approved" | "not-approved">("unknown");
-  const [isApproving, setIsApproving] = useState(false);
-  const [approveStep, setApproveStep] = useState("");
-
   // 샘플 데이터 클라이언트 필터링
   const filterSampleListings = useCallback((items: TradeListing[]) => {
     return items.filter(item => {
@@ -391,32 +386,6 @@ export default function TradePage() {
     setSelectedHistItem(null);
   }, [tab]);
 
-  // ── SELL 탭 진입 시 setApprovalForAll 상태 확인 ──
-  useEffect(() => {
-    if (tab !== "SELL") return;
-    setApprovalStatus("unknown");
-    checkAndApproveAll()
-      .then((wasNew) => {
-        setApprovalStatus("approved");
-        if (wasNew) console.log("[Trade] setApprovalForAll 완료");
-      })
-      .catch(() => setApprovalStatus("not-approved"));
-  }, [tab]);
-
-  // ── 거래 활성화 버튼 핸들러 ──
-  const handleApproveAll = async () => {
-    setIsApproving(true);
-    try {
-      await checkAndApproveAll(setApproveStep);
-      setApprovalStatus("approved");
-    } catch {
-      alert("거래 활성화 중 오류가 발생했습니다.");
-    } finally {
-      setIsApproving(false);
-      setApproveStep("");
-    }
-  };
-
   // DOM 높이 측정
   useEffect(() => {
     const measure = () => {
@@ -492,7 +461,12 @@ export default function TradePage() {
     if (isNaN(price) || price <= 0) { alert("올바른 가격을 입력해주세요."); return; }
     setIsSelling(true);
     try {
+      // 0. setApprovalForAll 미승인 시 자동 처리 (최초 1회만 서명 발생)
+      setSellStep("거래 활성화 확인 중...");
+      await checkAndApproveAll(setSellStep);
+
       // 1. BE에 민팅 요청 → tokenId 수령
+      setSellStep("");
       const token = await getToken();
       const { data } = await api.post("/api/v1/trade/listings", {
         cardId: selectedMyCard.cardId, price,
@@ -846,33 +820,6 @@ export default function TradePage() {
         </div>
       )}
 
-      {/* 거래 활성화 모달 (setApprovalForAll 미승인 시) */}
-      {tab === "SELL" && approvalStatus === "not-approved" && (
-        <div className="trade-modal-overlay">
-          <div className="trade-modal-box">
-            <p className="trade-modal-title">거래 활성화 필요</p>
-            <p className="trade-modal-sub">
-              카드 판매를 위해 최초 1회 거래 활성화가 필요합니다.
-            </p>
-            <div className="trade-modal-btns">
-              <button
-                className="trade-modal-btn-buy"
-                onClick={handleApproveAll}
-                disabled={isApproving}
-              >
-                {isApproving ? (approveStep || "처리 중...") : "거래 활성화"}
-              </button>
-              <button
-                className="trade-modal-btn-cancel"
-                onClick={() => setTab("BUY")}
-                disabled={isApproving}
-              >
-                취소
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 구매 확인 모달 */}
       {showBuyConfirm && selectedListing && (
