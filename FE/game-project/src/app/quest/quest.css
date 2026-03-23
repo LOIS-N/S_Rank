@@ -478,7 +478,52 @@
   min-height: 0;
   min-width: 0;
   position: relative;
+}
+
+.quest-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  position: absolute;
+  top: -46px;
+  /* 카드 목록 박스 위로 배치 */
+  left: 8px;
+  z-index: 10;
+}
+
+.quest-select-wrapper {
   position: relative;
+  display: inline-block;
+}
+
+.quest-select {
+  appearance: none;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  padding: 6px 32px 6px 12px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+  outline: none;
+}
+
+.quest-select:focus {
+  border-color: #ffd700;
+}
+
+.quest-select-wrapper::after {
+  content: "▼";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 10px;
+  color: #111;
 }
 
 .phase2-left-box {
