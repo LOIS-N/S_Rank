@@ -7,6 +7,7 @@ import com.ssafy.srank.desk.application.service.DeskService;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.quest.application.dto.request.CompleteQuestRequest;
 import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
+import com.ssafy.srank.quest.application.dto.request.QuestDateTimeRequest;
 import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.domain.entity.*;
@@ -24,6 +25,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -44,11 +46,12 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
     @Override
     public List<InProcessQuestResponse> getInProcessQuestList(Long userId) {
         log.debug("[Quest] 진행 중인 퀘스트 목록 조회 시작 - userId={}", userId);
+        LocalDateTime now = LocalDateTime.now();
         //main
-        List<InProcessQuestResponse> list = new ArrayList<>(mainService.getUserMainQuestList(userId));
+        List<InProcessQuestResponse> list = new ArrayList<>(mainService.getUserMainQuestList(userId, now));
 
         //sub
-        list.addAll(subService.getUserSubQuestList(userId));
+        list.addAll(subService.getUserSubQuestList(userId, now));
 
         return list;
     }
@@ -61,16 +64,21 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         validateCards(userId, request.cardIds()); //보유 카드
         validateDeskUnlocked(userId, request.deskId());//해금된 책상
 
+        //종료 시간 계산
+        LocalDateTime startAt = LocalDateTime.now();
+        LocalDateTime endAt = startAt.plusSeconds(request.duration());
+
         //퀘스트 저장
-        UserMainQuest mainQuest = mainService.startMainQuest(userId,questTemplateId,request);
+        UserMainQuest mainQuest = mainService.startMainQuest(
+                userId,questTemplateId,request,
+                QuestDateTimeRequest.builder().startAt(startAt).endAt(endAt).build());
 
         //카드 저장
         questCardService.saveMainQuestCards(mainQuest, request.cardIds());
 
         //레디스 TTL 저장
-        long seconds = Duration.between(LocalDateTime.now(), mainQuest.getEndAt()).getSeconds();
         String key = "quest:%d:%d:%s".formatted(userId, mainQuest.getId(), "main");
-        redisTemplate.opsForValue().set(key,"1",Duration.ofSeconds(seconds));
+        redisTemplate.opsForValue().set(key,"1", request.duration(), TimeUnit.SECONDS);
     }
 
     @Transactional
@@ -81,16 +89,21 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         validateCards(userId, request.cardIds()); //보유 카드
         validateDeskUnlocked(userId, request.deskId());//해금된 책상
 
+        //종료 시간 계산
+        LocalDateTime startAt = LocalDateTime.now();
+        LocalDateTime endAt = startAt.plusSeconds(request.duration());
+
         //퀘스트 저장
-        UserSubQuest subQuest = subService.startSubQuest(userId,questTemplateId,request);
+        UserSubQuest subQuest = subService.startSubQuest(
+                userId,questTemplateId,request,
+                QuestDateTimeRequest.builder().startAt(startAt).endAt(endAt).build());
 
         //카드 저장
         questCardService.saveSubQuestCards(subQuest, request.cardIds());
 
         //레디스 TTL 저장
-        long seconds = Duration.between(LocalDateTime.now(), subQuest.getEndAt()).getSeconds();
         String key = "quest:%d:%d:%s".formatted(userId, subQuest.getId(), "sub");
-        redisTemplate.opsForValue().set(key,"1",Duration.ofSeconds(seconds));
+        redisTemplate.opsForValue().set(key,"1",request.duration(), TimeUnit.SECONDS);
     }
 
     @Transactional

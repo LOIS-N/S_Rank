@@ -1,11 +1,13 @@
 package com.ssafy.srank.quest.application.service;
 
 import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
+import com.ssafy.srank.quest.application.dto.request.QuestDateTimeRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.MainQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.domain.entity.UserMainQuest;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MainQuestService {
@@ -14,9 +16,9 @@ public interface MainQuestService {
     QuestDetailResponse getUserMainQuestDetail(Long userId, Long questId);
 
     //사용자가 진행중인 메인 퀘스트 조회(완료 포함)
-    List<InProcessQuestResponse> getUserMainQuestList(Long userId);
+    List<InProcessQuestResponse> getUserMainQuestList(Long userId, LocalDateTime now);
     //메인 퀘스트 시작
-    UserMainQuest startMainQuest(Long userId, Long questId, MainQuestRequest request);
+    UserMainQuest startMainQuest(Long userId, Long questId, MainQuestRequest request, QuestDateTimeRequest date);
     //보상
     Long claimRewardMainQuest(Long userId, Long questId);
     //퀘스트 완료 상태 변경
