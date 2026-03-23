@@ -4,6 +4,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * 구버전 서버 RNG 구현체다.
+ * 현재 요청 경로에서는 Provably Fair 계산기로 대체되었으므로 보존만 하고 사용하지 않는다.
+ */
+@Deprecated(forRemoval = false)
 @Component
 public class DefaultGachaRandomProvider implements GachaRandomProvider {
 

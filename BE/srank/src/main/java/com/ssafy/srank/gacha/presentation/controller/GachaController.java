@@ -2,7 +2,9 @@ package com.ssafy.srank.gacha.presentation.controller;
 
 import com.ssafy.srank.common.response.ApiResponse;
 import com.ssafy.srank.gacha.application.dto.request.GachaDrawRequest;
+import com.ssafy.srank.gacha.application.dto.request.GachaVerificationRequest;
 import com.ssafy.srank.gacha.application.dto.response.GachaDrawResponse;
+import com.ssafy.srank.gacha.application.dto.response.GachaVerificationResponse;
 import com.ssafy.srank.gacha.application.service.GachaService;
 import com.ssafy.srank.security.SecurityUtil;
 import jakarta.validation.Valid;
@@ -27,5 +29,10 @@ public class GachaController {
     @PostMapping("/draws")
     public ResponseEntity<ApiResponse<GachaDrawResponse>> draw(@Valid @RequestBody GachaDrawRequest request) {
         return ResponseEntity.ok(ApiResponse.success(gachaService.draw(SecurityUtil.getCurrentUserId(), request)));
+    }
+
+    @PostMapping("/verifications")
+    public ResponseEntity<ApiResponse<GachaVerificationResponse>> verify(@Valid @RequestBody GachaVerificationRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(gachaService.verify(request)));
     }
 }
