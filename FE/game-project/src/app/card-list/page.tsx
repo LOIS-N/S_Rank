@@ -92,10 +92,13 @@ interface CardDetailData {
 const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEV", "DESIGN"] as const;
 
 export default function CardListPage() {
-  throw new Error("sentry dev test"); // 테스트 확인 후 삭제
-
   const { getAccessToken } = usePrivy();
   const { accessToken } = useGameStore();
+
+// 테스트용 - 확인 후 삭제
+  const [testError] = useState(() => {
+    throw new Error("sentry dev test");
+  });
 
   // --- 카드 목록 상태 ---
   const [cards, setCards] = useState<CardListItem[]>([]);
