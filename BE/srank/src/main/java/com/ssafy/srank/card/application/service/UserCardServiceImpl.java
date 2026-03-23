@@ -1,6 +1,7 @@
 package com.ssafy.srank.card.application.service;
 
 import com.ssafy.srank.card.application.dto.response.*;
+import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.domain.entity.SpecialSkillTemplate;
 import com.ssafy.srank.card.domain.enums.PositionType;
 import com.ssafy.srank.card.domain.enums.SortType;
@@ -85,6 +86,16 @@ public class UserCardServiceImpl implements UserCardService {
     @Override
     public Set<Long> getUsedUserCardList(Long userId) {
         return questFacadeService.getUsedUserCardList(userId);
+    }
+
+    @Override
+    public long countActiveCards(Long userId) {
+        return userCardRepository.countActiveByUserId(userId);
+    }
+
+    @Override
+    public List<UserCard> saveUserCards(List<UserCard> userCards) {
+        return userCardRepository.saveAll(userCards);
     }
 
     // ── specialAbility 변환 ───────────────────────────────────────────────────
