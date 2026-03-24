@@ -12,7 +12,6 @@ public record DrawContext(
         int count,
         String clientSeed,
         ProbablyFairContext pfContext,
-        User user,
         long cost,
         LocalDateTime requestedAt
 ) {

@@ -1,5 +1,6 @@
 package com.ssafy.srank.gacha.application.service;
 
+import com.ssafy.srank.card.application.service.UserCardService;
 import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
@@ -21,6 +22,8 @@ import com.ssafy.srank.log.application.command.GoldLogCommand;
 import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.application.facade.GachaLogFacade;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.user.application.dto.response.MyGachaInfo;
+import com.ssafy.srank.user.application.service.UserService;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,8 +41,9 @@ public class GachaServiceImpl implements GachaService {
     private static final int MAX_CARD_INVENTORY = 200;
 
     // TODO: user/card 도메인 service가 준비되면 다른 패키지 repository 직접 접근을 해당 service 호출로 교체한다.
-    private final UserRepository userRepository;
-    private final UserCardRepository userCardRepository;
+    private final UserService userService;
+    private final UserCardService userCardService;
+//    private final UserCardRepository userCardRepository;
     private final GachaPolicyRegistry gachaPolicyRegistry;
     private final ProbablyFairService probablyFairService;
     private final GachaDrawPreparationService gachaDrawPreparationService;
@@ -116,18 +120,17 @@ public class GachaServiceImpl implements GachaService {
         ProbablyFairContext pfContext = probablyFairService.issueContext();
         LocalDateTime requestedAt = LocalDateTime.now();
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        MyGachaInfo myGachaInfo = userService.getMyGachaInfo(userId);
 
-        gachaPolicyRegistry.validateUnlocked(type, user.getLevel());
+        gachaPolicyRegistry.validateUnlocked(type, myGachaInfo.getLevel());
 
-        long currentCardCount = userCardRepository.countActiveByUserId(userId);
+        long currentCardCount = userCardService.countActiveCards(userId);
         if (currentCardCount + count > MAX_CARD_INVENTORY) {
             throw new BusinessException(ErrorCode.GACHA_INVENTORY_FULL);
         }
 
         long cost = gachaPolicyRegistry.calculateCost(type, count);
-        if (user.getGold() < cost) {
+        if (myGachaInfo.getGold() < cost) {
             throw new BusinessException(ErrorCode.GACHA_GOLD_INSUFFICIENT);
         }
 
@@ -137,27 +140,21 @@ public class GachaServiceImpl implements GachaService {
                 count,
                 clientSeed,
                 pfContext,
-                user,
                 cost,
                 requestedAt
         );
     }
 
     private void spendGold(DrawContext context) {
-        // 카드 생성 전에 골드를 차감하고 같은 시점으로 경제 로그를 남긴다.
-        context.user().spendGold(context.cost());
-        economyLogFacade.recordGoldChange(new GoldLogCommand(
+        userService.spendGold(
                 context.userId(),
-                -context.cost(),
-                context.user().getGold(),
-                GoldLogReason.GACHA_SPEND,
-                context.requestedAt()
-        ));
+                context.cost(),
+                GoldLogReason.GACHA_SPEND);
     }
 
     private List<UserCard> saveCards(List<PreparedDraw> preparedDraws) {
         // PF로 준비된 카드 엔티티만 일괄 저장한다.
-        return userCardRepository.saveAll(preparedDraws.stream()
+        return userCardService.saveUserCards(preparedDraws.stream()
                 .map(PreparedDraw::userCard)
                 .toList());
     }
@@ -192,7 +189,7 @@ public class GachaServiceImpl implements GachaService {
 
         return new GachaDrawResponse(
                 cards,
-                context.user().getGold(),
+                userService.getMyGachaInfo(context.userId()).getGold(),
                 new GachaProofResponse(
                         context.pfContext().algorithmVersion(),
                         context.pfContext().serverSeed(),
