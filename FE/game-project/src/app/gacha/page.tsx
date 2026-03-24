@@ -5,6 +5,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { GachaRevealCard } from "./GachaRevealCard";
 import { GachaAnimationOverlay } from "./GachaAnimationOverlay";
+import { sendGAEvent } from "@/lib/gtag";
 import "./gacha.css";
 import api from "@/lib/axios";
 
