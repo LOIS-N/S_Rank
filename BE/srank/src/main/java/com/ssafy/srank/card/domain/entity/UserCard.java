@@ -80,30 +80,18 @@ public class UserCard extends SoftDeleteEntity {
         return !isDeleted() && enhanceTryCount < MAX_ENHANCE_TRY_COUNT;
     }
 
-    public void applyEnhanceSuccess(int stat1BonusIncrease, int stat2BonusIncrease, int stat3BonusIncrease) {
-        validateEnhancePossible();
-
+    public void applyEnhanceSuccess(int value) {
         this.enhanceTryCount++;
         this.enhanceSuccessCount++;
 
-        this.stat1.increaseBonusValue(stat1BonusIncrease);
-        this.stat2.increaseBonusValue(stat2BonusIncrease);
-        this.stat3.increaseBonusValue(stat3BonusIncrease);
+        this.stat1.increaseBonusValue(value);
+        this.stat2.increaseBonusValue(value);
+        this.stat3.increaseBonusValue(value);
 
     }
 
     public void applyEnhanceFail() {
-        validateEnhancePossible();
         this.enhanceTryCount++;
-    }
-
-    private void validateEnhancePossible() {
-        if (isDeleted()) {
-            throw new BusinessException(ErrorCode.CARD_CANNOT_ENHANCE_DELETED);
-        }
-        if (enhanceTryCount >= MAX_ENHANCE_TRY_COUNT) {
-            throw new BusinessException(ErrorCode.CARD_ENHANCE_TRY_EXCEEDED);
-        }
     }
 
     public UserCardResponse toResponse() {
@@ -136,6 +124,8 @@ public class UserCard extends SoftDeleteEntity {
                 new CardSkillResponse(stat1.getSkillType(), stat1.getTotalValue()),
                 new CardSkillResponse(stat2.getSkillType(), stat2.getTotalValue()),
                 new CardSkillResponse(stat3.getSkillType(), stat3.getTotalValue()),
+                enhanceTryCount,
+                enhanceSuccessCount,
                 specialAbility
         );
     }

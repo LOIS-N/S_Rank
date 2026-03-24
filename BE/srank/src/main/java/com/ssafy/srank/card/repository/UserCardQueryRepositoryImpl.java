@@ -54,6 +54,9 @@ public class UserCardQueryRepositoryImpl implements UserCardQueryRepository {
                         userCard.stat3.skillType,
                         userCard.stat3.baseValue.add(userCard.stat3.bonusValue),
 
+                        userCard.enhanceTryCount,
+                        userCard.enhanceSuccessCount,
+
                         specialSkill.id
                 ))
                 .from(userCard)
