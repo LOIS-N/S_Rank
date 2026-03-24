@@ -24,6 +24,7 @@ let _audio: HTMLAudioElement | null = null;
 let _currentSrc = "";
 let _listenerAttached = false;
 let _muted = false;
+let _tutorialMode = false; // 튜토리얼 중 게임 BGM 자동재생 차단
 
 function ensureCorrectTrack(): HTMLAudioElement {
   const src = getTrackUrl();
@@ -44,7 +45,7 @@ function ensureCorrectTrack(): HTMLAudioElement {
 }
 
 function tryPlay() {
-  if (_muted) return;
+  if (_muted || _tutorialMode) return;
   const audio = ensureCorrectTrack();
   if (audio.paused) {
     audio.play().catch(() => {});
@@ -79,6 +80,43 @@ export function toggleBgm(): boolean {
 /** 현재 뮤트 상태 반환 (true=꺼짐) */
 export function isBgmMuted(): boolean {
   return _muted;
+}
+
+/** 게임 BGM만 즉시 일시정지 (튜토리얼 모드 진입) */
+export function pauseGameBgm() {
+  _tutorialMode = true;
+  if (_audio && !_audio.paused) _audio.pause();
+}
+
+// ── 튜토리얼 전용 BGM ──
+let _tutorialAudio: HTMLAudioElement | null = null;
+
+/** 튜토리얼 BGM(awake.mp3) 재생 — 기존 BGM을 일시정지하고 시작 */
+export function playTutorialBgm() {
+  // 기존 게임 BGM 일시정지
+  if (_audio && !_audio.paused) _audio.pause();
+
+  const src = `${ASSET_BASE}/assets/awake.mp3`;
+  if (!_tutorialAudio) {
+    _tutorialAudio = new Audio(src);
+    _tutorialAudio.loop = true;
+    _tutorialAudio.volume = 0.5;
+  }
+  _tutorialAudio.currentTime = 0;
+  _tutorialAudio.play().catch(() => {});
+}
+
+/** 튜토리얼 BGM 중지 — 기존 BGM 재개 */
+export function stopTutorialBgm() {
+  _tutorialMode = false;
+  if (_tutorialAudio) {
+    _tutorialAudio.pause();
+    _tutorialAudio.currentTime = 0;
+  }
+  // 뮤트 상태가 아니면 게임 BGM 재개
+  if (!_muted) {
+    ensureCorrectTrack().play().catch(() => {});
+  }
 }
 
 export default function BgmPlayer() {
