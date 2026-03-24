@@ -7,7 +7,4 @@ public enum EffectOperator {
 
     // +10 같은 고정값
     FLAT,
-
-    // 완전 면제
-    IMMUNITY
 }
