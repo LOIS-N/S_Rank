@@ -243,7 +243,7 @@ export default function GachaPage() {
       const token = await getAuthToken();
       const { data: resData } = await api.post(
         '/api/v1/gacha/draws',
-        { type: TAB_TO_TYPE_ID[currentTab], count },
+        { type: TAB_TO_TYPE_ID[currentTab], count, clientSeed: crypto.randomUUID() },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       const drawData = resData.data ?? resData;
