@@ -69,6 +69,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public long rewardGold(Long userId, Long gold, GoldLogReason reason) {
         User user = getActiveUser(userId);
         user.increaseGold(gold);
@@ -82,6 +83,12 @@ public class UserServiceImpl implements UserService {
         user.decreaseGold(gold);
         recordGoldLogIfNeeded(userId, -gold, user.getGold(), reason);
         return user.getGold();
+    }
+
+    @Override
+    public void levelUp(Long userId) {
+        User user = getActiveUser(userId);
+        user.levelUp();
     }
 
     private void recordGoldLogIfNeeded(Long userId, Long amount, long balanceAfter, GoldLogReason reason) {

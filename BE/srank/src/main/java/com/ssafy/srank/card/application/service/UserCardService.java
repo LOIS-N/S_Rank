@@ -22,4 +22,5 @@ public interface UserCardService {
     Set<Long> getUsedUserCardList(Long userId);
     long countActiveCards(Long userId);
     List<UserCard> saveUserCards(List<UserCard> userCards);
+    void validateCardsOwned(Long userId, List<Long> cards);
 }

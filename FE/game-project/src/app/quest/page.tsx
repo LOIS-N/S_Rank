@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
+import { sendGAEvent } from "@/lib/gtag";
 import "./quest.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -82,6 +83,9 @@ interface CardListItem {
   skill3: CardSkill;
   specialAbility: { name: string; description: string; effects: string } | null;
 }
+
+// --- 스킬 필터 옵션 ---
+const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEV", "DESIGN"] as const;
 
 const GRADE_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
 
@@ -271,11 +275,13 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { q
 }
 
 // --- Phase 2: 카드 배치 콘텐츠 ---
-function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest | null, onCancel: () => void, onShowUsedCardModal: () => void }) {
+function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () => void }) {
   const router = useRouter();
   const { selectingDeskId, startQuest, accessToken, quests: storeQuests } = useGameStore();
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
+  const [usedCardWarning, setUsedCardWarning] = useState(false);
+  const [showNoCardModal, setShowNoCardModal] = useState(false);
 
   // --- 보유 카드 목록 (API) ---
   const [cards, setCards] = useState<CardListItem[]>([]);
@@ -283,6 +289,9 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
   const [hasMore, setHasMore] = useState(true);
   const [isCardLoading, setIsCardLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // --- 필터 상태 ---
+  const [capacitySort, setCapacitySort] = useState<string>("ALL");
 
   // --- BE 책상 템플릿 ID 매핑 ---
   const [beDeskTemplateId, setBeDeskTemplateId] = useState<number | null>(null);
@@ -314,13 +323,17 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectingDeskId]);
 
-  const fetchCards = useCallback(async (cursor?: string | null) => {
+  const fetchCards = useCallback(async (cursor?: string | null, filterOverride?: string) => {
     if (isCardLoading) return;
     setIsCardLoading(true);
     try {
       const token = await getAuthToken();
+      const currentFilter = filterOverride ?? capacitySort;
       const params: Record<string, string> = { limit: '30' };
       if (cursor) params.cursor = cursor;
+      if (currentFilter && currentFilter !== 'ALL') {
+        params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
+      }
       const { data: json } = await api.get('/api/v1/cards', {
         params,
         headers: { Authorization: `Bearer ${token}` },
@@ -330,6 +343,9 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
         setCards(prev => cursor ? [...prev, ...newCards] : newCards);
         setNextCursor(json.data.nextCursor || null);
         setHasMore(json.data.hasMore);
+        if (!cursor && newCards.length === 0) {
+          setShowNoCardModal(true);
+        }
       }
     } catch (err) {
       console.error("카드 목록 조회 실패:", err);
@@ -338,12 +354,17 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       setIsInitialLoad(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getAuthToken]);
+  }, [getAuthToken, capacitySort]);
 
   useEffect(() => {
-    fetchCards(null);
+    setCards([]);
+    setNextCursor(null);
+    setHasMore(true);
+    setP2ScrollRatio(0);
+    setIsInitialLoad(true);
+    fetchCards(null, capacitySort);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [capacitySort]);
 
   // 등급순 → 같은 등급 내 총합 능력치 내림차순 정렬
   const sortedCards = useMemo(() => sortCardsByGradeAndStat(cards), [cards]);
@@ -536,7 +557,8 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
   // --- 카드 선택 (cardSlotCount 제한) ---
   const handleCardClick = (id: number) => {
     if (usedCardIds.includes(id)) {
-      onShowUsedCardModal();
+      setUsedCardWarning(true);
+      setTimeout(() => setUsedCardWarning(false), 2000);
       return;
     }
     setWarningMessage(null);
@@ -583,14 +605,10 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
       const targetDeskId = beDeskTemplateId ?? (selectingDeskId !== null ? selectingDeskId + 1 : 1);
       const durationMinutes = Math.min(estimatedTime ?? quest.durationMinutes, quest.durationMinutes);
 
-      const now = new Date();
-      const endAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
-
       const res = await api.post(`/api/v1/quests/${type}/${quest.questId}/start`, {
         deskId: targetDeskId,
         cardIds: selectedCards,
-        startAt: now.toISOString().replace('Z', ''),
-        endAt: endAt.toISOString().replace('Z', ''),
+        duration: durationMinutes * 60,  // 소요 시간 (초)
       }, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -599,6 +617,14 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
         console.error("퀘스트 시작 응답:", res.data);
         throw new Error(res.data?.message || '퀘스트 시작 실패');
       }
+
+      // GA: 퀘스트 배치 성공
+      sendGAEvent("quest_assign", {
+        quest_type: type,
+        quest_title: quest.title,
+        card_count: selectedCards.length,
+        reward_gold: rewardInfo.reward,
+      });
 
       // FE 인덱스(0~4)로 store 업데이트, BE 템플릿 ID(1~5)와 혼용 방지
       const feDeskIndex = selectingDeskId ?? 0;
@@ -654,7 +680,7 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
   // 스크롤 하단 도달 시 다음 페이지 로드
   useEffect(() => {
     if (p2ScrollRatio > 0.9 && hasMore && !isCardLoading && nextCursor) {
-      fetchCards(nextCursor);
+      fetchCards(nextCursor, capacitySort);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p2ScrollRatio, hasMore, isCardLoading, nextCursor]);
@@ -737,8 +763,40 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
 
   return (
     <>
+      {/* ──── 카드 미소지 안내 모달 ──── */}
+      {showNoCardModal && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 font-dot pointer-events-auto">
+          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]">
+            <p className="text-2xl mb-8 leading-relaxed text-slate-900 font-bold">
+              소지한 카드가 없습니다.<br />뽑기를 진행해주세요.
+            </p>
+            <button
+              onClick={() => { setShowNoCardModal(false); router.push('/gacha'); }}
+              className="w-full py-4 bg-[#ffcc00] text-black border-b-4 border-r-4 border-[#cc9900] active:border-0 active:translate-y-1 transition-all font-bold text-xl"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ──── 좌측: 카드 목록 (card-list 레이아웃 통일) ──── */}
       <div className="phase2-left-col">
+        {/* 스킬 필터 드롭다운 */}
+        <div className="quest-filters">
+          <div className="quest-select-wrapper">
+            <select
+              className="quest-select"
+              value={capacitySort}
+              onChange={(e) => setCapacitySort(e.target.value)}
+            >
+              {SKILL_FILTERS.map(filter => (
+                <option key={filter} value={filter}>{filter}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
           <div
             className="phase2-card-grid-wrapper"
@@ -824,6 +882,13 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
             </div>
           </div>
         </NineSliceBox>
+
+        {/* 사용 중 카드 경고 (왼쪽 카드 목록 위 오버레이) */}
+        {usedCardWarning && (
+          <div className="phase2-warning-overlay">
+            <div className="phase2-warning-text">이미 퀘스트에서 사용 중인 카드입니다.</div>
+          </div>
+        )}
       </div>
 
       {/* ──── 중간: 스크롤바 ──── */}
@@ -867,6 +932,9 @@ function Phase2Content({ quest, onCancel, onShowUsedCardModal }: { quest: Quest 
                 return (
                   <div key={card.cardId} className="phase2-fan-card" style={style} onClick={() => handleCardClick(card.cardId)}>
                     <img src={card.imageUrl} alt={card.name} draggable={false} />
+                    <span className="phase2-fan-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                    <span className="phase2-fan-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                    <span className="phase2-fan-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                   </div>
                 );
               });
@@ -970,7 +1038,6 @@ export default function QuestPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [chapterNumber, setChapterNumber] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [showUsedCardModal, setShowUsedCardModal] = useState(false);
   const [showInProgressModal, setShowInProgressModal] = useState(false);
 
   // --- 인증 토큰 가져오기 ---
@@ -989,7 +1056,7 @@ export default function QuestPage() {
       if (json.success && json.data && Array.isArray(json.data) && json.data.length > 0) {
         // stepNo 오름차순 정렬 후 COMPLETED가 아닌 첫 번째 퀘스트 선택
         const sorted: MainQuestData[] = [...json.data].sort((a, b) => a.stepNo - b.stepNo);
-        const current = sorted.find(d => d.status !== 'COMPLETED') ?? sorted[sorted.length - 1];
+        const current = sorted.find(d => d.status !== 'COMPLETED' && d.status !== 'CLAIMED') ?? sorted[sorted.length - 1];
 
         const quest: Quest = {
           questId: current.questId,
@@ -1346,24 +1413,9 @@ export default function QuestPage() {
 
         {/* === Phase 2: 카드 배치 화면 === */}
         <div className="quest-content phase-2-content" style={{ pointerEvents: phase === 'select' ? 'none' : 'auto' }}>
-          <Phase2Content quest={selectedQuest} onCancel={() => setPhase('select')} onShowUsedCardModal={() => setShowUsedCardModal(true)} />
+          <Phase2Content quest={selectedQuest} onCancel={() => setPhase('select')} />
         </div>
       </div>
-
-      {/* ──── 사용 중인 카드 모달 ──── */}
-      {showUsedCardModal && (
-        <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-black/50 font-dot pointer-events-auto">
-          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-8 text-center max-w-sm shadow-[4px_4px_0px_#4a5d73]">
-            <p className="text-xl mb-6 font-bold text-slate-800">이미 퀘스트에서 사용 중인 카드입니다.</p>
-            <button
-              onClick={() => setShowUsedCardModal(false)}
-              className="px-8 py-2 bg-[#ffcc00] text-black border-b-2 border-r-2 border-[#cc9900] active:border-0 active:translate-y-0.5 transition-all text-xl font-bold"
-            >
-              확인
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ──── 이미 진행 중인 퀘스트 모달 (portal: container-type 우회) ──── */}
       {showInProgressModal && createPortal(

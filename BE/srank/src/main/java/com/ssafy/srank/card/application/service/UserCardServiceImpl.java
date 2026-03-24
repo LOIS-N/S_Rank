@@ -28,7 +28,6 @@ public class UserCardServiceImpl implements UserCardService {
     private final UserCardQueryRepository userCardQueryRepository;
     private final UserCardRepository userCardRepository;
     private final SpecialSkillTemplateRepository specialSkillTemplateRepository;
-    private final QuestFacadeService questFacadeService;
 
     @Transactional(readOnly = true)
     @Override
@@ -84,8 +83,11 @@ public class UserCardServiceImpl implements UserCardService {
     }
 
     @Override
-    public Set<Long> getUsedUserCardList(Long userId) {
-        return questFacadeService.getUsedUserCardList(userId);
+    public void validateCardsOwned(Long userId, List<Long> cards) {
+        long count = userCardRepository.countByIdInAndUserId(cards, userId);
+        if (count != cards.size()) {
+            throw new BusinessException(ErrorCode.CARD_NOT_FOUND);
+        }
     }
 
     @Override

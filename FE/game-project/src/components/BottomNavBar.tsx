@@ -6,7 +6,7 @@ import { useGameStore } from "@/store/useGameStore";
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // 하단 네비게이션이 항상 표시될 서브 페이지 목록
-const SUB_PAGES = ["/quest", "/gacha", "/card-list"];
+const SUB_PAGES = ["/quest", "/gacha", "/card-list", "/enhance", "/synthesis", "/trade"];
 
 
 export default function BottomNavBar() {
@@ -24,9 +24,9 @@ export default function BottomNavBar() {
     { name: "퀘스트",   disabled: false },
     { name: "메인",     disabled: false },
     { name: "뽑기",     disabled: false },
-    { name: "강화",     disabled: true  },
-    { name: "합성",     disabled: true  },
-    { name: "거래",     disabled: true  },
+    { name: "강화",     disabled: false },
+    { name: "합성",     disabled: false },
+    { name: "거래",     disabled: false },
   ];
 
   const handleMenuClick = (item: string, disabled: boolean) => {
@@ -35,7 +35,10 @@ export default function BottomNavBar() {
       case "카드 목록": router.push("/card-list"); break;
       case "퀘스트":   router.push("/quest");     break;
       case "뽑기":     router.push("/gacha");     break;
+      case "강화":     router.push("/enhance");   break;
+      case "합성":     router.push("/synthesis"); break;
       case "메인":     router.push("/");           break;
+      case "거래":     router.push("/trade");     break;
       default: break;
     }
   };
@@ -45,6 +48,9 @@ export default function BottomNavBar() {
     pathname === "/quest"     ? "퀘스트"   :
     pathname === "/gacha"     ? "뽑기"     :
     pathname === "/card-list" ? "카드 목록" :
+    pathname === "/enhance"   ? "강화"     :
+    pathname === "/synthesis" ? "합성"     :
+    pathname === "/trade"     ? "거래"     :
     pathname === "/"          ? "메인"     : "";
 
   return (

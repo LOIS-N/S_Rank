@@ -30,6 +30,9 @@ public class UserMainQuest extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private QuestStatus status;
 
+    @Column(name = "user_desk_id", nullable = false)
+    private Long userDeskId;
+
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt;
 
@@ -39,4 +42,5 @@ public class UserMainQuest extends BaseEntity {
     public void completeStatus(){
         this.status = QuestStatus.COMPLETED;
     }
+    public void claimRewardStatus() {this.status = QuestStatus.CLAIMED;}
 }
