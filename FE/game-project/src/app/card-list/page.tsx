@@ -8,7 +8,7 @@ import "./card-list.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-// --- 공용 JS 9-slice 컴포넌트 ---
+// --- 공용 JS 9-slice 컴포넌트 --- 빠이빠이
 interface NineSliceBoxProps {
   src: string;
   slice: [number, number, number, number];

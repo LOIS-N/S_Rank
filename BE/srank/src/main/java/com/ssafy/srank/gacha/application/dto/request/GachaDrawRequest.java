@@ -1,6 +1,7 @@
 package com.ssafy.srank.gacha.application.dto.request;
 
 import com.ssafy.srank.gacha.domain.enums.GachaType;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -15,4 +16,7 @@ public class GachaDrawRequest {
 
     @NotNull
     private Integer count;
+
+    @NotBlank
+    private String clientSeed;
 }

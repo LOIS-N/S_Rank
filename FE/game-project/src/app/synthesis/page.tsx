@@ -145,7 +145,7 @@ export default function SynthesisPage() {
       const params: Record<string, string> = { limit: '30' };
       if (cursor) params.cursor = cursor;
       if (currentFilter && currentFilter !== 'ALL') {
-        params.statType = currentFilter;
+        params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
       }
       const { data: json } = await api.get('/api/v1/cards', {
         params,
@@ -504,6 +504,17 @@ export default function SynthesisPage() {
           borderScale={0.5}
           className="synthesis-right-box"
         >
+          {/* 재화 정보 표시 */}
+          <div className="enhance-currency-info-wrapper">
+            <div className="currency-info-container">
+              <div className="currency-info-blank">
+                <span className="tabular-nums">{gold.toLocaleString()}</span>
+                <span className="currency-unit">G</span>
+              </div>
+              <img src={`${ASSET_BASE}/assets/002/coin_002.webp`} alt="gold" className="currency-icon" />
+            </div>
+          </div>
+
           {!synthesisResult ? (
             <>
               {/* 합성 제목 + 카드 배치 현황판 */}

@@ -163,11 +163,15 @@ export default function GameCanvas() {
                     { key: 'bug_002', sx:   80, sy: -160, startDelay: 2250 },
                   ];
 
+                  const bugLayer = sceneRef.add.container(0, 0);
+                  playContainer.add(bugLayer);
+                  sceneRef.registry.set('bugLayer', bugLayer);
+
                   bugConfigs.forEach(({ key, sx, sy, startDelay }) => {
                     const img = sceneRef.add.image(sx, sy, key);
                     img.setScale(floatScale);
                     img.setInteractive({ useHandCursor: true });
-                    playContainer.add(img);
+                    bugLayer.add(img);
 
                     let active = true;
 
@@ -223,7 +227,7 @@ export default function GameCanvas() {
                         fontFamily: 'Stardust, sans-serif', fontSize: '32px',
                         color: '#ffdd00', stroke: '#000000', strokeThickness: 3,
                       }).setOrigin(0.5);
-                      playContainer.add(floatText);
+                      bugLayer.add(floatText);
                       sceneRef.tweens.add({
                         targets: floatText, y: floatText.y - 70, alpha: 0,
                         duration: 900, ease: 'Sine.easeOut',
@@ -247,24 +251,28 @@ export default function GameCanvas() {
                     sceneRef.time.delayedCall(startDelay, crawlNext);
                   });
 
-                  // ── 황금 버그: 1분에 1번 등장, 클릭 시 +100 ──
-                  const spawnGoldenBug = () => {
+                  // ── 황금 버그: 첫 등장 10초 후, 이후 클릭/자동소멸 후 60초 리젠 ──
+                  const scheduleGoldenBug = (delay = 60000) => {
+                    sceneRef.time.delayedCall(delay, spawnGoldenBug);
+                  };
+
+                  function spawnGoldenBug() {
                     const gx = Phaser.Math.Between(BUG_BOUNDS.xMin + 60, BUG_BOUNDS.xMax - 60);
                     const gy = Phaser.Math.Between(BUG_BOUNDS.yMin + 30, BUG_BOUNDS.yMax - 30);
                     const goldImg = sceneRef.add.image(gx, gy, 'goldBug');
                     goldImg.setScale(floatScale * (2 / 3));
                     goldImg.setInteractive({ useHandCursor: true });
-                    playContainer.add(goldImg);
+                    bugLayer.add(goldImg);
 
                     let goldActive = true;
 
-                    // 15초 뒤 미클릭 시 자동 사라짐
+                    // 15초 뒤 미클릭 시 자동 사라짐 → 60초 후 리젠
                     const autoHide = sceneRef.time.delayedCall(15000, () => {
                       if (!goldActive) return;
                       goldActive = false;
                       sceneRef.tweens.add({
                         targets: goldImg, alpha: 0, duration: 500,
-                        onComplete: () => goldImg.destroy(),
+                        onComplete: () => { goldImg.destroy(); scheduleGoldenBug(); },
                       });
                     });
 
@@ -315,12 +323,12 @@ export default function GameCanvas() {
                       sceneRef.tweens.add({
                         targets: goldImg, y: goldImg.y - 60, alpha: 0,
                         duration: 200, ease: 'Back.easeOut',
-                        onComplete: () => goldImg.destroy(),
+                        onComplete: () => { goldImg.destroy(); scheduleGoldenBug(); },
                       });
                     });
-                  };
+                  }
 
-                  sceneRef.time.addEvent({ delay: 60000, callback: spawnGoldenBug, loop: true });
+                  scheduleGoldenBug(10000); // 첫 등장: 10초 후
 
                   const isAnyModalOpen = () => {
                     const s = useGameStore.getState();
@@ -444,6 +452,13 @@ export default function GameCanvas() {
               if (playAssetsLoaded) {
                 cityBg.setVisible(false);
                 playContainer.setVisible(true);
+
+                // 버그 레이어 visibility 동기화
+                const bugLayer = this.registry.get('bugLayer');
+                if (bugLayer) {
+                  const bugsEnabled = useGameStore.getState().bugsEnabled;
+                  bugLayer.setVisible(bugsEnabled);
+                }
 
                 // 퀘스트 상태 동기화
                 if (deskDataList) {

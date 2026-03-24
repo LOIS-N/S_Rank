@@ -43,7 +43,7 @@ interface MainQuestItem {
 }
 
 export default function MainHUD() {
-  const { gold, coffee, nickname, openComingSoonModal, setHUDModalOpen } = useGameStore();
+  const { gold, coffee, nickname, openComingSoonModal, setHUDModalOpen, bugsEnabled, toggleBugs } = useGameStore();
   const { accessToken } = useUserStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [bgmMuted, setBgmMuted] = useState(() => isBgmMuted());
@@ -76,7 +76,12 @@ export default function MainHUD() {
           const smallest = nullQuests.reduce((a, b) => a.stepNo < b.stepNo ? a : b);
           setChapterNo(smallest.chapterNo);
           setStepNo(smallest.stepNo);
+          return;
         }
+
+        // IN_PROGRESS도 null도 없으면 (전부 COMPLETE/CLAIMED) 뱃지 숨김
+        setChapterNo(null);
+        setStepNo(null);
       } catch {
         // 조용히 실패
       }
@@ -230,6 +235,28 @@ export default function MainHUD() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* --- 상단 바 아래 debug 버튼 --- */}
+      <div className="w-full flex justify-end pointer-events-auto" style={{ paddingRight: "1.0cqw", paddingTop: "0.5cqw" }}>
+        <button
+          onClick={toggleBugs}
+          className="relative flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110"
+          style={{
+            width: "4cqw",
+            height: "4cqw",
+            backgroundImage: `url('${ASSET_BASE}/assets/002/upperButton_002.webp')`,
+            backgroundSize: "100% 100%",
+            filter: !bugsEnabled ? "brightness(0.5)" : undefined,
+          }}
+          title={bugsEnabled ? "버그 비활성화" : "버그 활성화"}
+        >
+          <img
+            src={`${ASSET_BASE}/assets/002/debug.webp`}
+            alt="debug"
+            style={{ width: "2.48cqw", height: "2.48cqw", imageRendering: "pixelated" }}
+          />
+        </button>
       </div>
 
       {/* --- 모달 영역 --- */}

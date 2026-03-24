@@ -21,7 +21,7 @@
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-image: url('/assets/008/cardListMain_000.webp');
+  background-image: url('/assets/005/synthesisMain_000.webp');
   background-size: cover;
   background-position: center;
   opacity: 0.4;
@@ -373,6 +373,58 @@
   gap: 12px;
   min-height: 0;
   min-width: 0;
+}
+
+/* --- 재화 정보 표시 (오른쪽 상단) --- */
+.enhance-currency-info-wrapper {
+  position: absolute;
+  top: -6.5cqw; /* 오른쪽 박스 위쪽 외곽으로 이동 (약 5px 여백 확보) */
+  left: -1.2cqw; /* 위치 반응형으로 조정 */
+  z-index: 20;
+  pointer-events: none;
+}
+
+.currency-info-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 4.5cqw; /* 전체적인 크기 키움 */
+  width: 13.5cqw; /* 전체적인 크기 키움 */
+}
+
+.currency-info-blank {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  left: 2cqw;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 1cqw;
+  padding-left: 0.5cqw;
+  background-image: url('/assets/002/upperBlank_002.webp');
+  background-size: 100% 100%;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 1.4cqw; /* 글자 크기 키움 */
+  color: #111;
+  overflow: hidden;
+}
+
+.currency-unit {
+  margin-left: 0.3cqw;
+  font-size: 1.2cqw;
+}
+
+.currency-icon {
+  position: absolute;
+  left: -0.7cqw;
+  top: 0.7cqw;
+  width: 3.2cqw; /* 아이콘 크기 키움 */
+  height: 3.2cqw;
+  image-rendering: pixelated;
+  z-index: 1;
 }
 
 /* 카드 배치 현황판 */

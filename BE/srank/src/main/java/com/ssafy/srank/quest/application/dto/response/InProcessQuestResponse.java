@@ -25,9 +25,10 @@ public class InProcessQuestResponse {
     private QuestStatus status;
     private LocalDateTime startedAt;
     private LocalDateTime endAt;
+    private Long baseDurationSeconds;
 
 
-    public static InProcessQuestResponse fromUserMainQuest(UserMainQuest quest){
+    public static InProcessQuestResponse fromUserMainQuest(UserMainQuest quest, Long duration){
         return InProcessQuestResponse.builder()
                 .deskId(quest.getUserDeskId())
                 .title(quest.getMainQuestTemplate().getTitle())
@@ -38,10 +39,11 @@ public class InProcessQuestResponse {
                 .rewardGold(quest.getMainQuestTemplate().getRewardGold())
                 .startedAt(quest.getStartedAt())
                 .endAt(quest.getEndAt())
+                .baseDurationSeconds(duration)
                 .build();
     }
 
-    public static InProcessQuestResponse fromUserSubQuest(UserSubQuest quest){
+    public static InProcessQuestResponse fromUserSubQuest(UserSubQuest quest, Long duration){
         return InProcessQuestResponse.builder()
                 .deskId(quest.getUserDeskId())
                 .title(quest.getSubQuestTemplate().getTitle())
@@ -52,6 +54,7 @@ public class InProcessQuestResponse {
                 .rewardGold(quest.getSubQuestTemplate().getRewardGold())
                 .startedAt(quest.getStartedAt())
                 .endAt(quest.getEndAt())
+                .baseDurationSeconds(duration)
                 .build();
     }
 }

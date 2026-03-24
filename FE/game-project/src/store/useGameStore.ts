@@ -21,6 +21,7 @@ export interface DeskQuest {
   title: string;
   questId: number | null;
   questType: 'main' | 'sub' | null;
+  requiredLevel: number;
 }
 
 interface GameState {
@@ -43,6 +44,7 @@ interface GameState {
   isHUDModalOpen: boolean;
   sessionExpiredModal: boolean;
   notifications: InAppNotification[];
+  bugsEnabled: boolean;
   setAuth: (token: string | null) => void;
   increaseScore: (by: number) => void;
   increaseGold: (by: number) => void;
@@ -61,7 +63,7 @@ interface GameState {
   unlockQuestSlot: (id: number) => void;
   setUnlockConfirm: (id: number | null) => void;
   closeRewardModal: () => void;
-  setDesksFromApi: (desks: Array<{ deskTemplateId: number; unlocked: boolean }>) => void;
+  setDesksFromApi: (desks: Array<{ deskTemplateId: number; unlocked: boolean; requiredLevel?: number }>) => void;
   openComingSoonModal: (text?: string) => void;
   closeComingSoonModal: () => void;
   setResources: (gold: number, coffee: number) => void;
@@ -72,6 +74,7 @@ interface GameState {
   syncActiveQuests: (activeDesks: Array<{ deskId: number; questId: number; questType: 'main' | 'sub'; title: string; rewardGold: number; endAt: string; status?: string; baseDurationSeconds?: number }>) => void;
   finishQuestByQuestId: (questId: number) => void;
   setSessionExpiredModal: (v: boolean) => void;
+  toggleBugs: () => void;
   pushNotification: (title: string, body: string) => void;
   markNotificationRead: (id: number) => void;
 }
@@ -88,11 +91,11 @@ export const useGameStore = create<GameState>()(
   accessToken: null,
   unreadNotifications: 1,
   quests: [
-    { id: 0, status: 'IDLE', isLocked: false, endTime: null, endAt: null, reward: 100, title: '', questId: null, questType: null },
-    { id: 1, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 200, title: '', questId: null, questType: null },
-    { id: 2, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 300, title: '', questId: null, questType: null },
-    { id: 3, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 400, title: '', questId: null, questType: null },
-    { id: 4, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 500, title: '', questId: null, questType: null },
+    { id: 0, status: 'IDLE', isLocked: false, endTime: null, endAt: null, reward: 100, title: '', questId: null, questType: null, requiredLevel: 0 },
+    { id: 1, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 200, title: '', questId: null, questType: null, requiredLevel: 2 },
+    { id: 2, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 300, title: '', questId: null, questType: null, requiredLevel: 3 },
+    { id: 3, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 400, title: '', questId: null, questType: null, requiredLevel: 4 },
+    { id: 4, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 500, title: '', questId: null, questType: null, requiredLevel: 5 },
   ],
   selectingDeskId: null,
   activeRewardModal: null,
@@ -104,6 +107,7 @@ export const useGameStore = create<GameState>()(
   isHUDModalOpen: false,
   sessionExpiredModal: false,
   notifications: [],
+  bugsEnabled: true,
 
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
@@ -190,6 +194,7 @@ export const useGameStore = create<GameState>()(
   setQuestFetchTrigger: (data) => set({ questFetchTrigger: data }),
   setCompleteQuestTrigger: (data) => set({ completeQuestTrigger: data }),
   setSessionExpiredModal: (v) => set({ sessionExpiredModal: v }),
+  toggleBugs: () => set((state) => ({ bugsEnabled: !state.bugsEnabled })),
   pushNotification: (title, body) => set((state) => ({
     notifications: [
       { id: Date.now(), title, body, createdAt: Date.now(), isRead: false },
@@ -208,7 +213,7 @@ export const useGameStore = create<GameState>()(
   setDesksFromApi: (desks) => set((state) => {
     const updated = state.quests.map(q => {
       const desk = desks.find(d => d.deskTemplateId === q.id + 1);
-      if (desk) return { ...q, isLocked: !desk.unlocked };
+      if (desk) return { ...q, isLocked: !desk.unlocked, requiredLevel: desk.requiredLevel ?? q.requiredLevel };
       return q;
     });
     return { quests: updated };
@@ -272,6 +277,7 @@ export const useGameStore = create<GameState>()(
         title: q.title,
         questId: q.questId,
         questType: q.questType,
+        requiredLevel: q.requiredLevel,
       })),
     }),
   }
