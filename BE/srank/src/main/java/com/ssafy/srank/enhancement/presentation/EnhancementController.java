@@ -44,7 +44,7 @@ public class EnhancementController {
                 )
         ));
     }
-/*임시*/
+
     @PostMapping("/cards/{cardId}")
     public ResponseEntity<ApiResponse<EnhanceResultResponse>> getEnhancementCardList(@RequestBody EnhancementRequest request){
         return ResponseEntity.ok(ApiResponse.success(enhancementService.enhanceCard(SecurityUtil.getCurrentUserId(), request)));
