@@ -31,7 +31,7 @@ public class SubQuestScheduleService {
                         "model", "gpt-4.1-nano",
                         "messages", List.of(
                                 Map.of("role", "system", "content", SYSTEM_PROMPT),
-                                Map.of("role", "user", "content", "난이도 " + difficulty + " 서브퀘스트 5개 생성해줘.")
+                                Map.of("role", "user", "content", "난이도 " + difficulty + " 서브퀘스트 20개 생성해줘.")
                         ),
                         "max_tokens", 4096,
                         "temperature", 0.3
