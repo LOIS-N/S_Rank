@@ -45,6 +45,7 @@ interface GameState {
   sessionExpiredModal: boolean;
   notifications: InAppNotification[];
   bugsEnabled: boolean;
+  tutorialActive: boolean;
   setAuth: (token: string | null) => void;
   increaseScore: (by: number) => void;
   increaseGold: (by: number) => void;
@@ -75,6 +76,7 @@ interface GameState {
   finishQuestByQuestId: (questId: number) => void;
   setSessionExpiredModal: (v: boolean) => void;
   toggleBugs: () => void;
+  setTutorialActive: (v: boolean) => void;
   pushNotification: (title: string, body: string) => void;
   markNotificationRead: (id: number) => void;
 }
@@ -108,6 +110,7 @@ export const useGameStore = create<GameState>()(
   sessionExpiredModal: false,
   notifications: [],
   bugsEnabled: true,
+  tutorialActive: false,
 
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
@@ -195,6 +198,7 @@ export const useGameStore = create<GameState>()(
   setCompleteQuestTrigger: (data) => set({ completeQuestTrigger: data }),
   setSessionExpiredModal: (v) => set({ sessionExpiredModal: v }),
   toggleBugs: () => set((state) => ({ bugsEnabled: !state.bugsEnabled })),
+  setTutorialActive: (v) => set({ tutorialActive: v }),
   pushNotification: (title, body) => set((state) => ({
     notifications: [
       { id: Date.now(), title, body, createdAt: Date.now(), isRead: false },

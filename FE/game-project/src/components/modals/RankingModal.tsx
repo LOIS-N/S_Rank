@@ -96,7 +96,7 @@ export default function RankingModal({ onClose }: RankingModalProps) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold pointer-events-auto">
       <div className="bg-[#b0c4de] p-7 border-4 border-[#6b859e] w-[500px] max-w-[90%] h-[550px] max-h-[85%] flex flex-col shadow-[8px_8px_0px_#4a5d73] relative">
 
-        <button onClick={onClose} className="absolute top-2 right-4 text-white hover:text-red-600 text-xl drop-shadow-md">
+        <button onClick={onClose} className="absolute top-2 right-4 text-white hover:text-red-600 text-3xl drop-shadow-md">
           &times;
         </button>
 
