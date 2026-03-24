@@ -1,5 +1,6 @@
 "use client";
 import { useState, useCallback, useEffect } from 'react';
+import { pauseGameBgm, playTutorialBgm, stopTutorialBgm } from './BgmPlayer';
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -113,21 +114,21 @@ export default function TutorialStory({ onComplete }: Props) {
 
   const skip = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    goToScene(SCENES.length - 1, SCENES[SCENES.length - 1].lines.length - 1);
-  }, [goToScene]);
+    onComplete();
+  }, [onComplete]);
 
+  // 튜토리얼 BGM: 마운트 시 재생, 언마운트 시 중지
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === ' ' || e.key === 'Enter') advance();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [advance]);
+    pauseGameBgm();
+    const timer = setTimeout(() => playTutorialBgm(), 2000);
+    return () => { clearTimeout(timer); stopTutorialBgm(); };
+  }, []);
+
 
   return (
     <div
       className="absolute inset-0 font-dot select-none"
-      style={{ zIndex: 200, cursor: 'pointer' }}
+      style={{ zIndex: 200, cursor: 'pointer', pointerEvents: 'auto' }}
       onClick={advance}
     >
       <style>{`
@@ -315,7 +316,7 @@ export default function TutorialStory({ onComplete }: Props) {
         className="absolute inset-0 bg-black pointer-events-none"
         style={{
           opacity: fading ? 1 : 0,
-          transition: fading ? 'opacity 0.16s ease-in' : 'opacity 0.16s ease-out',
+          transition: fading ? 'opacity 0.16s ease-in' : 'opacity 0.32s ease-out',
           zIndex: 10,
         }}
       />
@@ -362,11 +363,15 @@ export default function TutorialStory({ onComplete }: Props) {
         >
           <p
             style={{
-              // System: 하얀색에 가까운 하늘색 / 일반: 흰색
-              color: currentLine.isSystem ? '#c8e8ff' : '#ffffff',
+              color: isLastStep ? '#ffd700'
+                : currentLine.isSystem ? '#c8e8ff'
+                : '#ffffff',
               fontSize: '1.75cqw',
+              fontWeight: isLastStep ? 'bold' : undefined,
               lineHeight: 1.65,
-              textShadow: currentLine.isSystem
+              textShadow: isLastStep
+                ? '0 0 12px rgba(255,200,0,0.7), 1px 1px 0 rgba(0,0,0,0.9)'
+                : currentLine.isSystem
                 ? '0 0 8px rgba(140,200,255,0.6)'
                 : '1px 1px 0 rgba(0,0,0,0.9)',
               opacity: textVisible ? 1 : 0,
