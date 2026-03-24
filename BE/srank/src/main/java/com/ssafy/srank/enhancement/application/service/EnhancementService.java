@@ -4,6 +4,7 @@ import com.ssafy.srank.card.application.dto.response.CursorPageResponse;
 import com.ssafy.srank.card.application.dto.response.UserCardResponse;
 import com.ssafy.srank.card.domain.enums.PositionType;
 import com.ssafy.srank.card.domain.enums.SortType;
+import com.ssafy.srank.enhancement.application.dto.request.EnhancementRequest;
 import com.ssafy.srank.enhancement.application.dto.response.EnhanceResultResponse;
 
 public interface EnhancementService {
@@ -13,5 +14,5 @@ public interface EnhancementService {
                                                                 SortType sortType, String cursorToken, int limit);
 
     // 강화 진행
-    EnhanceResultResponse enhanceCard(Long userId, Long cardId);
+    EnhanceResultResponse enhanceCard(Long userId, EnhancementRequest request);
 }

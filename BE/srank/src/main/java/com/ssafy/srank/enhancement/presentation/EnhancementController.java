@@ -5,6 +5,7 @@ import com.ssafy.srank.card.application.dto.response.UserCardResponse;
 import com.ssafy.srank.card.domain.enums.PositionType;
 import com.ssafy.srank.card.domain.enums.SortType;
 import com.ssafy.srank.common.response.ApiResponse;
+import com.ssafy.srank.enhancement.application.dto.request.EnhancementRequest;
 import com.ssafy.srank.enhancement.application.dto.response.EnhanceResultResponse;
 import com.ssafy.srank.enhancement.application.service.EnhancementService;
 import com.ssafy.srank.security.SecurityUtil;
@@ -45,7 +46,7 @@ public class EnhancementController {
     }
 
     @PostMapping("/cards/{cardId}")
-    public ResponseEntity<ApiResponse<EnhanceResultResponse>> getEnhancementCardList(@PathVariable Long cardId){
-        return ResponseEntity.ok(ApiResponse.success(enhancementService.enhanceCard(SecurityUtil.getCurrentUserId(), cardId)));
+    public ResponseEntity<ApiResponse<EnhanceResultResponse>> getEnhancementCardList(@RequestBody EnhancementRequest request){
+        return ResponseEntity.ok(ApiResponse.success(enhancementService.enhanceCard(SecurityUtil.getCurrentUserId(), request)));
     }
 }
