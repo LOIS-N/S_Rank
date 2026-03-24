@@ -8,6 +8,10 @@ import { GachaAnimationOverlay } from "./GachaAnimationOverlay";
 import "./gacha.css";
 import api from "@/lib/axios";
 
+const sendGAEvent = typeof window !== 'undefined' && typeof (window as any).sendGAEvent === 'function'
+  ? (window as any).sendGAEvent as (event: string, params?: Record<string, unknown>) => void
+  : () => {};
+
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // --- Types ---
