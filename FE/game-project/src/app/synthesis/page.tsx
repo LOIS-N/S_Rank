@@ -64,6 +64,17 @@ function displaySkillType(type: string): string {
   return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
 }
 
+function normalizeSkillType(type: string): string {
+  const upper = type.toUpperCase();
+  return upper === 'DEV' || upper === 'DEVOPS' ? 'DEVOPS' : upper;
+}
+
+function getSkillIcon(type: string): string {
+  return `${ASSET_BASE}/assets/003-01/${normalizeSkillType(type).toLowerCase()}.webp`;
+}
+
+const SKILL_ICON_STYLE: React.CSSProperties = { height: '1em', width: 'auto', verticalAlign: 'middle', imageRendering: 'pixelated', display: 'inline-block' };
+
 // --- API 응답 타입 ---
 interface CardSkill {
   skillType: string;
@@ -472,9 +483,9 @@ export default function SynthesisPage() {
                         onClick={() => !isDisabled && handleCardClick(card.cardId)}
                       >
                         <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
-                        <span className="cardlist-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                        <span className="cardlist-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                        <span className="cardlist-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                        <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                        <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                        <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                       </div>
                     );
                   })
@@ -552,9 +563,9 @@ export default function SynthesisPage() {
                       return (
                         <div key={card.cardId} className="synthesis-fan-card" style={style} onClick={() => handleCardClick(card.cardId)}>
                           <img src={card.imageUrl} alt={card.name} draggable={false} />
-                          <span className="synthesis-fan-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                          <span className="synthesis-fan-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                          <span className="synthesis-fan-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                          <span className="synthesis-fan-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                          <span className="synthesis-fan-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                          <span className="synthesis-fan-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                         </div>
                       );
                     });
@@ -612,9 +623,9 @@ export default function SynthesisPage() {
                 <div className="synthesis-result-card-area">
                   <div className="synthesis-result-card-wrapper">
                     <img src={synthesisResult.resultCard.imageUrl} alt={synthesisResult.resultCard.name} draggable={false} />
-                    <span className="cardlist-card-stat stat-1">{displaySkillType(synthesisResult.resultCard.skill1.skillType)} {synthesisResult.resultCard.skill1.value}</span>
-                    <span className="cardlist-card-stat stat-2">{displaySkillType(synthesisResult.resultCard.skill2.skillType)} {synthesisResult.resultCard.skill2.value}</span>
-                    <span className="cardlist-card-stat stat-3">{displaySkillType(synthesisResult.resultCard.skill3.skillType)} {synthesisResult.resultCard.skill3.value}</span>
+                    <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(synthesisResult.resultCard.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(synthesisResult.resultCard.skill1.skillType)} {synthesisResult.resultCard.skill1.value}</span>
+                    <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(synthesisResult.resultCard.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(synthesisResult.resultCard.skill2.skillType)} {synthesisResult.resultCard.skill2.value}</span>
+                    <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(synthesisResult.resultCard.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(synthesisResult.resultCard.skill3.skillType)} {synthesisResult.resultCard.skill3.value}</span>
                   </div>
                   <div className="synthesis-result-card-name">
                     {synthesisResult.resultCard.name} ({synthesisResult.resultCard.grade}등급)

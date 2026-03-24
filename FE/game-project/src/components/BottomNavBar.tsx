@@ -10,7 +10,7 @@ const SUB_PAGES = ["/quest", "/gacha", "/card-list", "/enhance", "/synthesis", "
 
 
 export default function BottomNavBar() {
-  const { gameStatus, openComingSoonModal } = useGameStore();
+  const { gameStatus, openComingSoonModal, tutorialActive } = useGameStore();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -18,6 +18,8 @@ export default function BottomNavBar() {
 
   // 메인 페이지(/)에서는 PLAYING 상태일 때만, 서브 페이지는 항상 표시
   if (!isSubPage && gameStatus !== "PLAYING") return null;
+  // 튜토리얼 진행 중에는 숨김
+  if (tutorialActive) return null;
 
   const menuItems = [
     { name: "카드 목록", disabled: false },

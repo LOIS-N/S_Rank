@@ -48,6 +48,17 @@ function displaySkillType(type: string): string {
   return type.toUpperCase() === "DEVOPS" ? "DEV" : type.toUpperCase();
 }
 
+function normalizeSkillType(type: string): string {
+  const upper = type.toUpperCase();
+  return upper === 'DEV' || upper === 'DEVOPS' ? 'DEVOPS' : upper;
+}
+
+function getSkillIcon(type: string): string {
+  return `${ASSET_BASE}/assets/003-01/${normalizeSkillType(type).toLowerCase()}.webp`;
+}
+
+const SKILL_ICON_STYLE: React.CSSProperties = { height: '1em', width: 'auto', verticalAlign: 'middle', imageRendering: 'pixelated', display: 'inline-block' };
+
 function formatPrice(gold: number): string {
   if (gold >= 1000) return `${(gold / 1000).toFixed(gold % 1000 === 0 ? 0 : 1)}K`;
   return gold.toString();
@@ -524,9 +535,9 @@ export default function TradePage() {
     <div className="trade-right-card-area">
       <div className="trade-right-card-wrapper">
         <img className="trade-right-card-img" src={imageUrl} alt={name} draggable={false} />
-        <span className="trade-right-card-stat stat-1">{displaySkillType(skill1.skillType)} {skill1.value}</span>
-        <span className="trade-right-card-stat stat-2">{displaySkillType(skill2.skillType)} {skill2.value}</span>
-        <span className="trade-right-card-stat stat-3">{displaySkillType(skill3.skillType)} {skill3.value}</span>
+        <span className="trade-right-card-stat stat-1"><img src={getSkillIcon(skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill1.skillType)} {skill1.value}</span>
+        <span className="trade-right-card-stat stat-2"><img src={getSkillIcon(skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill2.skillType)} {skill2.value}</span>
+        <span className="trade-right-card-stat stat-3"><img src={getSkillIcon(skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill3.skillType)} {skill3.value}</span>
       </div>
     </div>
   );
@@ -648,9 +659,9 @@ export default function TradePage() {
                     onClick={() => setSelectedMyCard(card)}
                   >
                     <img src={card.imageUrl} alt={card.name} draggable={false} />
-                    <span className="trade-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                    <span className="trade-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                    <span className="trade-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                    <span className="trade-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                    <span className="trade-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                    <span className="trade-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                   </div>
                 ))
               )}

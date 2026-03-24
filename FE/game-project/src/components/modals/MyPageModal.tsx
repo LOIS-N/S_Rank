@@ -126,7 +126,7 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
 
         <button
           onClick={onClose}
-          className="absolute top-2 right-4 text-white text-xl hover:text-red-600 drop-shadow-md"
+          className="absolute top-2 right-4 text-white text-3xl hover:text-red-600 drop-shadow-md"
         >
           &times;
         </button>
