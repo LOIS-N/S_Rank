@@ -6,7 +6,6 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import client from "@/lib/axios";
-import { sendGAEvent } from "@/lib/gtag";
 
 export default function GlobalModals() {
   const router = useRouter();
@@ -84,12 +83,22 @@ export default function GlobalModals() {
         setCompleteError(true);
         return;
       }
-      // GA: 퀘스트 완료
-      sendGAEvent("quest_complete", {
-        quest_id: questId,
-        quest_type: questType,
-      });
-      useGameStore.getState().completeQuest(deskId);
+      // 골드는 BE에서 받아서 갱신 (로컬 계산 제거 → 중복 지급 방지)
+      try {
+        const token = useUserStore.getState().accessToken;
+        const profileRes = await client.get('/api/v1/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (profileRes.data.success) {
+          useGameStore.getState().setResources(
+            profileRes.data.data.gold,
+            profileRes.data.data.coin,
+          );
+        }
+      } catch (e) {
+        console.error('[CompleteQuest] profile fetch error:', e);
+      }
+      useGameStore.getState().completeQuestNoGold(deskId);
     };
 
     doComplete();

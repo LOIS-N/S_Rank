@@ -2,6 +2,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
+import { useUserStore } from "@/store/useUserStore";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -108,6 +109,7 @@ export default function GameCanvas() {
                 }
                 this.load.image("bug_001", `${ASSET_BASE}/assets/002/bug_001.webp`);
                 this.load.image("bug_002", `${ASSET_BASE}/assets/002/bug_002.webp`);
+                this.load.image("goldBug", `${ASSET_BASE}/assets/002/goldBug.webp`);
 
                 const sceneRef = this;
                 this.load.once('complete', () => {
@@ -128,7 +130,7 @@ export default function GameCanvas() {
                   playContainer.add([playBg, playOfc]);
 
                   // ── 플로팅 캐릭터 ──
-                  const floatScale = 0.0892 * 1.7;
+                  const floatScale = 0.0892 * 1.7 * 0.5 * 1.3;
 
                   // Bug: 오피스 바닥(빨간 영역) 안에서 랜덤 아이소메트릭 2:1 사선으로 기어다님
                   const BUG_BOUNDS = { xMin: -480, xMax: 480, yMin: -180, yMax: 280 };
@@ -178,58 +180,60 @@ export default function GameCanvas() {
                         targets: img,
                         x: dest.x,
                         y: dest.y,
-                        duration: Math.max(1600, dist * 10),
-                        ease: 'Linear',
+                        duration: Math.max(900, dist * 5),
+                        ease: 'Sine.easeInOut',
                         onComplete: () => {
                           if (!active) return;
                           const landY = img.y;
                           sceneRef.tweens.add({
                             targets: img,
-                            y: landY - 26,
-                            duration: 170,
+                            y: landY - 36,
+                            duration: 120,
                             yoyo: true,
                             repeat: Phaser.Math.Between(1, 3),
-                            ease: 'Sine.easeOut',
+                            ease: 'Cubic.easeOut',
                             onComplete: () => { if (active) crawlNext(); },
                           });
                         },
                       });
                     };
 
-                    img.on('pointerdown', () => {
+                    img.on('pointerdown', async () => {
                       if (!active) return;
                       active = false;
                       sceneRef.tweens.killTweensOf(img);
 
-                      // 랜덤 골드 (10~100) 텍스트 띄우기
-                      const gold = Phaser.Math.Between(10, 100);
-                      useGameStore.getState().increaseGold(gold);
-                      const floatText = sceneRef.add.text(img.x, img.y - 30, `+${gold}`, {
-                        fontFamily: 'Stardust, sans-serif',
-                        fontSize: '32px',
-                        color: '#ffdd00',
-                        stroke: '#000000',
-                        strokeThickness: 3,
+                      // API 호출 (NORMAL 버그 = +50)
+                      try {
+                        const token = useUserStore.getState().accessToken;
+                        const res = await fetch(`${ASSET_BASE}/api/v1/users/goldbug`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                          body: JSON.stringify({ type: 'NORMAL' }),
+                        });
+                        const json = await res.json();
+                        if (json.success) {
+                          useGameStore.getState().setResources(json.data, useGameStore.getState().coffee);
+                        }
+                      } catch {
+                        useGameStore.getState().increaseGold(50);
+                      }
+
+                      const floatText = sceneRef.add.text(img.x, img.y - 30, '+50', {
+                        fontFamily: 'Stardust, sans-serif', fontSize: '32px',
+                        color: '#ffdd00', stroke: '#000000', strokeThickness: 3,
                       }).setOrigin(0.5);
                       playContainer.add(floatText);
                       sceneRef.tweens.add({
-                        targets: floatText,
-                        y: floatText.y - 70,
-                        alpha: 0,
-                        duration: 900,
-                        ease: 'Sine.easeOut',
+                        targets: floatText, y: floatText.y - 70, alpha: 0,
+                        duration: 900, ease: 'Sine.easeOut',
                         onComplete: () => floatText.destroy(),
                       });
 
-                      // 깜짝 점프 후 사라짐
                       sceneRef.tweens.add({
-                        targets: img,
-                        y: img.y - 52,
-                        duration: 140,
-                        ease: 'Back.easeOut',
+                        targets: img, y: img.y - 52, duration: 140, ease: 'Back.easeOut',
                         onComplete: () => {
                           img.setVisible(false);
-                          // 10초 후 원위치 재등장
                           sceneRef.time.delayedCall(10000, () => {
                             active = true;
                             img.setPosition(sx, sy);
@@ -242,6 +246,81 @@ export default function GameCanvas() {
 
                     sceneRef.time.delayedCall(startDelay, crawlNext);
                   });
+
+                  // ── 황금 버그: 1분에 1번 등장, 클릭 시 +100 ──
+                  const spawnGoldenBug = () => {
+                    const gx = Phaser.Math.Between(BUG_BOUNDS.xMin + 60, BUG_BOUNDS.xMax - 60);
+                    const gy = Phaser.Math.Between(BUG_BOUNDS.yMin + 30, BUG_BOUNDS.yMax - 30);
+                    const goldImg = sceneRef.add.image(gx, gy, 'goldBug');
+                    goldImg.setScale(floatScale * (2 / 3));
+                    goldImg.setInteractive({ useHandCursor: true });
+                    playContainer.add(goldImg);
+
+                    let goldActive = true;
+
+                    // 15초 뒤 미클릭 시 자동 사라짐
+                    const autoHide = sceneRef.time.delayedCall(15000, () => {
+                      if (!goldActive) return;
+                      goldActive = false;
+                      sceneRef.tweens.add({
+                        targets: goldImg, alpha: 0, duration: 500,
+                        onComplete: () => goldImg.destroy(),
+                      });
+                    });
+
+                    // 제자리 바운스
+                    const goldenBounce = () => {
+                      if (!goldActive) return;
+                      sceneRef.tweens.add({
+                        targets: goldImg, y: goldImg.y - 52, duration: 120,
+                        yoyo: true, repeat: Phaser.Math.Between(2, 4), ease: 'Cubic.easeOut',
+                        onComplete: () => { if (goldActive) sceneRef.time.delayedCall(400, goldenBounce); },
+                      });
+                    };
+                    sceneRef.time.delayedCall(100, goldenBounce);
+
+                    goldImg.on('pointerdown', async () => {
+                      if (!goldActive) return;
+                      goldActive = false;
+                      autoHide.remove(false);
+                      sceneRef.tweens.killTweensOf(goldImg);
+
+                      // API 호출 (GOLDEN 버그 = +100)
+                      try {
+                        const token = useUserStore.getState().accessToken;
+                        const res = await fetch(`${ASSET_BASE}/api/v1/users/goldbug`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                          body: JSON.stringify({ type: 'GOLDEN' }),
+                        });
+                        const json = await res.json();
+                        if (json.success) {
+                          useGameStore.getState().setResources(json.data, useGameStore.getState().coffee);
+                        }
+                      } catch {
+                        useGameStore.getState().increaseGold(100);
+                      }
+
+                      const floatText = sceneRef.add.text(goldImg.x, goldImg.y - 30, '+100', {
+                        fontFamily: 'Stardust, sans-serif', fontSize: '36px',
+                        color: '#ffd700', stroke: '#000000', strokeThickness: 4,
+                      }).setOrigin(0.5);
+                      playContainer.add(floatText);
+                      sceneRef.tweens.add({
+                        targets: floatText, y: floatText.y - 80, alpha: 0,
+                        duration: 1000, ease: 'Sine.easeOut',
+                        onComplete: () => floatText.destroy(),
+                      });
+
+                      sceneRef.tweens.add({
+                        targets: goldImg, y: goldImg.y - 60, alpha: 0,
+                        duration: 200, ease: 'Back.easeOut',
+                        onComplete: () => goldImg.destroy(),
+                      });
+                    });
+                  };
+
+                  sceneRef.time.addEvent({ delay: 60000, callback: spawnGoldenBug, loop: true });
 
                   const isAnyModalOpen = () => {
                     const s = useGameStore.getState();
@@ -414,11 +493,12 @@ export default function GameCanvas() {
                       } else {
                         deskData.resultIcon.setVisible(false);
                         deskData.timerText.setVisible(true);
-                        // MM:SS 형식
+                        // 1시간 미만: MM:SS, 1시간 이상: H:MM:SS
                         const totalSec = Math.max(0, Math.ceil(remainMs / 1000));
-                        const mm = Math.floor(totalSec / 60).toString().padStart(2, '0');
+                        const hh = Math.floor(totalSec / 3600);
+                        const mm = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
                         const ss = (totalSec % 60).toString().padStart(2, '0');
-                        deskData.timerText.setText(`${mm}:${ss}`);
+                        deskData.timerText.setText(hh > 0 ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`);
                         // 10분+ 초록, 1분+ 노랑, 1분 미만 빨강
                         const bgColor = remainMs > 600000 ? 0x80c880 : remainMs > 60000 ? 0xe0cc50 : 0xe07878;
                         deskData.timerBg.clear();

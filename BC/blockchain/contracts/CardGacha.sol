@@ -27,7 +27,7 @@ contract CardGacha is Ownable {
     function recordGachaResult(address user, uint8 grade) external onlyOwner {
         require(grade >= 1 && grade <= 4, "Invalid grade");
         userDrawCount[user]++;
-        // INFT(nft).mintCard(user, grade); // 가챠 시 NFT 민팅 안 함 — 별도 플로우에서 처리
+        INFT(nft).mintCard(user, grade);
         emit GachaResult(user, grade, block.timestamp);
     }
 }

@@ -7,7 +7,6 @@ import { GachaRevealCard } from "./GachaRevealCard";
 import { GachaAnimationOverlay } from "./GachaAnimationOverlay";
 import "./gacha.css";
 import api from "@/lib/axios";
-import { sendGAEvent } from "@/lib/gtag";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -228,13 +227,6 @@ export default function GachaPage() {
     // if (gold < cost) return;
 
     setIsPulling(true);
-    // GA: 뽑기 시작
-    sendGAEvent("gacha_start", {
-      gacha_type: currentTab,
-      pull_count: count,
-      gold_spent: cost,
-    });
-
     // 박람회/공채: Mock 뽑기 (BE 호출 없음, 카드 목록 저장 안 됨)
     if (currentTab === 'fair' || currentTab === 'public') {
       const mockCards = generateMockCards(currentTab, count);

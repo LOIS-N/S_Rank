@@ -1,22 +1,88 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGameStore } from "@/store/useGameStore";
+import { useUserStore } from "@/store/useUserStore";
+import api from "@/lib/axios";
 import MyPageModal from "./modals/MyPageModal";
 import RankingModal from "./modals/RankingModal";
 import DiscordModal from "./modals/DiscordModal";
 import NotificationModal from "./modals/NotificationModal";
 import AchievementModal from "./modals/AchievementModal";
 import { toggleBgm, isBgmMuted } from "./BgmPlayer";
+
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // cqw 기준: game-wrapper 너비의 1% (1280px 기준 → 12.8px = 1cqw)
 
+const CHAPTER_TITLES: Record<number, string> = {
+  0: "예비 창업가",
+  1: "스타트업",
+  2: "씨드",
+  3: "시리즈A",
+  4: "시리즈B",
+  5: "유니콘",
+  6: "테크자이언트",
+};
+
+const CHAPTER_ICONS: Record<number, string> = {
+  0: "🌱",
+  1: "🚀",
+  2: "💡",
+  3: "📈",
+  4: "💰",
+  5: "🦄",
+  6: "🏢",
+};
+
+interface MainQuestItem {
+  questId: number;
+  chapterNo: number;
+  stepNo: number;
+  status: string | null;
+}
 
 export default function MainHUD() {
   const { gold, coffee, nickname, openComingSoonModal, setHUDModalOpen } = useGameStore();
+  const { accessToken } = useUserStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [bgmMuted, setBgmMuted] = useState(() => isBgmMuted());
+  const [chapterNo, setChapterNo] = useState<number | null>(null);
+  const [stepNo, setStepNo] = useState<number | null>(null);
+
+  // 메인 퀘스트 API 호출 → 현재 챕터/스텝 계산
+  useEffect(() => {
+    if (!accessToken) return;
+    const fetch = async () => {
+      try {
+        const { data: json } = await api.get('/api/v1/quests/main', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!json.success || !Array.isArray(json.data) || json.data.length === 0) return;
+
+        const quests: MainQuestItem[] = json.data;
+
+        // IN_PROGRESS인 퀘스트 우선
+        const inProgress = quests.find(q => q.status === 'IN_PROGRESS');
+        if (inProgress) {
+          setChapterNo(inProgress.chapterNo);
+          setStepNo(inProgress.stepNo);
+          return;
+        }
+
+        // 없으면 status가 null인 것 중 stepNo 가장 작은 것
+        const nullQuests = quests.filter(q => q.status === null);
+        if (nullQuests.length > 0) {
+          const smallest = nullQuests.reduce((a, b) => a.stepNo < b.stepNo ? a : b);
+          setChapterNo(smallest.chapterNo);
+          setStepNo(smallest.stepNo);
+        }
+      } catch {
+        // 조용히 실패
+      }
+    };
+    fetch();
+  }, [accessToken]);
 
   const openModal = (id: string) => {
     setActiveModal(id);
@@ -28,6 +94,9 @@ export default function MainHUD() {
     setHUDModalOpen(false);
   };
 
+  const chapterTitle = chapterNo != null ? CHAPTER_TITLES[chapterNo] ?? null : null;
+  const chapterIcon  = chapterNo != null ? CHAPTER_ICONS[chapterNo]  ?? "✨" : null;
+
   return (
     <div className="absolute left-0 right-0 pointer-events-none font-dot flex flex-col justify-between select-none" style={{ top: "var(--game-clip-y, 0px)", bottom: "var(--game-clip-y, 0px)" }}>
 
@@ -36,7 +105,7 @@ export default function MainHUD() {
         <div className="w-full mx-auto flex flex-row items-center bg-[#b0c4de]/40"
           style={{ padding: "0.9cqw" }}>
 
-          {/* 왼쪽: 타이틀 + 닉네임 */}
+          {/* 왼쪽: 타이틀 + 닉네임 + 레벨/칭호 */}
           <div className="flex items-center" style={{ paddingLeft: "1.25cqw" }}>
             <div className="font-bold text-white drop-shadow-[2px_2px_0px_#000] flex items-center gap-2"
               style={{ fontSize: "1.36cqw" }}>
@@ -46,6 +115,17 @@ export default function MainHUD() {
                 style={{ paddingLeft: "0.6cqw", paddingRight: "0.6cqw", paddingTop: "0.2cqw", paddingBottom: "0.2cqw" }}>
                 {nickname || "유저"} 님
               </span>
+              {chapterNo != null && stepNo != null && chapterTitle && (
+                <span
+                  className="flex items-center gap-1 text-yellow-200 bg-black/30 rounded border border-yellow-400/50"
+                  style={{ paddingLeft: "0.5cqw", paddingRight: "0.6cqw", paddingTop: "0.15cqw", paddingBottom: "0.15cqw", fontSize: "1.1cqw" }}
+                >
+                  <span style={{ fontSize: "1.2cqw" }}>{chapterIcon}</span>
+                  <span className="text-yellow-300 font-bold">{chapterNo}-{stepNo}</span>
+                  <span className="text-white/80">:</span>
+                  <span>{chapterTitle}</span>
+                </span>
+              )}
             </div>
           </div>
 

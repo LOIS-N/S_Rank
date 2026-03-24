@@ -278,6 +278,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [usedCardWarning, setUsedCardWarning] = useState(false);
+  const [showNoCardModal, setShowNoCardModal] = useState(false);
 
   // --- 보유 카드 목록 (API) ---
   const [cards, setCards] = useState<CardListItem[]>([]);
@@ -332,6 +333,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
         setCards(prev => cursor ? [...prev, ...newCards] : newCards);
         setNextCursor(json.data.nextCursor || null);
         setHasMore(json.data.hasMore);
+        if (!cursor && newCards.length === 0) {
+          setShowNoCardModal(true);
+        }
       }
     } catch (err) {
       console.error("카드 목록 조회 실패:", err);
@@ -744,6 +748,23 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
   return (
     <>
+      {/* ──── 카드 미소지 안내 모달 ──── */}
+      {showNoCardModal && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 font-dot pointer-events-auto">
+          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]">
+            <p className="text-2xl mb-8 leading-relaxed text-slate-900 font-bold">
+              소지한 카드가 없습니다.<br />뽑기를 진행해주세요.
+            </p>
+            <button
+              onClick={() => { setShowNoCardModal(false); router.push('/gacha'); }}
+              className="w-full py-4 bg-[#ffcc00] text-black border-b-4 border-r-4 border-[#cc9900] active:border-0 active:translate-y-1 transition-all font-bold text-xl"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ──── 좌측: 카드 목록 (card-list 레이아웃 통일) ──── */}
       <div className="phase2-left-col">
         <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
