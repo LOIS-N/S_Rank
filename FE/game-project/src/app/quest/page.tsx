@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
+import { useUserStore } from "@/store/useUserStore";
 import api from "@/lib/axios";
 import { sendGAEvent } from "@/lib/gtag";
 import "./quest.css";
@@ -98,6 +99,13 @@ function normalizeSkillType(type: string): string {
   const upper = type.toUpperCase();
   return upper === 'DEV' || upper === 'DEVOPS' ? 'DEVOPS' : upper;
 }
+
+function getSkillIcon(type: string): string {
+  const norm = normalizeSkillType(type).toLowerCase();
+  return `${ASSET_BASE}/assets/003-01/${norm}.webp`;
+}
+
+const SKILL_ICON_STYLE: React.CSSProperties = { height: '1em', width: 'auto', verticalAlign: 'middle', imageRendering: 'pixelated', display: 'inline-block' };
 
 function getCardStatForTypeSort(card: CardListItem, type: string): number {
   const norm = normalizeSkillType(type);
@@ -299,11 +307,13 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
 // --- Phase 2: 카드 배치 콘텐츠 ---
 function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () => void }) {
   const router = useRouter();
-  const { selectingDeskId, startQuest, accessToken, quests: storeQuests } = useGameStore();
+  const { selectingDeskId, startQuest, quests: storeQuests } = useGameStore();
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [usedCardWarning, setUsedCardWarning] = useState(false);
   const [showNoCardModal, setShowNoCardModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // --- 보유 카드 목록 (API) ---
   const [cards, setCards] = useState<CardListItem[]>([]);
@@ -320,8 +330,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const [beDeskTemplateId, setBeDeskTemplateId] = useState<number | null>(null);
 
   const getAuthToken = useCallback(async () => {
-    return accessToken || await getAccessToken();
-  }, [accessToken, getAccessToken]);
+    // useUserStore.accessToken이 로그인 시 설정되는 실제 토큰 (gameStore.accessToken은 항상 null)
+    return useUserStore.getState().accessToken || await getAccessToken();
+  }, [getAccessToken]);
 
   // selectingDeskId (0-based FE index) → BE deskTemplateId 변환
   useEffect(() => {
@@ -429,6 +440,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     ].filter(r => r.type && r.value > 0);
   }, [quest]);
 
+  // 퀘스트 요구 스킬 타입 Set (노란색 하이라이트용)
+  const reqTypes = useMemo(() => new Set(requirements.map(r => normalizeSkillType(r.type))), [requirements]);
+
   // --- 선택된 카드 객체 목록 ---
   const selectedCardData = useMemo(() => {
     return selectedCards.map(id => sortedCards.find(c => c.cardId === id)).filter(Boolean) as CardListItem[];
@@ -445,138 +459,30 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     }, 0);
   }, [selectedCardData]);
 
-  // --- Overflow 순차 단일 지원 시간 계산 ---
+  // --- 시간 계산: MAX(기준시간 × 요구/합산) + 민캡 50% ---
   const calculateOverflowTime = useCallback((): number | null => {
     if (!quest || requirements.length === 0 || selectedCardData.length === 0) return null;
     const baseTime = quest.durationMinutes;
 
-    // 각 포지션의 잔여 작업량과 배정된 카드 추적
-    interface PosState {
-      type: string;
-      remaining: number;
-      cardIndices: number[];
-      completed: boolean;
+    let maxTime = 0;
+    for (const req of requirements) {
+      const total = getStatTotal(req.type);
+      if (total <= 0) return null;
+      const posTime = baseTime * (req.value / total);
+      if (posTime > maxTime) maxTime = posTime;
     }
 
-    // 카드별 각 포지션 스탯 추출
-    const getCardStatForType = (card: CardListItem, type: string): number => {
-      const normalized = normalizeSkillType(type);
-      let total = 0;
-      if (normalizeSkillType(card.skill1.skillType) === normalized) total += card.skill1.value;
-      if (normalizeSkillType(card.skill2.skillType) === normalized) total += card.skill2.value;
-      if (normalizeSkillType(card.skill3.skillType) === normalized) total += card.skill3.value;
-      return total;
-    };
-
-    // 그리디 배치: 각 카드를 가장 높은 스탯의 포지션에 배정
-    const positions: PosState[] = requirements.map(r => ({
-      type: r.type, remaining: r.value, cardIndices: [], completed: false,
-    }));
-
-    // 우선 각 포지션에 최소 1장 배정, 나머지는 가장 높은 스탯 매칭
-    const assignedCards = new Set<number>();
-
-    // 1차: 각 포지션에 가장 적합한 카드 1장씩 배정
-    for (const pos of positions) {
-      let bestIdx = -1;
-      let bestStat = -1;
-      for (let i = 0; i < selectedCardData.length; i++) {
-        if (assignedCards.has(i)) continue;
-        const stat = getCardStatForType(selectedCardData[i], pos.type);
-        if (stat > bestStat) { bestStat = stat; bestIdx = i; }
-      }
-      if (bestIdx >= 0) {
-        pos.cardIndices.push(bestIdx);
-        assignedCards.add(bestIdx);
-      }
-    }
-
-    // 2차: 남은 카드를 가장 부족한 포지션에 배정
-    for (let i = 0; i < selectedCardData.length; i++) {
-      if (assignedCards.has(i)) continue;
-      let bestPosIdx = 0;
-      let bestRatio = Infinity;
-      for (let j = 0; j < positions.length; j++) {
-        const currentStat = positions[j].cardIndices.reduce(
-          (s, ci) => s + getCardStatForType(selectedCardData[ci], positions[j].type), 0
-        );
-        const ratio = currentStat / positions[j].remaining;
-        if (ratio < bestRatio) { bestRatio = ratio; bestPosIdx = j; }
-      }
-      positions[bestPosIdx].cardIndices.push(i);
-      assignedCards.add(i);
-    }
-
-    // Overflow 시뮬레이션
-    let totalTime = 0;
-    const MAX_ITERATIONS = 20;
-    let iterations = 0;
-
-    while (iterations++ < MAX_ITERATIONS) {
-      const incomplete = positions.filter(p => !p.completed);
-      if (incomplete.length === 0) break;
-
-      // 각 미완료 포지션의 완료까지 걸리는 시간 계산
-      let minTime = Infinity;
-      let minPos: PosState | null = null;
-
-      for (const pos of incomplete) {
-        const rate = pos.cardIndices.reduce(
-          (s, ci) => s + getCardStatForType(selectedCardData[ci], pos.type), 0
-        );
-        if (rate <= 0) return null; // 진행 불가
-        const timeNeeded = (pos.remaining / rate) * baseTime;
-        if (timeNeeded < minTime) { minTime = timeNeeded; minPos = pos; }
-      }
-
-      if (!minPos || minTime === Infinity) return null;
-
-      // 시간 경과: 모든 미완료 포지션의 잔여 작업량 감소
-      for (const pos of incomplete) {
-        const rate = pos.cardIndices.reduce(
-          (s, ci) => s + getCardStatForType(selectedCardData[ci], pos.type), 0
-        );
-        pos.remaining -= rate * (minTime / baseTime);
-      }
-      totalTime += minTime;
-      minPos.completed = true;
-
-      // 완료된 포지션의 카드를 가장 오래 걸리는 미완료 포지션에 지원
-      const freedCards = minPos.cardIndices;
-      const stillIncomplete = positions.filter(p => !p.completed);
-      if (stillIncomplete.length > 0 && freedCards.length > 0) {
-        let worstPos = stillIncomplete[0];
-        let worstTime = 0;
-        for (const pos of stillIncomplete) {
-          const rate = pos.cardIndices.reduce(
-            (s, ci) => s + getCardStatForType(selectedCardData[ci], pos.type), 0
-          );
-          const t = rate > 0 ? (pos.remaining / rate) * baseTime : Infinity;
-          if (t > worstTime) { worstTime = t; worstPos = pos; }
-        }
-        worstPos.cardIndices.push(...freedCards);
-      }
-    }
-
-    return Math.round(totalTime * 100) / 100;
-  }, [quest, requirements, selectedCardData]);
+    // 민캡: 기준 시간의 50%
+    return Math.round(Math.max(maxTime, baseTime * 0.5) * 100) / 100;
+  }, [quest, requirements, selectedCardData, getStatTotal]);
 
   // --- 예상 시간 ---
   const estimatedTime = useMemo(() => calculateOverflowTime(), [calculateOverflowTime]);
 
-  // --- 오버스펙 보상 계산 ---
+  // --- 보상: 정책상 고정 (오버스펙 패널티 없음) ---
   const rewardInfo = useMemo(() => {
-    if (!quest || requirements.length === 0 || selectedCardData.length === 0) {
-      return { ratio: 0, multiplier: 1, reward: quest?.rewardGold ?? 0 };
-    }
-    const totalCardStat = requirements.reduce((sum, req) => sum + getStatTotal(req.type), 0);
-    const totalRequired = requirements.reduce((sum, req) => sum + req.value, 0);
-    const r = totalRequired > 0 ? totalCardStat / totalRequired : 0;
-    const rAdj = Math.max(1.0, r / 1.5);
-    const multiplier = Math.pow(rAdj, -0.6);
-    const reward = Math.round(quest.rewardGold * multiplier);
-    return { ratio: r, multiplier, reward };
-  }, [quest, requirements, selectedCardData, getStatTotal]);
+    return { ratio: 1, multiplier: 1, reward: quest?.rewardGold ?? 0 };
+  }, [quest]);
 
   // --- 자동 선택: 요구 스탯 50% 이상 충족하는 최소 카드 조합 그리디 선택 ---
   const handleAutoSelect = useCallback(() => {
@@ -594,7 +500,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     const available = gradeOrderedCards.filter(c => !usedCardIds.includes(c.cardId));
     const minCards = Math.min(3, quest.cardSlotCount);
     const maxCards = quest.cardSlotCount;
-    const needs = requirements.map(r => ({ type: r.type, needed: r.value * 0.5, current: 0 }));
+    const needs = requirements.map(r => ({ type: r.type, needed: r.value, current: 0 }));
     const autoSelected: number[] = [];
     const usedInAuto = new Set<number>();
 
@@ -659,11 +565,11 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       return;
     }
 
-    // 50% 최소 스탯 검증
+    // 스탯 검증: 모든 포지션 합산 스탯 2265 요구 스탯
     for (const req of requirements) {
       const total = getStatTotal(req.type);
-      if (total < req.value * 0.5) {
-        setWarningMessage(`${req.type} 스탯이 요구치의 50% 미만입니다! (${total} / ${Math.ceil(req.value * 0.5)} 필요)`);
+      if (total < req.value) {
+        setWarningMessage(`스탯이 부족합니다. (${req.type}: ${total} / ${req.value} 필요)`);
         return;
       }
     }
@@ -706,7 +612,8 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
       // FE 인덱스(0~4)로 store 업데이트, BE 템플릿 ID(1~5)와 혼용 방지
       const feDeskIndex = selectingDeskId ?? 0;
-      startQuest(feDeskIndex, durationMinutes * 60, rewardInfo.reward, quest.title, quest.questId, type as 'main' | 'sub');
+      const userQuestId = res.data.data as number;
+      startQuest(feDeskIndex, durationMinutes * 60, rewardInfo.reward, quest.title, userQuestId, type as 'main' | 'sub');
       router.push('/');
     } catch (err: unknown) {
       const e = err as { response?: { status?: number; data?: { message?: string; code?: string; error?: { message?: string; code?: string } } }; message?: string };
@@ -842,7 +749,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   return (
     <>
       {/* ──── 카드 미소지 안내 모달 ──── */}
-      {showNoCardModal && (
+      {showNoCardModal && mounted && createPortal(
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 font-dot pointer-events-auto">
           <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]">
             <p className="text-2xl mb-8 leading-relaxed text-slate-900 font-bold">
@@ -855,7 +762,8 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
               확인
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ──── 좌측: 카드 목록 (card-list 레이아웃 통일) ──── */}
@@ -955,9 +863,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
                       style={{ filter: isUsed ? 'brightness(0.5)' : undefined, cursor: isUsed ? 'not-allowed' : undefined }}
                     >
                       <img src={card.imageUrl} alt={card.name} draggable={false} />
-                      <span className="phase2-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                      <span className="phase2-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                      <span className="phase2-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                      <span className="phase2-card-stat stat-1" style={{ color: reqTypes.has(normalizeSkillType(card.skill1.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                      <span className="phase2-card-stat stat-2" style={{ color: reqTypes.has(normalizeSkillType(card.skill2.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                      <span className="phase2-card-stat stat-3" style={{ color: reqTypes.has(normalizeSkillType(card.skill3.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                     </div>
                   );
                 })
@@ -1020,9 +928,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
                 return (
                   <div key={card.cardId} className="phase2-fan-card" style={style} onClick={() => handleCardClick(card.cardId)}>
                     <img src={card.imageUrl} alt={card.name} draggable={false} />
-                    <span className="phase2-fan-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                    <span className="phase2-fan-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                    <span className="phase2-fan-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                    <span className="phase2-fan-stat stat-1" style={{ color: reqTypes.has(normalizeSkillType(card.skill1.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                    <span className="phase2-fan-stat stat-2" style={{ color: reqTypes.has(normalizeSkillType(card.skill2.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                    <span className="phase2-fan-stat stat-3" style={{ color: reqTypes.has(normalizeSkillType(card.skill3.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                   </div>
                 );
               });
@@ -1045,7 +953,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
             <div className="quest-info-box-text">
               {requirements.map((req) => {
                 const current = getStatTotal(req.type);
-                const meetsMin = current >= req.value * 0.5;
+                const meetsMin = current >= req.value;
                 return (
                   <div key={req.type} style={{ color: meetsMin ? '#111' : '#ff4444' }}>
                     {req.type} : {current} / {req.value}
@@ -1059,11 +967,6 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
             <div className="quest-info-box-text">
               <div>예상 시간 : {estimatedTime != null ? `${estimatedTime}분` : `${quest.durationMinutes}분`}</div>
               <div>예상 보상 : {rewardInfo.reward.toLocaleString()}G</div>
-              {rewardInfo.ratio > 1.5 && (
-                <div style={{ fontSize: '20px', color: '#cc8800' }}>
-                  (오버스펙 {Math.round(rewardInfo.multiplier * 100)}%)
-                </div>
-              )}
             </div>
           </NineSliceBox>
         </div>
@@ -1116,7 +1019,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
    ============================================================ */
 export default function QuestPage() {
   const { getAccessToken } = usePrivy();
-  const { accessToken, quests: storeQuests } = useGameStore();
+  const { quests: storeQuests } = useGameStore();
 
   // store에서 현재 IN_PROGRESS/COMPLETED 퀘스트의 questId/title Set 계산
   const activeQuestIds = new Set(
@@ -1147,8 +1050,9 @@ export default function QuestPage() {
 
   // --- 인증 토큰 가져오기 ---
   const getAuthToken = useCallback(async () => {
-    return accessToken || await getAccessToken();
-  }, [accessToken, getAccessToken]);
+    // useUserStore.accessToken이 로그인 시 설정되는 실제 토큰 (gameStore.accessToken은 항상 null)
+    return useUserStore.getState().accessToken || await getAccessToken();
+  }, [getAccessToken]);
 
   // --- 메인 퀘스트 조회 ---
   const fetchMainQuest = useCallback(async (chapter: number) => {

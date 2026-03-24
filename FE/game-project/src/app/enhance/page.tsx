@@ -65,6 +65,18 @@ function displaySkillType(type: string): string {
   return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
 }
 
+function normalizeSkillType(type: string): string {
+  const upper = type.toUpperCase();
+  return upper === 'DEV' || upper === 'DEVOPS' ? 'DEVOPS' : upper;
+}
+
+function getSkillIcon(type: string): string {
+  return `${ASSET_BASE}/assets/003-01/${normalizeSkillType(type).toLowerCase()}.webp`;
+}
+
+const SKILL_ICON_STYLE: React.CSSProperties = { height: '1em', width: 'auto', verticalAlign: 'middle', imageRendering: 'pixelated', display: 'inline-block' };
+const SKILL_ICON_DETAIL_STYLE: React.CSSProperties = { height: '0.8em', width: 'auto', verticalAlign: 'middle', position: 'relative', top: '-5px', imageRendering: 'pixelated', display: 'inline-block' };
+
 // --- API 응답 타입 ---
 interface CardSkill {
   skillType: string;
@@ -435,9 +447,9 @@ export default function EnhancePage() {
                         onClick={() => handleCardClick(card.cardId)}
                       >
                         <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
-                        <span className="cardlist-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                        <span className="cardlist-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                        <span className="cardlist-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                        <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                        <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                        <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                       </div>
                     );
                   })
@@ -484,9 +496,9 @@ export default function EnhancePage() {
               <div className="cardlist-big-card-col">
                 <div className="cardlist-big-card-wrapper">
                   <img src={selectedListCard.imageUrl} alt={selectedListCard.name} draggable={false} />
-                  <span className="cardlist-big-card-stat stat-1">{displaySkillType(selectedListCard.skill1.skillType)} {selectedListCard.skill1.value}</span>
-                  <span className="cardlist-big-card-stat stat-2">{displaySkillType(selectedListCard.skill2.skillType)} {selectedListCard.skill2.value}</span>
-                  <span className="cardlist-big-card-stat stat-3">{displaySkillType(selectedListCard.skill3.skillType)} {selectedListCard.skill3.value}</span>
+                  <span className="cardlist-big-card-stat stat-1"><img src={getSkillIcon(selectedListCard.skill1.skillType)} alt="" style={SKILL_ICON_DETAIL_STYLE} /> {displaySkillType(selectedListCard.skill1.skillType)} {selectedListCard.skill1.value}</span>
+                  <span className="cardlist-big-card-stat stat-2"><img src={getSkillIcon(selectedListCard.skill2.skillType)} alt="" style={SKILL_ICON_DETAIL_STYLE} /> {displaySkillType(selectedListCard.skill2.skillType)} {selectedListCard.skill2.value}</span>
+                  <span className="cardlist-big-card-stat stat-3"><img src={getSkillIcon(selectedListCard.skill3.skillType)} alt="" style={SKILL_ICON_DETAIL_STYLE} /> {displaySkillType(selectedListCard.skill3.skillType)} {selectedListCard.skill3.value}</span>
                 </div>
               </div>
 
@@ -505,9 +517,9 @@ export default function EnhancePage() {
                     {/* 2. 능력치 및 남은 강화 횟수 */}
                     <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel cardlist-info-stats-box">
                       <div className="cardlist-info-title" style={{ marginBottom: '8px' }}>능력치</div>
-                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill1.skillType)} +{displaySkill1}</div>
-                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill2.skillType)} +{displaySkill2}</div>
-                      <div className="cardlist-info-text">{displaySkillType(selectedListCard.skill3.skillType)} +{displaySkill3}</div>
+                      <div className="cardlist-info-text"><img src={getSkillIcon(selectedListCard.skill1.skillType)} alt="" style={SKILL_ICON_DETAIL_STYLE} /> {displaySkillType(selectedListCard.skill1.skillType)} +{displaySkill1}</div>
+                      <div className="cardlist-info-text"><img src={getSkillIcon(selectedListCard.skill2.skillType)} alt="" style={SKILL_ICON_DETAIL_STYLE} /> {displaySkillType(selectedListCard.skill2.skillType)} +{displaySkill2}</div>
+                      <div className="cardlist-info-text"><img src={getSkillIcon(selectedListCard.skill3.skillType)} alt="" style={SKILL_ICON_DETAIL_STYLE} /> {displaySkillType(selectedListCard.skill3.skillType)} +{displaySkill3}</div>
                       <div className="cardlist-info-text" style={{ marginTop: '8px', color: '#111' }}>
                         남은 강화횟수 : {Math.max(0, 7 - displayEnhanceTries)}
                       </div>
