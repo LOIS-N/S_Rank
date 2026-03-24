@@ -40,7 +40,7 @@ public class CardCreationServiceImpl implements CardCreationService {
         CardGrade grade = command.grade();
         TemplateSelection templateSelection = selectTemplate(grade, randomSource);
         List<PositionType> positions = pickDistinctPositions(randomSource);
-        SpecialSkillSelection skillSelection = selectSpecialSkill(grade, positions, randomSource);
+        SpecialSkillSelection skillSelection = selectSpecialSkill(grade, randomSource);
         int minStat = gachaPolicyRegistry.minStat(grade);
         int maxStat = gachaPolicyRegistry.maxStat(grade);
 
@@ -112,7 +112,6 @@ public class CardCreationServiceImpl implements CardCreationService {
      */
     private SpecialSkillSelection selectSpecialSkill(
             CardGrade grade,
-            List<PositionType> positions,
             CardCreationRandomSource randomSource
     ) {
         if (grade != CardGrade.S) {
@@ -130,9 +129,6 @@ public class CardCreationServiceImpl implements CardCreationService {
 
         List<SpecialSkillTemplate> candidates = specialSkillTemplateRepository.findAllByActiveTrueAndDeletedFalseOrderByIdAsc()
                 .stream()
-                // TODO: Obsidian TODO/3월 23일 기준의 새 6개 특수능력 풀로 DB를 교체하면
-                //       포지션 보유 여부 필터를 제거하고 전체 활성 스킬 풀에서 바로 선택하도록 단순화한다.
-                .filter(skill -> isEligibleForPositions(skill, positions))
                 .sorted(Comparator.comparing(SpecialSkillTemplate::getId))
                 .toList();
 
@@ -142,33 +138,6 @@ public class CardCreationServiceImpl implements CardCreationService {
 
         int skillRoll = randomSource.roll(CardCreationPurpose.specialSkill(), candidates.size());
         return new SpecialSkillSelection(candidates.get(skillRoll), skillRoll);
-    }
-
-    // TODO: 현재 메서드는 구 특수능력 설계의 "포지션형 스킬은 해당 포지션 스탯 보유 시만 후보 포함"
-    //       규칙을 위한 호환용 필터다. DB를 새 6개 특수능력 풀로 전환하면 이 메서드와 호출부를 삭제한다.
-    /**
-     * 특수능력 효과가 참조하는 포지션이 현재 카드의 스탯 포지션과 맞는지 검증한다.
-     */
-    private boolean isEligibleForPositions(SpecialSkillTemplate skillTemplate, List<PositionType> positions) {
-
-        Set<PositionType> referencedPositions = new HashSet<>();
-        for (SpecialSkillEffect effect : skillTemplate.getEffects()) {
-            if (effect.getConditionPosition() != null) {
-                referencedPositions.add(effect.getConditionPosition());
-            }
-            if (effect.getTargetPosition() != null) {
-                referencedPositions.add(effect.getTargetPosition());
-            }
-            if (effect.getConditionType() == ConditionType.WHEN_ASSIGNED_TO_POSITION && effect.getConditionPosition() != null) {
-                referencedPositions.add(effect.getConditionPosition());
-            }
-        }
-
-        if (referencedPositions.isEmpty()) {
-            return true;
-        }
-
-        return positions.stream().anyMatch(referencedPositions::contains);
     }
 
     private record TemplateSelection(
