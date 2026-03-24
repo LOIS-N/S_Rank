@@ -3,6 +3,14 @@ import { persist } from 'zustand/middleware';
 
 export type QuestStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
+export interface InAppNotification {
+  id: number;
+  title: string;
+  body: string;
+  createdAt: number;
+  isRead: boolean;
+}
+
 export interface DeskQuest {
   id: number;
   status: QuestStatus;
@@ -13,6 +21,7 @@ export interface DeskQuest {
   title: string;
   questId: number | null;
   questType: 'main' | 'sub' | null;
+  requiredLevel: number;
 }
 
 interface GameState {
@@ -34,6 +43,8 @@ interface GameState {
   completeQuestTrigger: { deskId: number; questId: number; questType: 'MAIN' | 'SUB' } | null;
   isHUDModalOpen: boolean;
   sessionExpiredModal: boolean;
+  notifications: InAppNotification[];
+  bugsEnabled: boolean;
   setAuth: (token: string | null) => void;
   increaseScore: (by: number) => void;
   increaseGold: (by: number) => void;
@@ -48,10 +59,11 @@ interface GameState {
   startQuest: (id: number, durationSeconds: number, reward: number, title?: string, questId?: number | null, questType?: 'main' | 'sub' | null) => void;
   finishQuestTimer: (id: number) => void;
   completeQuest: (id: number) => void;
+  completeQuestNoGold: (id: number) => void;
   unlockQuestSlot: (id: number) => void;
   setUnlockConfirm: (id: number | null) => void;
   closeRewardModal: () => void;
-  setDesksFromApi: (desks: Array<{ deskTemplateId: number; unlocked: boolean }>) => void;
+  setDesksFromApi: (desks: Array<{ deskTemplateId: number; unlocked: boolean; requiredLevel?: number }>) => void;
   openComingSoonModal: (text?: string) => void;
   closeComingSoonModal: () => void;
   setResources: (gold: number, coffee: number) => void;
@@ -59,8 +71,12 @@ interface GameState {
   setQuestInfoModal: (data: { questTitle: string; rewardGold: number; remainMs: number; endAt: string | null } | null) => void;
   setQuestFetchTrigger: (data: { questId: number; questType: 'main' | 'sub'; remainMs: number; endAt: string | null } | null) => void;
   setCompleteQuestTrigger: (data: { deskId: number; questId: number; questType: 'MAIN' | 'SUB' } | null) => void;
-  syncActiveQuests: (activeDesks: Array<{ deskId: number; questId: number; questType: 'main' | 'sub'; title: string; rewardGold: number; endAt: string; status?: string }>) => void;
+  syncActiveQuests: (activeDesks: Array<{ deskId: number; questId: number; questType: 'main' | 'sub'; title: string; rewardGold: number; endAt: string; status?: string; baseDurationSeconds?: number }>) => void;
+  finishQuestByQuestId: (questId: number) => void;
   setSessionExpiredModal: (v: boolean) => void;
+  toggleBugs: () => void;
+  pushNotification: (title: string, body: string) => void;
+  markNotificationRead: (id: number) => void;
 }
 
 export const useGameStore = create<GameState>()(
@@ -75,11 +91,11 @@ export const useGameStore = create<GameState>()(
   accessToken: null,
   unreadNotifications: 1,
   quests: [
-    { id: 0, status: 'IDLE', isLocked: false, endTime: null, endAt: null, reward: 100, title: '', questId: null, questType: null },
-    { id: 1, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 200, title: '', questId: null, questType: null },
-    { id: 2, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 300, title: '', questId: null, questType: null },
-    { id: 3, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 400, title: '', questId: null, questType: null },
-    { id: 4, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 500, title: '', questId: null, questType: null },
+    { id: 0, status: 'IDLE', isLocked: false, endTime: null, endAt: null, reward: 100, title: '', questId: null, questType: null, requiredLevel: 0 },
+    { id: 1, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 200, title: '', questId: null, questType: null, requiredLevel: 2 },
+    { id: 2, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 300, title: '', questId: null, questType: null, requiredLevel: 3 },
+    { id: 3, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 400, title: '', questId: null, questType: null, requiredLevel: 4 },
+    { id: 4, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 500, title: '', questId: null, questType: null, requiredLevel: 5 },
   ],
   selectingDeskId: null,
   activeRewardModal: null,
@@ -90,6 +106,8 @@ export const useGameStore = create<GameState>()(
   completeQuestTrigger: null,
   isHUDModalOpen: false,
   sessionExpiredModal: false,
+  notifications: [],
+  bugsEnabled: true,
 
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
@@ -143,6 +161,18 @@ export const useGameStore = create<GameState>()(
       activeRewardModal: { isOpen: true, title: "퀘스트 완료", text: `${rewardAcc.toLocaleString()} 골드를 획득하였습니다.` }
     };
   }),
+  // 골드는 BE에서 받아서 setResources로 갱신 — 로컬 gold 증가 없이 상태만 IDLE로
+  completeQuestNoGold: (id) => set((state) => {
+    const quest = state.quests.find(q => q.id === id);
+    const rewardAcc = quest?.reward ?? 0;
+    const updated = state.quests.map(q =>
+      q.id === id ? { ...q, status: 'IDLE' as QuestStatus, endTime: null, endAt: null, title: '' } : q
+    );
+    return {
+      quests: updated,
+      activeRewardModal: { isOpen: true, title: "퀘스트 완료", text: `${rewardAcc.toLocaleString()} 골드를 획득하였습니다.` }
+    };
+  }),
   unlockQuestSlot: (id) => set((state) => {
     if (state.gold < 50000) return state;
     const updated = state.quests.map(q =>
@@ -164,16 +194,42 @@ export const useGameStore = create<GameState>()(
   setQuestFetchTrigger: (data) => set({ questFetchTrigger: data }),
   setCompleteQuestTrigger: (data) => set({ completeQuestTrigger: data }),
   setSessionExpiredModal: (v) => set({ sessionExpiredModal: v }),
+  toggleBugs: () => set((state) => ({ bugsEnabled: !state.bugsEnabled })),
+  pushNotification: (title, body) => set((state) => ({
+    notifications: [
+      { id: Date.now(), title, body, createdAt: Date.now(), isRead: false },
+      ...state.notifications,
+    ].slice(0, 50), // 최대 50개 유지
+    unreadNotifications: state.unreadNotifications + 1,
+  })),
+  markNotificationRead: (id) => set((state) => {
+    const target = state.notifications.find(n => n.id === id);
+    if (!target || target.isRead) return state;
+    return {
+      notifications: state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n),
+      unreadNotifications: Math.max(0, state.unreadNotifications - 1),
+    };
+  }),
   setDesksFromApi: (desks) => set((state) => {
     const updated = state.quests.map(q => {
       const desk = desks.find(d => d.deskTemplateId === q.id + 1);
-      if (desk) return { ...q, isLocked: !desk.unlocked };
+      if (desk) return { ...q, isLocked: !desk.unlocked, requiredLevel: desk.requiredLevel ?? q.requiredLevel };
       return q;
     });
     return { quests: updated };
   }),
+  finishQuestByQuestId: (questId) => set((state) => {
+    const updated = state.quests.map(q =>
+      q.questId === questId && q.status === 'IN_PROGRESS'
+        ? { ...q, status: 'COMPLETED' as QuestStatus }
+        : q
+    );
+    return { quests: updated };
+  }),
   // BE deskId(1-5) → store quest id(0-4)로 매핑해 IN_PROGRESS/COMPLETED 동기화
   syncActiveQuests: (activeDesks) => set((state) => {
+    // 빈 배열이면 API 오류/타이밍 문제 가능성 → stale 정리 없이 현 상태 유지
+    if (activeDesks.length === 0) return state;
     // BE가 timezone 없이 반환하는 날짜 문자열을 UTC ISO로 정규화
     // "2026-03-19 15:23:49.837" → "2026-03-19T15:23:49.837Z"
     const toUtcIso = (s: string) =>
@@ -182,8 +238,10 @@ export const useGameStore = create<GameState>()(
     const updated = state.quests.map(q => {
       const active = activeDesks.find(d => d.deskId === q.id + 1);
       if (active) {
-        const endAt = active.endAt ? toUtcIso(active.endAt) : null;
-        const endTime = endAt ? new Date(endAt).getTime() : (q.endTime ?? Date.now() + 60 * 60 * 1000);
+        const endTime = active.baseDurationSeconds != null
+          ? Date.now() + active.baseDurationSeconds * 1000
+          : active.endAt ? new Date(toUtcIso(active.endAt)).getTime() : (q.endTime ?? Date.now() + 60 * 60 * 1000);
+        const endAt = new Date(endTime).toISOString();
         const apiStatus = active.status?.toUpperCase();
         const newStatus: QuestStatus = apiStatus === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS';
         return {
@@ -219,6 +277,7 @@ export const useGameStore = create<GameState>()(
         title: q.title,
         questId: q.questId,
         questType: q.questType,
+        requiredLevel: q.requiredLevel,
       })),
     }),
   }

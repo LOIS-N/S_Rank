@@ -16,6 +16,7 @@ interface UserState {
   setNickname: (nickname: string) => void;
   finalizeOnboarding: () => void;
   clearUser: () => void;
+  updateAccessToken: (token: string) => void;
 }
 
 export const useUserStore = create<UserState>()(
@@ -48,6 +49,8 @@ export const useUserStore = create<UserState>()(
       setNickname: (nickname) => set({ nickname }),
 
       finalizeOnboarding: () => set({ isNewUser: false }),
+
+      updateAccessToken: (token) => set({ accessToken: token }),
 
       clearUser: () => set({
         accessToken: null,

@@ -281,6 +281,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [usedCardWarning, setUsedCardWarning] = useState(false);
+  const [showNoCardModal, setShowNoCardModal] = useState(false);
 
   // --- 보유 카드 목록 (API) ---
   const [cards, setCards] = useState<CardListItem[]>([]);
@@ -342,6 +343,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
         setCards(prev => cursor ? [...prev, ...newCards] : newCards);
         setNextCursor(json.data.nextCursor || null);
         setHasMore(json.data.hasMore);
+        if (!cursor && newCards.length === 0) {
+          setShowNoCardModal(true);
+        }
       }
     } catch (err) {
       console.error("카드 목록 조회 실패:", err);
@@ -601,14 +605,10 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       const targetDeskId = beDeskTemplateId ?? (selectingDeskId !== null ? selectingDeskId + 1 : 1);
       const durationMinutes = Math.min(estimatedTime ?? quest.durationMinutes, quest.durationMinutes);
 
-      const now = new Date();
-      const endAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
-
       const res = await api.post(`/api/v1/quests/${type}/${quest.questId}/start`, {
         deskId: targetDeskId,
         cardIds: selectedCards,
-        startAt: now.toISOString().replace('Z', ''),
-        endAt: endAt.toISOString().replace('Z', ''),
+        duration: durationMinutes * 60,  // 소요 시간 (초)
       }, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -763,6 +763,23 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
   return (
     <>
+      {/* ──── 카드 미소지 안내 모달 ──── */}
+      {showNoCardModal && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 font-dot pointer-events-auto">
+          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]">
+            <p className="text-2xl mb-8 leading-relaxed text-slate-900 font-bold">
+              소지한 카드가 없습니다.<br />뽑기를 진행해주세요.
+            </p>
+            <button
+              onClick={() => { setShowNoCardModal(false); router.push('/gacha'); }}
+              className="w-full py-4 bg-[#ffcc00] text-black border-b-4 border-r-4 border-[#cc9900] active:border-0 active:translate-y-1 transition-all font-bold text-xl"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ──── 좌측: 카드 목록 (card-list 레이아웃 통일) ──── */}
       <div className="phase2-left-col">
         {/* 스킬 필터 드롭다운 */}
@@ -1039,7 +1056,7 @@ export default function QuestPage() {
       if (json.success && json.data && Array.isArray(json.data) && json.data.length > 0) {
         // stepNo 오름차순 정렬 후 COMPLETED가 아닌 첫 번째 퀘스트 선택
         const sorted: MainQuestData[] = [...json.data].sort((a, b) => a.stepNo - b.stepNo);
-        const current = sorted.find(d => d.status !== 'COMPLETED') ?? sorted[sorted.length - 1];
+        const current = sorted.find(d => d.status !== 'COMPLETED' && d.status !== 'CLAIMED') ?? sorted[sorted.length - 1];
 
         const quest: Quest = {
           questId: current.questId,

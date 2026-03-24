@@ -6,7 +6,16 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import client from "@/lib/axios";
-import { sendGAEvent } from "@/lib/gtag";
+
+const CHAPTER_TITLES: Record<number, string> = {
+  0: "예비 창업가",
+  1: "스타트업",
+  2: "씨드",
+  3: "시리즈A",
+  4: "시리즈B",
+  5: "유니콘",
+  6: "테크자이언트",
+};
 
 export default function GlobalModals() {
   const router = useRouter();
@@ -22,13 +31,17 @@ export default function GlobalModals() {
     questFetchTrigger, setQuestFetchTrigger,
     completeQuestTrigger, setCompleteQuestTrigger,
     sessionExpiredModal, setSessionExpiredModal,
+    logout: gameLogout,
+    quests,
   } = useGameStore();
   const { clearUser, accessToken } = useUserStore();
 
   const handleSessionExpiredConfirm = async () => {
     setSessionExpiredModal(false);
     clearUser();
+    gameLogout();
     await privyLogout();
+    router.push('/');
   };
 
   useEffect(() => {
@@ -81,12 +94,22 @@ export default function GlobalModals() {
         setCompleteError(true);
         return;
       }
-      // GA: 퀘스트 완료
-      sendGAEvent("quest_complete", {
-        quest_id: questId,
-        quest_type: questType,
-      });
-      useGameStore.getState().completeQuest(deskId);
+      // 골드는 BE에서 받아서 갱신 (로컬 계산 제거 → 중복 지급 방지)
+      try {
+        const token = useUserStore.getState().accessToken;
+        const profileRes = await client.get('/api/v1/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (profileRes.data.success) {
+          useGameStore.getState().setResources(
+            profileRes.data.data.gold,
+            profileRes.data.data.coin,
+          );
+        }
+      } catch (e) {
+        console.error('[CompleteQuest] profile fetch error:', e);
+      }
+      useGameStore.getState().completeQuestNoGold(deskId);
     };
 
     doComplete();
@@ -237,10 +260,19 @@ export default function GlobalModals() {
       })()}
 
       {/* --- Unlock Confirm Modal --- */}
-      {activeUnlockConfirm?.isOpen && (
+      {activeUnlockConfirm?.isOpen && (() => {
+        const deskQuest = quests.find(q => q.id === activeUnlockConfirm.deskId);
+        const reqLevel = deskQuest?.requiredLevel ?? 0;
+        const reqTitle = CHAPTER_TITLES[reqLevel];
+        return (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#8ea4b8]/80 font-dot pointer-events-auto">
           <div className="bg-[#b0c4de] border-4 border-[#6b859e] p-10 text-center max-w-lg shadow-[8px_8px_0px_#4a5d73]">
             <h2 className="text-3xl mb-6 text-slate-900 font-bold">[퀘스트 슬롯 해금]</h2>
+            {reqLevel > 0 && reqTitle && (
+              <p className="text-xl mb-3 text-slate-800 font-bold">
+                해금 조건: <span className="text-red-600">레벨 {reqLevel}: {reqTitle}</span> 이상
+              </p>
+            )}
             <p className="text-2xl mb-4 leading-relaxed text-slate-800 font-bold">
               자리 해금에는 <span className="text-yellow-600">50,000골드</span>가 소비됩니다.<br/>
               하시겠습니까?
@@ -266,7 +298,8 @@ export default function GlobalModals() {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </>
   );
 }
