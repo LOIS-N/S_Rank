@@ -91,6 +91,33 @@ interface CardDetailData {
 // --- 스킬 필터 옵션 ---
 const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEV", "DESIGN"] as const;
 
+function normalizeSkillType(type: string): string {
+  const upper = type.toUpperCase();
+  return upper === 'DEV' || upper === 'DEVOPS' ? 'DEVOPS' : upper;
+}
+
+function getCardStatForType(card: CardListItem, type: string): number {
+  const norm = normalizeSkillType(type);
+  let total = 0;
+  if (normalizeSkillType(card.skill1.skillType) === norm) total += card.skill1.value;
+  if (normalizeSkillType(card.skill2.skillType) === norm) total += card.skill2.value;
+  if (normalizeSkillType(card.skill3.skillType) === norm) total += card.skill3.value;
+  return total;
+}
+
+// filter='ALL' → 총합 기준, filter=스킬 → 해당 스킬 스탯 기준 정렬
+function sortCards(cards: CardListItem[], filter: string, order: 'desc' | 'asc'): CardListItem[] {
+  return [...cards].sort((a, b) => {
+    const valA = filter === 'ALL'
+      ? a.skill1.value + a.skill2.value + a.skill3.value
+      : getCardStatForType(a, filter);
+    const valB = filter === 'ALL'
+      ? b.skill1.value + b.skill2.value + b.skill3.value
+      : getCardStatForType(b, filter);
+    return order === 'desc' ? valB - valA : valA - valB;
+  });
+}
+
 export default function CardListPage() {
   const { getAccessToken } = usePrivy();
   const { accessToken } = useGameStore();
@@ -109,6 +136,7 @@ export default function CardListPage() {
 
   // --- 필터 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // --- 인증 토큰 ---
   const getAuthToken = useCallback(async () => {
@@ -191,8 +219,8 @@ export default function CardListPage() {
     fetchCardDetail(cardId);
   }, [fetchCardDetail]);
 
-  // --- 서버에서 정렬된 순서 그대로 사용 ---
-  const sortedCards = cards;
+  // --- 선택된 필터 스탯 기준 오름/내림차순 정렬 ---
+  const sortedCards = useMemo(() => sortCards(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
 
   // --- 선택된 카드의 리스트 데이터 ---
   const selectedListCard = useMemo(() => {
@@ -324,7 +352,7 @@ export default function CardListPage() {
 
         {/* ──── 좌측: 필터 + 카드 그리드 ──── */}
         <div className="cardlist-left-col">
-          {/* 스킬 필터 드롭다운 */}
+          {/* 스킬 필터 드롭다운 + 정렬 버튼 */}
           <div className="cardlist-filters">
             <div className="cardlist-select-wrapper">
               <select
@@ -337,6 +365,16 @@ export default function CardListPage() {
                 ))}
               </select>
             </div>
+            <button
+              className={`cardlist-filter-btn${sortOrder === 'desc' ? ' active' : ''}`}
+              onClick={() => setSortOrder('desc')}
+              title="능력치 내림차순"
+            >▼ 내림차순</button>
+            <button
+              className={`cardlist-filter-btn${sortOrder === 'asc' ? ' active' : ''}`}
+              onClick={() => setSortOrder('asc')}
+              title="능력치 오름차순"
+            >▲ 오름차순</button>
           </div>
 
           {/* 카드 리스트 박스 */}

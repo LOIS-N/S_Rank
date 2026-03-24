@@ -68,18 +68,26 @@ export function useSSENotification(accessToken: string | null) {
     async function connect() {
       clearRetry();
 
+      // 재연결 시 항상 store에서 최신 토큰 사용 (클로저 캡처값이 만료됐을 수 있음)
+      const currentToken = useUserStore.getState().accessToken;
+      if (!currentToken) {
+        scheduleReconnect();
+        return;
+      }
+
       const controller = new AbortController();
       abortRef.current = controller;
 
       try {
         const response = await fetch(SSE_ENDPOINT, {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `Bearer ${currentToken}` },
           signal: controller.signal,
         });
 
         if (!response.ok || !response.body) {
           console.warn("[SSE] 연결 실패:", response.status);
-          scheduleReconnect();
+          // 401이면 토큰 만료 — 더 긴 딜레이 후 재시도 (토큰 갱신 대기)
+          scheduleReconnect(response.status === 401 ? 10000 : RECONNECT_DELAY_MS);
           return;
         }
 
@@ -146,21 +154,31 @@ export function useSSENotification(accessToken: string | null) {
       }
     }
 
-    function scheduleReconnect() {
+    function scheduleReconnect(delay = RECONNECT_DELAY_MS) {
       if (!active) return;
-      console.log(`[SSE] ${RECONNECT_DELAY_MS / 1000}초 후 재연결 시도...`);
+      console.log(`[SSE] ${delay / 1000}초 후 재연결 시도...`);
       retryTimerRef.current = setTimeout(() => {
         if (active) connect();
-      }, RECONNECT_DELAY_MS);
+      }, delay);
     }
 
     connect();
+
+    // 탭이 포그라운드로 돌아올 때 즉시 재연결 시도
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        abortRef.current?.abort();
+        connect();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       active = false;
       clearRetry();
       abortRef.current?.abort();
       abortRef.current = null;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [isAuthenticated, accessToken]);
 }

@@ -130,37 +130,46 @@ export default function GameCanvas() {
                   playContainer.add([playBg, playOfc]);
 
                   // ── 플로팅 캐릭터 ──
-                  const floatScale = 0.0892 * 1.7 * 0.5 * 1.3;
+                  const floatScale = 0.0892 * 1.7 * 0.5 * 1.3 * 1.2;
 
-                  // Bug: 오피스 바닥(빨간 영역) 안에서 랜덤 아이소메트릭 2:1 사선으로 기어다님
+                  // Bug: 오피스 바닥 안에서 랜덤 이동
                   const BUG_BOUNDS = { xMin: -480, xMax: 480, yMin: -180, yMax: 280 };
-                  const ISO_STEPS = [
-                    { dx:  400, dy:  200 }, { dx: -400, dy:  200 },
-                    { dx:  400, dy: -200 }, { dx: -400, dy: -200 },
-                    { dx:  200, dy:  100 }, { dx: -200, dy:  100 },
-                    { dx:  200, dy: -100 }, { dx: -200, dy: -100 },
-                  ];
+                  // 책상 회피: 각 책상 중심 ±160px(x) / ±90px(y) 타원 영역 제외
+                  const DESK_AVOID_RX = 160;
+                  const DESK_AVOID_RY = 90;
+                  const isNearDesk = (nx: number, ny: number) =>
+                    deskPositions.some(d => {
+                      const ex = (nx - d.x) / DESK_AVOID_RX;
+                      const ey = (ny - d.y) / DESK_AVOID_RY;
+                      return ex * ex + ey * ey < 1;
+                    });
+
+                  // 버그 다음 위치: 현재 위치와 120px 이상 떨어진 완전 랜덤 안전 위치
                   const getNextBugPos = (cx: number, cy: number) => {
-                    const shuffled = [...ISO_STEPS].sort(() => Math.random() - 0.5);
-                    for (const s of shuffled) {
-                      const nx = cx + s.dx, ny = cy + s.dy;
-                      if (nx >= BUG_BOUNDS.xMin && nx <= BUG_BOUNDS.xMax &&
-                          ny >= BUG_BOUNDS.yMin && ny <= BUG_BOUNDS.yMax) {
-                        return { x: nx, y: ny };
-                      }
+                    for (let attempt = 0; attempt < 50; attempt++) {
+                      const nx = Phaser.Math.Between(BUG_BOUNDS.xMin + 40, BUG_BOUNDS.xMax - 40);
+                      const ny = Phaser.Math.Between(BUG_BOUNDS.yMin + 40, BUG_BOUNDS.yMax - 40);
+                      const dist = Math.sqrt((nx - cx) ** 2 + (ny - cy) ** 2);
+                      if (dist > 120 && !isNearDesk(nx, ny)) return { x: nx, y: ny };
                     }
-                    return { x: 0, y: 50 };
+                    // 거리 조건 완화 fallback
+                    for (let attempt = 0; attempt < 20; attempt++) {
+                      const nx = Phaser.Math.Between(BUG_BOUNDS.xMin + 40, BUG_BOUNDS.xMax - 40);
+                      const ny = Phaser.Math.Between(BUG_BOUNDS.yMin + 40, BUG_BOUNDS.yMax - 40);
+                      if (!isNearDesk(nx, ny)) return { x: nx, y: ny };
+                    }
+                    return { x: -440, y: 250 };
                   };
 
-                  // bug_001 × 4, bug_002 × 3 — 총 7마리
+                  // bug_001 × 4, bug_002 × 3 — 총 7마리 (책상 회피 위치로 배치)
                   const bugConfigs = [
-                    { key: 'bug_001', sx: -420, sy:  200, startDelay:    0 },
-                    { key: 'bug_001', sx:  -80, sy:   60, startDelay:  900 },
-                    { key: 'bug_001', sx:  260, sy:  240, startDelay: 1800 },
-                    { key: 'bug_001', sx:  440, sy:   90, startDelay: 2700 },
-                    { key: 'bug_002', sx:  340, sy:  -70, startDelay:  450 },
-                    { key: 'bug_002', sx: -340, sy:  -50, startDelay: 1350 },
-                    { key: 'bug_002', sx:   80, sy: -160, startDelay: 2250 },
+                    { key: 'bug_001', sx: -440, sy:  250, startDelay:    0 },
+                    { key: 'bug_001', sx:  440, sy:  250, startDelay:  900 },
+                    { key: 'bug_001', sx: -440, sy: -150, startDelay: 1800 },
+                    { key: 'bug_001', sx:  440, sy: -150, startDelay: 2700 },
+                    { key: 'bug_002', sx:    0, sy:  270, startDelay:  450 },
+                    { key: 'bug_002', sx: -440, sy:   60, startDelay: 1350 },
+                    { key: 'bug_002', sx:  440, sy:   60, startDelay: 2250 },
                   ];
 
                   const bugLayer = sceneRef.add.container(0, 0);
@@ -490,6 +499,23 @@ export default function GameCanvas() {
                       const now = Date.now();
                       const endTime = quest.endAt ? new Date(quest.endAt).getTime() : (quest.endTime || now);
                       const remainMs = endTime - now;
+
+                      // SSE fallback: 타이머가 0이 됐지만 SSE quest-complete 이벤트를 못 받은 경우
+                      if (quest.status === 'IN_PROGRESS' && remainMs <= 0) {
+                        const store = useGameStore.getState();
+                        store.finishQuestTimer(quest.id);
+
+                        const notifTitle = "S급 개발자들이 나를 따르는 이유";
+                        const notifBody = `${quest.title || '퀘스트'}가 완료됐어요! 지금 바로 보상을 수령하세요!`;
+                        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                          new Notification(notifTitle, {
+                            body: notifBody,
+                            icon: `${ASSET_BASE}/assets/icons/icon-192.webp`,
+                          });
+                        } else {
+                          store.pushNotification(notifTitle, notifBody);
+                        }
+                      }
 
                       const animFrame = Math.floor(now / 200) % 2 + 1;
                       deskData.charImage.setTexture(`people${deskData.peopleNum}_00${animFrame}`);
