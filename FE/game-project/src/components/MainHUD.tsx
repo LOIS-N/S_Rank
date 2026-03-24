@@ -214,31 +214,32 @@ export default function MainHUD() {
               </button>
             ))}
 
-            {/* BGM 토글 버튼 */}
-            <button
-              onClick={() => setBgmMuted(toggleBgm())}
-              className="relative flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110"
-              style={{
-                width: "4cqw",
-                height: "4cqw",
-                backgroundImage: `url('${ASSET_BASE}/assets/002/upperButton_002.webp')`,
-                backgroundSize: "100% 100%",
-                filter: bgmMuted ? "brightness(0.6)" : undefined,
-              }}
-              title={bgmMuted ? "BGM 켜기" : "BGM 끄기"}
-            >
-              <img
-                src={`${ASSET_BASE}/assets/002/audio.webp`}
-                alt="BGM"
-                style={{ width: "4.43cqw", height: "4.43cqw", imageRendering: "pixelated" }}
-              />
-            </button>
           </div>
         </div>
       </div>
 
-      {/* --- 상단 바 아래 debug 버튼 --- */}
-      <div className="w-full flex justify-end pointer-events-auto" style={{ paddingRight: "1.0cqw", paddingTop: "0.5cqw" }}>
+      {/* --- 상단 바 아래 BGM + debug 버튼 --- */}
+      <div className="w-full flex justify-end pointer-events-auto" style={{ paddingRight: "1.0cqw", paddingTop: "0.5cqw", gap: "0.5cqw" }}>
+        {/* BGM 토글 버튼 */}
+        <button
+          onClick={() => setBgmMuted(toggleBgm())}
+          className="relative flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110"
+          style={{
+            width: "4cqw",
+            height: "4cqw",
+            backgroundImage: `url('${ASSET_BASE}/assets/002/upperButton_002.webp')`,
+            backgroundSize: "100% 100%",
+            filter: bgmMuted ? "brightness(0.6)" : undefined,
+          }}
+          title={bgmMuted ? "BGM 켜기" : "BGM 끄기"}
+        >
+          <img
+            src={`${ASSET_BASE}/assets/002/audio.webp`}
+            alt="BGM"
+            style={{ width: "4.43cqw", height: "4.43cqw", imageRendering: "pixelated" }}
+          />
+        </button>
+        {/* Debug 토글 버튼 */}
         <button
           onClick={toggleBugs}
           className="relative flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110"

@@ -228,8 +228,6 @@ export const useGameStore = create<GameState>()(
   }),
   // BE deskId(1-5) → store quest id(0-4)로 매핑해 IN_PROGRESS/COMPLETED 동기화
   syncActiveQuests: (activeDesks) => set((state) => {
-    // 빈 배열이면 API 오류/타이밍 문제 가능성 → stale 정리 없이 현 상태 유지
-    if (activeDesks.length === 0) return state;
     // BE가 timezone 없이 반환하는 날짜 문자열을 UTC ISO로 정규화
     // "2026-03-19 15:23:49.837" → "2026-03-19T15:23:49.837Z"
     const toUtcIso = (s: string) =>

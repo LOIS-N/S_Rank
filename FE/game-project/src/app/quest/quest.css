@@ -526,6 +526,36 @@
   color: #111;
 }
 
+/* 정렬 버튼 (스킬 필터 select와 동일 크기) */
+.cardlist-filter-btn {
+  appearance: none;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  padding: 6px 12px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+  outline: none;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.cardlist-filter-btn:hover {
+  background-color: #d0d0d0;
+  transform: scale(1.05);
+}
+
+.cardlist-filter-btn.active {
+  background-color: #ffd700;
+  border-color: #b8960f;
+  color: #2a2a40;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5), inset 0 0 6px rgba(255, 215, 0, 0.3);
+}
+
 .phase2-left-box {
   flex: 1;
   display: flex;
@@ -936,7 +966,8 @@
 }
 
 .phase2-btn-cancel,
-.phase2-btn-accept {
+.phase2-btn-accept,
+.phase2-btn-auto {
   flex: 1;
   display: flex;
   cursor: pointer;
@@ -947,21 +978,32 @@
   transition: transform 0.15s ease, filter 0.15s ease;
 }
 
+.phase2-btn-auto {
+  filter: hue-rotate(200deg) brightness(1.05);
+}
+
 /* 버튼 내부 텍스트 완전 중앙 정렬 */
 .phase2-btn-cancel .nineslice-content,
-.phase2-btn-accept .nineslice-content {
+.phase2-btn-accept .nineslice-content,
+.phase2-btn-auto .nineslice-content {
   justify-content: center;
   align-items: center;
 }
 
 .phase2-btn-cancel:hover,
-.phase2-btn-accept:hover {
+.phase2-btn-accept:hover,
+.phase2-btn-auto:hover {
   transform: scale(1.02);
   filter: brightness(1.1);
 }
 
+.phase2-btn-auto:hover {
+  filter: hue-rotate(200deg) brightness(1.15);
+}
+
 .phase2-btn-cancel:active,
-.phase2-btn-accept:active {
+.phase2-btn-accept:active,
+.phase2-btn-auto:active {
   transform: scale(0.98);
   filter: brightness(0.95);
 }

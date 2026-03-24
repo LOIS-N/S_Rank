@@ -99,6 +99,28 @@ function normalizeSkillType(type: string): string {
   return upper === 'DEV' || upper === 'DEVOPS' ? 'DEVOPS' : upper;
 }
 
+function getCardStatForTypeSort(card: CardListItem, type: string): number {
+  const norm = normalizeSkillType(type);
+  let total = 0;
+  if (normalizeSkillType(card.skill1.skillType) === norm) total += card.skill1.value;
+  if (normalizeSkillType(card.skill2.skillType) === norm) total += card.skill2.value;
+  if (normalizeSkillType(card.skill3.skillType) === norm) total += card.skill3.value;
+  return total;
+}
+
+// filter='ALL' → 총합 기준, filter=스킬 → 해당 스킬 스탯 기준 정렬
+function sortCardsByFilter(cards: CardListItem[], filter: string, order: 'desc' | 'asc'): CardListItem[] {
+  return [...cards].sort((a, b) => {
+    const valA = filter === 'ALL'
+      ? a.skill1.value + a.skill2.value + a.skill3.value
+      : getCardStatForTypeSort(a, filter);
+    const valB = filter === 'ALL'
+      ? b.skill1.value + b.skill2.value + b.skill3.value
+      : getCardStatForTypeSort(b, filter);
+    return order === 'desc' ? valB - valA : valA - valB;
+  });
+}
+
 function sortCardsByGradeAndStat(cards: CardListItem[]): CardListItem[] {
   return [...cards].sort((a, b) => {
     const gradeA = GRADE_ORDER[a.grade] ?? 99;
@@ -211,7 +233,7 @@ function QuestCard({
 }
 
 // --- 퀘스트 상세 정보 컴포넌트 ---
-function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { quest: Quest | null; isAccepting: boolean; isInProgress?: boolean; onAccept: () => void }) {
+function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = false, onAccept }: { quest: Quest | null; isAccepting: boolean; isInProgress?: boolean; isAllBusy?: boolean; onAccept: () => void }) {
   if (!quest) {
     return (
       <div className="quest-detail-panel">
@@ -264,10 +286,10 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, onAccept }: { q
         borderScale={0.35}
         className="quest-accept-button"
         onClick={onAccept}
-        style={isInProgress ? { filter: 'brightness(0.65)', cursor: 'default' } : undefined}
+        style={(isInProgress || isAllBusy) ? { filter: 'brightness(0.65)', cursor: 'default' } : undefined}
       >
         <span style={{ position: 'relative', zIndex: 2 }}>
-          {isAccepting ? "수락 중..." : isInProgress ? "진행 중" : "수락하기"}
+          {isAccepting ? "수락 중..." : isInProgress ? "진행 중" : isAllBusy ? "근무 중" : "수락하기"}
         </span>
       </NineSliceBox>
     </NineSliceBox>
@@ -292,6 +314,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
   // --- 필터 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // --- BE 책상 템플릿 ID 매핑 ---
   const [beDeskTemplateId, setBeDeskTemplateId] = useState<number | null>(null);
@@ -366,8 +389,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [capacitySort]);
 
-  // 등급순 → 같은 등급 내 총합 능력치 내림차순 정렬
-  const sortedCards = useMemo(() => sortCardsByGradeAndStat(cards), [cards]);
+  // 선택된 필터 스탯 기준 오름/내림차순 정렬 (자동선택은 항상 등급+총합 기준 별도 정렬)
+  const sortedCards = useMemo(() => sortCardsByFilter(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
+  const gradeOrderedCards = useMemo(() => sortCardsByGradeAndStat(cards), [cards]);
 
   // --- 사용 중인 카드 ---
   const [usedCardIds, setUsedCardIds] = useState<number[]>([]);
@@ -553,6 +577,60 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     const reward = Math.round(quest.rewardGold * multiplier);
     return { ratio: r, multiplier, reward };
   }, [quest, requirements, selectedCardData, getStatTotal]);
+
+  // --- 자동 선택: 요구 스탯 50% 이상 충족하는 최소 카드 조합 그리디 선택 ---
+  const handleAutoSelect = useCallback(() => {
+    if (!quest || requirements.length === 0) return;
+
+    const getCardStat = (card: CardListItem, type: string): number => {
+      const norm = normalizeSkillType(type);
+      let total = 0;
+      if (normalizeSkillType(card.skill1.skillType) === norm) total += card.skill1.value;
+      if (normalizeSkillType(card.skill2.skillType) === norm) total += card.skill2.value;
+      if (normalizeSkillType(card.skill3.skillType) === norm) total += card.skill3.value;
+      return total;
+    };
+
+    const available = gradeOrderedCards.filter(c => !usedCardIds.includes(c.cardId));
+    const minCards = Math.min(3, quest.cardSlotCount);
+    const maxCards = quest.cardSlotCount;
+    const needs = requirements.map(r => ({ type: r.type, needed: r.value * 0.5, current: 0 }));
+    const autoSelected: number[] = [];
+    const usedInAuto = new Set<number>();
+
+    while (autoSelected.length < maxCards) {
+      let bestCard: CardListItem | null = null;
+      let bestScore = -1;
+
+      for (const card of available) {
+        if (usedInAuto.has(card.cardId)) continue;
+        // 미충족 needs에 대한 기여도 (초과분 제외)
+        const needScore = needs.reduce((s, need) => {
+          const stat = getCardStat(card, need.type);
+          return s + Math.min(stat, Math.max(0, need.needed - need.current));
+        }, 0);
+        // 전체 스탯 합산 (동점 tiebreaker)
+        const totalStat = requirements.reduce((s, r) => s + getCardStat(card, r.type), 0);
+        const score = needScore * 100 + totalStat;
+        if (score > bestScore) { bestScore = score; bestCard = card; }
+      }
+
+      if (!bestCard) break;
+
+      autoSelected.push(bestCard.cardId);
+      usedInAuto.add(bestCard.cardId);
+      for (const need of needs) {
+        need.current += getCardStat(bestCard, need.type);
+      }
+
+      const allMet = needs.every(n => n.current >= n.needed);
+      if (allMet && autoSelected.length >= minCards) break;
+    }
+
+    setSelectedCards(autoSelected);
+    setWarningMessage(null);
+    setHardcapMessage(null);
+  }, [quest, requirements, sortedCards, usedCardIds]);
 
   // --- 카드 선택 (cardSlotCount 제한) ---
   const handleCardClick = (id: number) => {
@@ -782,7 +860,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
       {/* ──── 좌측: 카드 목록 (card-list 레이아웃 통일) ──── */}
       <div className="phase2-left-col">
-        {/* 스킬 필터 드롭다운 */}
+        {/* 스킬 필터 드롭다운 + 정렬 버튼 */}
         <div className="quest-filters">
           <div className="quest-select-wrapper">
             <select
@@ -795,6 +873,16 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
               ))}
             </select>
           </div>
+          <button
+            className={`cardlist-filter-btn${sortOrder === 'desc' ? ' active' : ''}`}
+            onClick={() => setSortOrder('desc')}
+            title="능력치 내림차순"
+          >▼ 내림차순</button>
+          <button
+            className={`cardlist-filter-btn${sortOrder === 'asc' ? ' active' : ''}`}
+            onClick={() => setSortOrder('asc')}
+            title="능력치 오름차순"
+          >▲ 오름차순</button>
         </div>
 
         <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
@@ -980,7 +1068,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
           </NineSliceBox>
         </div>
 
-        {/* 수락하기 / 취소하기 버튼 */}
+        {/* 취소하기 / 자동 선택 / 수락하기 버튼 */}
         <div className="phase2-action-buttons">
           <NineSliceBox
             src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
@@ -991,6 +1079,17 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
             onClick={onCancel}
           >
             <span style={{ position: 'relative', zIndex: 2 }}>취소하기</span>
+          </NineSliceBox>
+
+          <NineSliceBox
+            src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
+            slice={[200, 208, 200, 208]}
+            framePadding={14}
+            borderScale={0.4}
+            className="phase2-btn-auto"
+            onClick={handleAutoSelect}
+          >
+            <span style={{ position: 'relative', zIndex: 2 }}>자동 선택</span>
           </NineSliceBox>
 
           <NineSliceBox
@@ -1031,6 +1130,11 @@ export default function QuestPage() {
       .map(q => q.title as string)
   );
 
+  // 해금된 데스크 중 수행 가능한 슬롯이 있는지 확인
+  const allDesksBusy = storeQuests
+    .filter(q => !q.isLocked)
+    .every(q => q.status === 'IN_PROGRESS' || q.status === 'COMPLETED');
+
   const [phase, setPhase] = useState<'select' | 'placement'>('select');
   const [mainQuest, setMainQuest] = useState<Quest | null>(null);
   const [subQuests, setSubQuests] = useState<Quest[]>([]);
@@ -1039,6 +1143,7 @@ export default function QuestPage() {
   const [chapterNumber, setChapterNumber] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [showInProgressModal, setShowInProgressModal] = useState(false);
+  const [showAllBusyModal, setShowAllBusyModal] = useState(false);
 
   // --- 인증 토큰 가져오기 ---
   const getAuthToken = useCallback(async () => {
@@ -1128,13 +1233,18 @@ export default function QuestPage() {
   // --- 퀘스트 수락 ---
   const handleAcceptQuest = useCallback(() => {
     if (!selectedQuest) return;
+    // 모든 데스크 사용 중
+    if (allDesksBusy) {
+      setShowAllBusyModal(true);
+      return;
+    }
     // 이미 진행 중인 퀘스트면 모달 표시 (questId 또는 title 일치)
     if (activeQuestIds.has(selectedQuest.questId) || activeQuestTitles.has(selectedQuest.title)) {
       setShowInProgressModal(true);
       return;
     }
     setPhase('placement');
-  }, [selectedQuest, activeQuestIds, activeQuestTitles]);
+  }, [selectedQuest, activeQuestIds, activeQuestTitles, allDesksBusy]);
 
   // --- 서브 퀘스트 새로고침 ---
   const refreshSubQuests = useCallback(async () => {
@@ -1407,6 +1517,7 @@ export default function QuestPage() {
             quest={selectedQuest}
             isAccepting={false}
             isInProgress={selectedQuest ? (activeQuestIds.has(selectedQuest.questId) || activeQuestTitles.has(selectedQuest.title)) : false}
+            isAllBusy={allDesksBusy}
             onAccept={handleAcceptQuest}
           />
         </div>
@@ -1424,6 +1535,22 @@ export default function QuestPage() {
             <p className="text-xl mb-6 font-bold text-slate-800">현재 진행 중인 퀘스트입니다.</p>
             <button
               onClick={() => setShowInProgressModal(false)}
+              className="px-8 py-2 bg-[#ffcc00] text-black border-b-2 border-r-2 border-[#cc9900] active:border-0 active:translate-y-0.5 transition-all text-xl font-bold"
+            >
+              확인
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ──── 모든 직원 근무 중 모달 ──── */}
+      {showAllBusyModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 font-dot pointer-events-auto">
+          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-8 text-center max-w-sm shadow-[4px_4px_0px_#4a5d73]">
+            <p className="text-xl mb-6 font-bold text-slate-800">현재 모든 직원들이 근무 중입니다.</p>
+            <button
+              onClick={() => setShowAllBusyModal(false)}
               className="px-8 py-2 bg-[#ffcc00] text-black border-b-2 border-r-2 border-[#cc9900] active:border-0 active:translate-y-0.5 transition-all text-xl font-bold"
             >
               확인

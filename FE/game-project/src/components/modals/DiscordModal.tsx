@@ -21,7 +21,7 @@ export default function DiscordModal({ onClose }: DiscordModalProps) {
 
         <div className="flex flex-col gap-4">
           <a
-            href="https://discord.gg/f5YHBnyZ"
+            href="https://discord.gg/vVtweyat"
             target="_blank"
             rel="noopener noreferrer"
             onClick={onClose}
