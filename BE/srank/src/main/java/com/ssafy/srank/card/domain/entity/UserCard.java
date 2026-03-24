@@ -136,6 +136,8 @@ public class UserCard extends SoftDeleteEntity {
                 new CardSkillResponse(stat1.getSkillType(), stat1.getTotalValue()),
                 new CardSkillResponse(stat2.getSkillType(), stat2.getTotalValue()),
                 new CardSkillResponse(stat3.getSkillType(), stat3.getTotalValue()),
+                enhanceTryCount,
+                enhanceSuccessCount,
                 specialAbility
         );
     }
