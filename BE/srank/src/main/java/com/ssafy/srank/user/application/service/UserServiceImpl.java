@@ -10,6 +10,7 @@ import com.ssafy.srank.log.domain.enums.AuthLogEventType;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.user.application.dto.request.UpdateNicknameRequest;
 import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
+import com.ssafy.srank.user.application.dto.response.MyGachaInfo;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,9 @@ public class UserServiceImpl implements UserService {
     public MyInfoResponse getMyInfo(Long userId) {
         return MyInfoResponse.from(getActiveUser(userId));
     }
+
+    @Override
+    public MyGachaInfo getMyGachaInfo(Long userId) { return MyGachaInfo.from(getActiveUser(userId)); }
 
     @Override
     @Transactional

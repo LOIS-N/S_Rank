@@ -1,6 +1,7 @@
 package com.ssafy.srank.card.application.service;
 
 import com.ssafy.srank.card.application.dto.response.*;
+import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.domain.entity.SpecialSkillTemplate;
 import com.ssafy.srank.card.domain.enums.PositionType;
 import com.ssafy.srank.card.domain.enums.SortType;
@@ -87,6 +88,16 @@ public class UserCardServiceImpl implements UserCardService {
         if (count != cards.size()) {
             throw new BusinessException(ErrorCode.CARD_NOT_FOUND);
         }
+    }
+
+    @Override
+    public long countActiveCards(Long userId) {
+        return userCardRepository.countActiveByUserId(userId);
+    }
+
+    @Override
+    public List<UserCard> saveUserCards(List<UserCard> userCards) {
+        return userCardRepository.saveAll(userCards);
     }
 
     // ── specialAbility 변환 ───────────────────────────────────────────────────
