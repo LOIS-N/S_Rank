@@ -9,8 +9,8 @@ import java.util.List;
 
 public interface QuestFacadeService {
     List<InProcessQuestResponse> getInProcessQuestList(Long userId);
-    void startMainQuest(Long userId, Long questId, MainQuestRequest request);
-    void startSubQuest(Long userId, Long questId, SubQuestRequest request);
+    Long startMainQuest(Long userId, Long questId, MainQuestRequest request);
+    Long startSubQuest(Long userId, Long questId, SubQuestRequest request);
     void claimReward(Long userId, CompleteQuestRequest request);
     List<Long> getUsedUserCardList(Long userId);
     void completeQuest(Long userId, Long questId, String type);

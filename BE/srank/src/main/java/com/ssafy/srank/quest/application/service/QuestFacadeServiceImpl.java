@@ -58,7 +58,7 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
 
     @Transactional
     @Override
-    public void startMainQuest(Long userId, Long questTemplateId, MainQuestRequest request) {
+    public Long startMainQuest(Long userId, Long questTemplateId, MainQuestRequest request) {
         //Start 검증
         validateCardCount(request.cardIds()); //카드 수
         validateCards(userId, request.cardIds()); //보유 카드
@@ -79,11 +79,13 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         //레디스 TTL 저장
         String key = "quest:%d:%d:%s".formatted(userId, mainQuest.getId(), "main");
         redisTemplate.opsForValue().set(key,"1", request.duration(), TimeUnit.SECONDS);
+
+        return mainQuest.getId();
     }
 
     @Transactional
     @Override
-    public void startSubQuest(Long userId, Long questTemplateId, SubQuestRequest request) {
+    public Long startSubQuest(Long userId, Long questTemplateId, SubQuestRequest request) {
         //Start 검증
         validateCardCount(request.cardIds()); //카드 수
         validateCards(userId, request.cardIds()); //보유 카드
@@ -104,6 +106,8 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         //레디스 TTL 저장
         String key = "quest:%d:%d:%s".formatted(userId, subQuest.getId(), "sub");
         redisTemplate.opsForValue().set(key,"1",request.duration(), TimeUnit.SECONDS);
+
+        return subQuest.getId();
     }
 
     @Transactional

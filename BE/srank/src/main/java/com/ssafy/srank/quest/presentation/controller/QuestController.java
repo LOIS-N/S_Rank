@@ -68,25 +68,22 @@ public class QuestController {
     }
 
     @PostMapping("/main/{questId}/start")
-    public ResponseEntity<ApiResponse<Void>> startMainQuest(
+    public ResponseEntity<ApiResponse<Long>> startMainQuest(
             @PathVariable Long questId,
             @RequestBody MainQuestRequest request
             ){
         Long userId = SecurityUtil.getCurrentUserId();
-        service.startMainQuest(userId,questId, request);
-        return ResponseEntity.ok(ApiResponse.success());
+        return ResponseEntity.ok(ApiResponse.success(service.startMainQuest(userId,questId, request)));
     }
 
     @PostMapping("/sub/{questId}/start")
-    public ResponseEntity<ApiResponse<Void>> startSubQuest(
+    public ResponseEntity<ApiResponse<Long>> startSubQuest(
             @PathVariable Long questId,
             @RequestBody SubQuestRequest request
     ){
         Long userId = SecurityUtil.getCurrentUserId();
-        service.startSubQuest(userId,questId, request);
-        return ResponseEntity.ok(ApiResponse.success());
+        return ResponseEntity.ok(ApiResponse.success(service.startSubQuest(userId,questId, request)));
     }
-
 
     @Operation(summary = "퀘스트 보상 수령", description = "퀘스트 완료 후 보상을 수령합니다.")
     @PostMapping("/complete")
