@@ -71,7 +71,7 @@ public class UserCardServiceImpl implements UserCardService {
 
         String nextCursor = hasMore ? encodeCursor(page.get(page.size() - 1)) : null;
 
-        return new CursorPageResponse<>(cards, nextCursor, hasMore);
+        return new CursorPageResponse<>(cards, nextCursor, hasMore, cards.size());
     }
 
     @Transactional(readOnly = true)

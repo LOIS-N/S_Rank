@@ -5,5 +5,6 @@ import java.util.List;
 public record CursorPageResponse<T>(
         List<T> cards,
         String nextCursor,
-        boolean hasMore
+        boolean hasMore,
+        int totalCnt
 ) {}
