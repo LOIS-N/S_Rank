@@ -13,7 +13,6 @@ interface BeforeInstallPromptEvent extends Event {
 export default function PWAInstallModal() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
-  const [platform, setPlatform] = useState<"android" | "ios" | null>(null);
   const [portalTarget, setPortalTarget] = useState<Element | null>(null);
   const pathname = usePathname();
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
@@ -60,15 +59,12 @@ export default function PWAInstallModal() {
     const hideUntil = localStorage.getItem("pwa-modal-hide-until");
     if (hideUntil && Date.now() < Number(hideUntil)) return;
 
-    // 모바일 기기만
+    // Android 기기만
     const ua = navigator.userAgent;
-    const isIOS = /iphone|ipad|ipod/i.test(ua) &&
-      !(window.navigator as Navigator & { standalone?: boolean }).standalone;
+    const isIOS = /iphone|ipad|ipod/i.test(ua);
     const isAndroid = /android/i.test(ua);
 
-    if (!isIOS && !isAndroid) return;
-
-    setPlatform(isIOS ? "ios" : "android");
+    if (isIOS || !isAndroid) return;
 
     const timer = setTimeout(() => setVisible(true), 1500);
     return () => clearTimeout(timer);
@@ -91,11 +87,9 @@ export default function PWAInstallModal() {
 
   if (!visible || !portalTarget) return null;
 
-  const guideText = platform === "ios"
-    ? <>Safari 공유(□↑) → <span className="text-[#3a5a8a] font-bold">홈 화면에 추가</span></>
-    : deferredPrompt
-      ? <>아래 버튼으로 홈 화면에 추가하세요</>
-      : <>Chrome 메뉴(⋮) → <span className="text-[#3a5a8a] font-bold">홈 화면에 추가</span></>;
+  const guideText = deferredPrompt
+    ? <>아래 버튼으로 홈 화면에 추가하세요</>
+    : <>Chrome 메뉴(⋮) → <span className="text-[#3a5a8a] font-bold">홈 화면에 추가</span></>;
 
   return createPortal(
     <div className="fixed top-0 left-0 right-0 z-[99999] font-dot font-bold pointer-events-auto
@@ -117,7 +111,7 @@ export default function PWAInstallModal() {
 
       {/* 버튼 영역 */}
       <div className="flex gap-2 flex-shrink-0">
-        {platform === "android" && deferredPrompt && (
+        {deferredPrompt && (
           <button
             onClick={handleInstall}
             className="px-3 py-1 text-xs bg-[#ffcc00] text-black border-b-2 border-r-2 border-[#cc9900] active:border-0 active:translate-y-0.5 transition-all whitespace-nowrap"
