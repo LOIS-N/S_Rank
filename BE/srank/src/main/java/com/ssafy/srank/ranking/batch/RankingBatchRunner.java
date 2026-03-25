@@ -23,7 +23,7 @@ public class RankingBatchRunner {
     @Value("${app.ranking.batch.runner-enabled:true}")
     private boolean runnerEnabled;
 
-    @Scheduled(cron = "0 */3 * * * *")
+    @Scheduled(cron = "0 0 * * * *")
     public void runScheduledJob() {
         // 테스트 환경에서는 스케줄러가 자동 실행되지 않도록 토글로 막는다.
         if (!runnerEnabled) {
