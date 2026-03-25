@@ -91,6 +91,7 @@ interface CardListItem {
   skill2: CardSkill;
   skill3: CardSkill;
   specialAbility: { name: string; description: string; effects: string } | null;
+  enhanceSuccessCount: number;
 }
 
 // --- 스킬 필터 옵션 ---
@@ -626,6 +627,11 @@ export default function SynthesisPage() {
                         onClick={() => !isDisabled && handleCardClick(card.cardId)}
                       >
                         <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
+                        {card.enhanceSuccessCount > 0 && (
+                          <span className="card-enhance-badge" data-level={String(card.enhanceSuccessCount)} data-grade={card.grade}>
+                            <span className="badge-plus">+</span><span className="badge-num">{card.enhanceSuccessCount}</span>
+                          </span>
+                        )}
                         <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                         <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                         <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
