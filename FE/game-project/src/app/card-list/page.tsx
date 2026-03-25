@@ -130,6 +130,7 @@ export default function CardListPage() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [totalCnt, setTotalCnt] = useState<number | null>(null);
 
   // --- 선택 / 상세 상태 ---
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
@@ -166,6 +167,7 @@ export default function CardListPage() {
         setCards(prev => cursor ? [...prev, ...newCards] : newCards);
         setNextCursor(json.data.nextCursor || null);
         setHasMore(json.data.hasMore);
+        if (json.data.totalCnt !== undefined) setTotalCnt(json.data.totalCnt);
 
         // 첫 로드 시 첫 번째 카드 자동 선택
         if (!cursor && newCards.length > 0) {
@@ -224,6 +226,7 @@ export default function CardListPage() {
   const swipeVelocityRef = useRef(0);
   const swipeLastTimeRef = useRef(0);
   const momentumAnimRef = useRef<number | null>(null);
+  const pendingScrollPxRef = useRef<number | null>(null);
 
   // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
   const maxScroll = Math.max(0, gridHeight - wrapperHeight);
@@ -232,6 +235,7 @@ export default function CardListPage() {
   // --- 스크롤 하단 도달 시 다음 페이지 로드 ---
   useEffect(() => {
     if (scrollRatio > 0.9 && hasMore && !isLoading && nextCursor) {
+      pendingScrollPxRef.current = scrollRatio * maxScroll;
       fetchCards(nextCursor);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -255,8 +259,17 @@ export default function CardListPage() {
   useEffect(() => {
     const measure = () => {
       if (trackRef.current) setTrackHeight(trackRef.current.clientHeight);
-      if (wrapperRef.current) setWrapperHeight(wrapperRef.current.clientHeight);
-      if (gridRef.current) setGridHeight(gridRef.current.scrollHeight);
+      const newWrapperH = wrapperRef.current?.clientHeight ?? 0;
+      if (wrapperRef.current) setWrapperHeight(newWrapperH);
+      const newGridH = gridRef.current?.scrollHeight ?? 0;
+      if (gridRef.current) {
+        setGridHeight(newGridH);
+        if (pendingScrollPxRef.current !== null) {
+          const newMaxScroll = Math.max(0, newGridH - newWrapperH);
+          if (newMaxScroll > 0) setScrollRatio(Math.min(1, pendingScrollPxRef.current / newMaxScroll));
+          pendingScrollPxRef.current = null;
+        }
+      }
     };
     measure();
     window.addEventListener('resize', measure);
@@ -354,6 +367,9 @@ export default function CardListPage() {
               onClick={() => setSortOrder('asc')}
               title="능력치 오름차순"
             >▲ 오름차순</button>
+            {totalCnt !== null && (
+              <span className="cardlist-total-cnt">{totalCnt} / 200</span>
+            )}
           </div>
 
           {/* 카드 리스트 박스 */}
