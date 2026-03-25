@@ -91,6 +91,8 @@ interface CardListItem {
   skill1: CardSkill;
   skill2: CardSkill;
   skill3: CardSkill;
+  enhanceTryCount: number;
+  enhanceSuccessCount: number;
   specialAbility: { name: string; description: string; effects: string } | null;
 }
 
@@ -233,7 +235,7 @@ export default function EnhancePage() {
   const currentEnhancement = selectedCardId ? localEnhancements[selectedCardId] : null;
 
   const displayEnhanceLevel = currentEnhancement ? currentEnhancement.enhanceLevel : (selectedDetail?.enhanceLevel || 0);
-  const displayEnhanceTries = currentEnhancement ? currentEnhancement.enhanceTries : (selectedDetail?.enhanceTries || 0);
+  const displayEnhanceTries = currentEnhancement ? currentEnhancement.enhanceTries : (selectedListCard?.enhanceTryCount || 0);
 
   const displaySkill1 = selectedListCard ? selectedListCard.skill1.value + (currentEnhancement?.addedStats.skill1 || 0) : 0;
   const displaySkill2 = selectedListCard ? selectedListCard.skill2.value + (currentEnhancement?.addedStats.skill2 || 0) : 0;
@@ -377,7 +379,7 @@ export default function EnhancePage() {
       });
       setIsAnimating(true);
     } catch (err: any) {
-      const errCode = err?.response?.data?.code;
+      const errCode = err?.response?.data?.error?.code ?? err?.response?.data?.code;
       const errMsg = err?.response?.data?.message
         ?? (errCode === 'C008' || errCode === 'EN001' ? '강화 횟수를 초과했습니다.'
           : errCode === 'U003' || errCode === 'GD002' ? '골드가 부족합니다.'

@@ -72,6 +72,8 @@ export default function RootLayout({
               </AuthProvider>
             </PrivyProviderWrapper>
           </div>
+          {/* 포털 루트: game-wrapper transform 영향 없이 position:fixed 사용 가능 */}
+          <div id="portal-root" />
         </div>
       </body>
     </html>
