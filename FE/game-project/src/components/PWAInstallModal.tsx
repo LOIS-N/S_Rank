@@ -101,6 +101,7 @@ export default function PWAInstallModal() {
         src="/assets/icons/icon-192.png"
         alt="앱 아이콘"
         className="w-8 h-8 rounded-lg border-2 border-[#6b859e] flex-shrink-0"
+        style={{ imageRendering: "auto" }}
       />
 
       {/* 텍스트 */}
