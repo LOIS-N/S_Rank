@@ -81,7 +81,6 @@ public class UserCard extends SoftDeleteEntity {
     }
 
     public void applyEnhanceSuccess(int value) {
-        validateEnhancePossible();
 
         this.enhanceTryCount++;
         this.enhanceSuccessCount++;
@@ -93,7 +92,6 @@ public class UserCard extends SoftDeleteEntity {
     }
 
     public void applyEnhanceFail() {
-        validateEnhancePossible();
         this.enhanceTryCount++;
     }
 
@@ -102,15 +100,6 @@ public class UserCard extends SoftDeleteEntity {
             throw new BusinessException(ErrorCode.CARD_DELETED);
         }
         softDelete(now);
-    }
-
-    private void validateEnhancePossible() {
-        if (isDeleted()) {
-            throw new BusinessException(ErrorCode.CARD_CANNOT_ENHANCE_DELETED);
-        }
-        if (enhanceTryCount >= MAX_ENHANCE_TRY_COUNT) {
-            throw new BusinessException(ErrorCode.CARD_ENHANCE_TRY_EXCEEDED);
-        }
     }
 
     public UserCardResponse toResponse() {
