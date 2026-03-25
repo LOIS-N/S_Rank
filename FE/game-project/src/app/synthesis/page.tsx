@@ -121,6 +121,8 @@ function sortCards(cards: CardListItem[], filter: string, order: 'desc' | 'asc')
 export default function SynthesisPage() {
   const { getAccessToken } = usePrivy();
   const { accessToken, gold, increaseGold, tutorialQuestStep } = useGameStore();
+  const [synthArrowDismissed, setSynthArrowDismissed] = useState(false);
+  useEffect(() => { setSynthArrowDismissed(false); }, [tutorialQuestStep]);
 
   // --- 카드 목록 상태 ---
   const [cards, setCards] = useState<CardListItem[]>([]);
@@ -571,16 +573,17 @@ export default function SynthesisPage() {
 
           {/* 카드 리스트 박스 */}
           {tutorialQuestStep === 41 && selectedCards.length < minSlots && (
-            <img
-              src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
-              alt=""
-              className="tutorial-arrow-y"
-              style={{
-                display: 'block', margin: '0 auto 0.5cqw',
-                height: '4.7cqw', width: 'auto',
-                imageRendering: 'pixelated', pointerEvents: 'none',
-              }}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '0.5cqw' }}>
+              <img
+                src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+                alt=""
+                className="tutorial-arrow-y"
+                style={{ display: 'block', height: '4.7cqw', width: 'auto', imageRendering: 'pixelated', pointerEvents: 'none' }}
+              />
+              <span style={{ color: '#ffd700', fontSize: '1.3cqw', fontWeight: 'bold', textShadow: '1px 1px 0 #000', whiteSpace: 'nowrap' }}>
+                {minSlots}장 선택하세요
+              </span>
+            </div>
           )}
           <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
             {toastMsg && (
@@ -794,7 +797,7 @@ export default function SynthesisPage() {
                       <span style={{ position: 'relative', zIndex: 2 }}>초기화</span>
                     </NineSliceBox>
                     <div style={{ position: 'relative' }}>
-                      {tutorialQuestStep === 41 && selectedCards.length >= minSlots && (
+                      {tutorialQuestStep === 41 && selectedCards.length >= minSlots && !synthArrowDismissed && (
                         <img
                           src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
                           alt=""
@@ -813,7 +816,7 @@ export default function SynthesisPage() {
                         framePadding={14}
                         borderScale={0.4}
                         className={`synthesis-btn-accept ${selectedCards.length < minSlots || isSynthesizing ? 'disabled' : ''}`}
-                        onClick={handleSynthesize}
+                        onClick={() => { setSynthArrowDismissed(true); handleSynthesize(); }}
                       >
                         <span style={{ position: 'relative', zIndex: 2 }}>합성하기</span>
                       </NineSliceBox>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
 
@@ -10,9 +11,11 @@ const SUB_PAGES = ["/quest", "/gacha", "/card-list", "/enhance", "/synthesis", "
 
 
 export default function BottomNavBar() {
-  const { gameStatus, openComingSoonModal, tutorialActive, tutorialAccessPage } = useGameStore();
+  const { gameStatus, openComingSoonModal, tutorialActive, tutorialAccessPage, quests, tutorialQuestStep } = useGameStore();
   const router = useRouter();
   const pathname = usePathname();
+  const [arrowDismissed, setArrowDismissed] = useState(false);
+  useEffect(() => { setArrowDismissed(false); }, [tutorialAccessPage]);
 
   const isSubPage = SUB_PAGES.includes(pathname);
 
@@ -29,10 +32,13 @@ export default function BottomNavBar() {
     tutorialAccessPage === 'synthesis' ? '합성' :
     null;
 
+  // 튜토리얼 퀘스트 진행 중(타이머 카운트 중)이면 퀘스트 페이지 진입 차단
+  const isTutorialQuestRunning = tutorialQuestStep !== null && quests[0]?.status === 'IN_PROGRESS';
+
   const menuItems = [
     { name: "카드 목록", disabled: tutorialAllowedName ? tutorialAllowedName !== "카드 목록" : false },
-    { name: "퀘스트",   disabled: tutorialAllowedName ? tutorialAllowedName !== "퀘스트"   : false },
-    { name: "메인",     disabled: tutorialAllowedName ? true : false },
+    { name: "퀘스트",   disabled: tutorialAllowedName ? tutorialAllowedName !== "퀘스트" : isTutorialQuestRunning },
+    { name: "메인",     disabled: false },
     { name: "뽑기",     disabled: tutorialAllowedName ? tutorialAllowedName !== "뽑기"     : false },
     { name: "강화",     disabled: tutorialAllowedName ? tutorialAllowedName !== "강화"     : false },
     { name: "합성",     disabled: tutorialAllowedName ? tutorialAllowedName !== "합성"     : false },
@@ -79,7 +85,7 @@ export default function BottomNavBar() {
   return (
     <div className="absolute left-0 w-full z-[80] pointer-events-none overflow-visible" style={{ bottom: "var(--game-clip-y, 0px)" }}>
       {/* 튜토리얼 화살표 — overflow-x-hidden 컨테이너 밖에서 렌더링 */}
-      {tutorialAllowedName && arrowIdx >= 0 && (
+      {tutorialAllowedName && arrowIdx >= 0 && !arrowDismissed && activeItem !== tutorialAllowedName && (
         <img
           src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
           alt=""
@@ -108,7 +114,7 @@ export default function BottomNavBar() {
             {menuItems.map((item) => (
               <button
                 key={item.name}
-                onClick={() => handleMenuClick(item.name, item.disabled)}
+                onClick={() => { if (tutorialAllowedName && item.name === tutorialAllowedName) setArrowDismissed(true); handleMenuClick(item.name, item.disabled); }}
                 className="flex items-center justify-center text-black font-bold drop-shadow-md hover:brightness-110 flex-shrink-0"
                 style={{
                   width: "12.5cqw",

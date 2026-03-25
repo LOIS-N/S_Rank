@@ -49,6 +49,7 @@ export default function MainHUD() {
     tutorialActive, setTutorialActive,
     tutorialQuestStep, setTutorialQuestStep,
     setTutorialGachaCount, setTutorialScriptId,
+    quests,
   } = useGameStore();
   const { accessToken } = useUserStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -320,6 +321,26 @@ export default function MainHUD() {
       )}
 
       <div className="flex-1" />
+
+      {/* ── 튜토리얼 result 화살표: 퀘스트 완료 후 책상 결과 아이콘 안내 ── */}
+      {tutorialQuestStep !== null && [2, 32, 42].includes(tutorialQuestStep) && quests[0]?.status === 'COMPLETED' && (
+        <img
+          src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+          alt=""
+          className="tutorial-arrow-y"
+          style={{
+            position: 'absolute',
+            top: '24cqw',
+            left: '56.5cqw',
+            transform: 'translateX(-50%)',
+            height: '4.7cqw',
+            width: 'auto',
+            imageRendering: 'pixelated',
+            pointerEvents: 'none',
+            zIndex: 50,
+          }}
+        />
+      )}
 
       {/* ── 튜토리얼 스토리 오버레이 ── */}
       {tutorialActive && (

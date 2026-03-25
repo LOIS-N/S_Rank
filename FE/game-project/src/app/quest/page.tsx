@@ -244,8 +244,13 @@ function QuestCard({
 
 // --- 퀘스트 상세 정보 컴포넌트 ---
 function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = false, onAccept }: { quest: Quest | null; isAccepting: boolean; isInProgress?: boolean; isAllBusy?: boolean; onAccept: () => void }) {
-  const { tutorialQuestStep: tqStep } = useGameStore();
-  const showTutorialArrow = tqStep !== null && quest !== null && !isInProgress && !isAllBusy;
+  const { tutorialQuestStep: tqStep, tutorialAccessPage } = useGameStore();
+  // step 3: 강화 후 복귀 시만 표시 / step 4: 합성 전이므로 절대 표시 안 함 (스크립트가 유도)
+  const showTutorialArrow = tqStep !== null && quest !== null && !isInProgress && !isAllBusy
+    && tqStep !== 4
+    && (tqStep !== 3 || tutorialAccessPage === 'quest');
+  // step 4: 합성 전이므로 수락하기 비활성화 (스크립트 대기)
+  const isTutorialAcceptDisabled = tqStep === 4;
   if (!quest) {
     return (
       <div className="quest-detail-panel">
@@ -311,8 +316,8 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
           framePadding={10}
           borderScale={0.35}
           className="quest-accept-button"
-          onClick={onAccept}
-          style={(isInProgress || isAllBusy) ? { filter: 'brightness(0.65)', cursor: 'default' } : undefined}
+          onClick={isTutorialAcceptDisabled ? undefined : onAccept}
+          style={(isInProgress || isAllBusy || isTutorialAcceptDisabled) ? { filter: 'brightness(0.65)', cursor: 'default' } : undefined}
         >
           <span style={{ position: 'relative', zIndex: 2 }}>
             {isAccepting ? "수락 중..." : isInProgress ? "진행 중" : isAllBusy ? "근무 중" : "수락하기"}
@@ -326,7 +331,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
 // --- Phase 2: 카드 배치 콘텐츠 ---
 function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () => void }) {
   const router = useRouter();
-  const { selectingDeskId, startQuest, quests: storeQuests, tutorialQuestStep: tStep, tutorialCards } = useGameStore();
+  const { selectingDeskId, startQuest, quests: storeQuests, tutorialQuestStep: tStep, tutorialCards, tutorialEnhanceCount, tutorialAccessPage: tAccessPage } = useGameStore();
   const isTutorialPhase2 = tStep !== null && [2, 32, 42].includes(tStep);
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -839,16 +844,17 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
         </div>
 
         {tStep !== null && selectedCards.length < (tStep === 42 ? 1 : Math.min(3, quest?.cardSlotCount ?? 3)) && (
-          <img
-            src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
-            alt=""
-            className="tutorial-arrow-y"
-            style={{
-              display: 'block', margin: '0 auto 0.5cqw',
-              height: '4.7cqw', width: 'auto',
-              imageRendering: 'pixelated', pointerEvents: 'none',
-            }}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '0.5cqw' }}>
+            <img
+              src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+              alt=""
+              className="tutorial-arrow-y"
+              style={{ display: 'block', height: '4.7cqw', width: 'auto', imageRendering: 'pixelated', pointerEvents: 'none' }}
+            />
+            <span style={{ color: '#ffd700', fontSize: '1.3cqw', fontWeight: 'bold', textShadow: '1px 1px 0 #000', whiteSpace: 'nowrap' }}>
+              {tStep === 42 ? 1 : Math.min(3, quest?.cardSlotCount ?? 3)}장 선택하세요
+            </span>
+          </div>
         )}
         <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
           <div
@@ -1060,31 +1066,47 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
           )}
 
           <div style={{ position: 'relative' }}>
-            {tStep !== null && selectedCards.length >= (tStep === 42 ? 1 : Math.min(3, quest.cardSlotCount)) && (
-              <img
-                src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
-                alt=""
-                className="tutorial-arrow-y"
-                style={{
-                  position: 'absolute', bottom: '100%', left: '50%',
-                  transform: 'translateX(-50%)',
-                  height: '4.7cqw', width: 'auto',
-                  imageRendering: 'pixelated', pointerEvents: 'none', zIndex: 100,
-                }}
-              />
-            )}
+            {(() => {
+              const minCards = tStep === 42 ? 1 : Math.min(3, quest.cardSlotCount);
+              const enhanceDone = tStep !== 32 || tutorialEnhanceCount >= 3;
+              const showArrow = tStep !== null && enhanceDone && (
+                selectedCards.length >= minCards
+                || (tStep === 32 && tAccessPage === 'quest')
+                || (tStep === 42 && tAccessPage === 'quest')
+              );
+              return showArrow ? (
+                <img
+                  src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+                  alt=""
+                  className="tutorial-arrow-y"
+                  style={{
+                    position: 'absolute', bottom: '100%', left: '50%',
+                    transform: 'translateX(-50%)',
+                    height: '4.7cqw', width: 'auto',
+                    imageRendering: 'pixelated', pointerEvents: 'none', zIndex: 100,
+                  }}
+                />
+              ) : null;
+            })()}
+            {(() => {
+              const minCards = tStep === 42 ? 1 : Math.min(3, quest.cardSlotCount);
+              const isPhase2Disabled = (tStep === 32 && tutorialEnhanceCount < 3);
+              const isCardInsufficient = selectedCards.length < minCards;
+              return (
             <NineSliceBox
               src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
               slice={[200, 208, 200, 208]}
               framePadding={14}
               borderScale={0.4}
-              className={`phase2-btn-accept ${selectedCards.length < (tStep === 42 ? 1 : Math.min(3, quest.cardSlotCount)) ? 'disabled' : ''}`}
-              onClick={handleAcceptQuest}
+              className={`phase2-btn-accept ${(isCardInsufficient || isPhase2Disabled) ? 'disabled' : ''}`}
+              onClick={isPhase2Disabled ? undefined : handleAcceptQuest}
             >
               <span style={{ position: 'relative', zIndex: 2 }}>
                 {isStarting ? '시작 중...' : '수락하기'}
               </span>
             </NineSliceBox>
+              );
+            })()}
           </div>
         </div>
 

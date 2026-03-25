@@ -26,6 +26,7 @@ export default function GlobalModals() {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [completeError, setCompleteError] = useState(false);
+  const [showTutorialGoldModal, setShowTutorialGoldModal] = useState(false);
   const { logout: privyLogout } = usePrivy();
   const {
     comingSoonModal, closeComingSoonModal,
@@ -47,6 +48,16 @@ export default function GlobalModals() {
     resetTutorialState,
   } = useGameStore();
   const { clearUser, accessToken } = useUserStore();
+
+  // 튜토리얼 완료 시 레벨업 API 호출
+  useEffect(() => {
+    if (tutorialQuestStep !== 99) return;
+    const token = useUserStore.getState().accessToken;
+    if (!token) return;
+    client.put('/api/v1/users/levelup', {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch((e) => console.error('[Tutorial] levelup API error:', e));
+  }, [tutorialQuestStep]);
 
   const handleSessionExpiredConfirm = async () => {
     setSessionExpiredModal(false);
@@ -271,6 +282,7 @@ export default function GlobalModals() {
     } else if (step === 32) {
       setTutorialScriptId('step32_done');
     } else if (step === 42) {
+      useGameStore.getState().completeQuestSilent(0);
       setTutorialQuestStep(99);
     }
   };
@@ -318,7 +330,59 @@ export default function GlobalModals() {
       {tutorialQuestStep === 99 && (
         <div className="fixed inset-0 z-[500] pointer-events-none">
           <div className="absolute inset-0 pointer-events-auto">
-            <TutorialCompleteOverlay onComplete={() => { stopTutorialBgm(); resetTutorialState(); }} />
+            <TutorialCompleteOverlay onComplete={() => {
+              stopTutorialBgm();
+              resetTutorialState();
+              increaseGold(300000);
+              setShowTutorialGoldModal(true);
+            }} />
+          </div>
+        </div>
+      )}
+
+      {/* --- Tutorial Complete Gold Modal --- */}
+      {showTutorialGoldModal && (
+        <div
+          className="fixed inset-0 z-[2000] flex items-center justify-center pointer-events-auto font-dot"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setShowTutorialGoldModal(false)}
+        >
+          <div
+            style={{
+              background: '#FFFCE4',
+              border: '4px solid #c8a800',
+              padding: '2.5rem 3rem',
+              textAlign: 'center',
+              maxWidth: '420px',
+              boxShadow: '8px 8px 0px #8a7000',
+              cursor: 'pointer',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '2rem', marginBottom: '1rem', color: '#7a5a00' }}>🎉 지급 완료</div>
+            <p style={{ fontSize: '1.1rem', lineHeight: 1.8, color: '#3a2a00', fontWeight: 'bold', marginBottom: '1.5rem' }}>
+              300,000골드가 지급되었습니다.<br />
+              뽑기 탭에서 새로운 직원들을 고용하고,<br />
+              퀘스트를 시작해보세요!
+            </p>
+            <button
+              onClick={() => setShowTutorialGoldModal(false)}
+              style={{
+                width: '100%',
+                padding: '0.9rem',
+                background: '#ffcc00',
+                color: '#3a2a00',
+                border: 'none',
+                borderBottom: '4px solid #cc9900',
+                borderRight: '4px solid #cc9900',
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              확인
+            </button>
           </div>
         </div>
       )}

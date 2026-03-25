@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { TUTORIAL_SCRIPTS } from "@/lib/tutorialData";
 
 interface Props { onComplete: () => void; }
@@ -7,10 +7,14 @@ interface Props { onComplete: () => void; }
 export default function TutorialCompleteOverlay({ onComplete }: Props) {
   const lines = TUTORIAL_SCRIPTS['step99_final'] ?? [];
   const [lineIdx, setLineIdx] = useState(0);
+  const readyTimeRef = useRef(Date.now() + 400);
+  useEffect(() => { readyTimeRef.current = Date.now() + 400; }, [lineIdx]);
 
-  const advance = () => {
+  const advance = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (Date.now() < readyTimeRef.current) return;
     if (lineIdx < lines.length - 1) setLineIdx(lineIdx + 1);
-    else onComplete();
+    else setTimeout(() => onComplete(), 150); // 딜레이로 canvas 클릭 방지
   };
 
   const currentLine = lines[lineIdx];

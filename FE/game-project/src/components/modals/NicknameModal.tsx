@@ -53,6 +53,8 @@ export default function NicknameModal({ onComplete }: NicknameModalProps) {
         setGameNickname(trimmed);
         setUserNickname(trimmed);
         finalizeOnboarding();
+        // 신규 유저 → 메인 화면 진입 후 튜토리얼 자동 시작 (sessionStorage로 보장)
+        sessionStorage.setItem('tutorialPending', '1');
         onComplete();
       } else {
         setIsError(true);
