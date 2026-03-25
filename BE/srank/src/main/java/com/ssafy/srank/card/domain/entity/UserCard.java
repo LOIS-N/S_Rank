@@ -81,6 +81,7 @@ public class UserCard extends SoftDeleteEntity {
     }
 
     public void applyEnhanceSuccess(int value) {
+
         this.enhanceTryCount++;
         this.enhanceSuccessCount++;
 
@@ -92,6 +93,13 @@ public class UserCard extends SoftDeleteEntity {
 
     public void applyEnhanceFail() {
         this.enhanceTryCount++;
+    }
+
+    public void consumeForSynthesis(LocalDateTime now) {
+        if (isDeleted()) {
+            throw new BusinessException(ErrorCode.CARD_DELETED);
+        }
+        softDelete(now);
     }
 
     public UserCardResponse toResponse() {
