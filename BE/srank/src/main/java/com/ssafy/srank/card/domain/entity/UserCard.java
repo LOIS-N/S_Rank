@@ -80,14 +80,13 @@ public class UserCard extends SoftDeleteEntity {
         return !isDeleted() && enhanceTryCount < MAX_ENHANCE_TRY_COUNT;
     }
 
-    public void applyEnhanceSuccess(int value) {
-
+    public void applyEnhanceSuccess(int value1, int value2, int value3) {
         this.enhanceTryCount++;
         this.enhanceSuccessCount++;
 
-        this.stat1.increaseBonusValue(value);
-        this.stat2.increaseBonusValue(value);
-        this.stat3.increaseBonusValue(value);
+        this.stat1.increaseBonusValue(value1);
+        this.stat2.increaseBonusValue(value2);
+        this.stat3.increaseBonusValue(value3);
 
     }
 
