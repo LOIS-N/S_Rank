@@ -24,15 +24,27 @@ function parseSSEPayload(raw: string): QuestCompletePayload {
 }
 
 /** 브라우저 Web Notification 표시 */
-function showWebNotification(title: string, body: string) {
+async function showWebNotification(title: string, body: string) {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
 
-  new Notification(title, {
+  const options: NotificationOptions = {
     body,
-    icon: `${process.env.NEXT_PUBLIC_API_URL}/assets/icons/icon-192.webp`,
-    badge: `${process.env.NEXT_PUBLIC_API_URL}/assets/icons/icon-192.webp`,
-  });
+    icon: "/assets/icons/icon-192.webp",
+    badge: "/assets/icons/icon-192.webp",
+  };
+
+  // 안드로이드 Chrome은 Service Worker 경유 필수
+  if ("serviceWorker" in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(title, options);
+      return;
+    } catch {
+      // SW 실패 시 직접 생성으로 fallback
+    }
+  }
+  new Notification(title, options);
 }
 
 /** 알림 권한 요청 (최초 1회, 로그인 후 호출) */
@@ -141,7 +153,7 @@ export function useSSENotification(accessToken: string | null) {
               const body = payload.message ?? `${nickname || "개발자"}님, 프로젝트가 완수됐어요! 지금 바로 보상을 수령하세요!`;
 
               if (Notification.permission === "granted") {
-                showWebNotification(title, body);
+                await showWebNotification(title, body);
               } else {
                 useGameStore.getState().pushNotification(title, body);
               }
