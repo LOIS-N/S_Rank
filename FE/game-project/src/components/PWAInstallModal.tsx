@@ -27,10 +27,22 @@ export default function PWAInstallModal() {
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
+      localStorage.removeItem("pwa-installed"); // 앱 삭제 후 재설치 가능하도록 플래그 초기화
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+
+    // 설치 완료 시 localStorage에 저장 → 이후 배너 미표시
+    const installedHandler = () => {
+      localStorage.setItem("pwa-installed", "1");
+      setVisible(false);
+    };
+    window.addEventListener("appinstalled", installedHandler);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", installedHandler);
+    };
   }, []);
 
   // 표시 조건 판단 + 1.5초 딜레이
@@ -40,12 +52,13 @@ export default function PWAInstallModal() {
       return;
     }
 
+    // 이미 설치됨 (standalone 모드 or appinstalled 기록)
+    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    if (localStorage.getItem("pwa-installed") === "1") return;
+
     // 오늘은 안보기 체크 (1일 유효)
     const hideUntil = localStorage.getItem("pwa-modal-hide-until");
     if (hideUntil && Date.now() < Number(hideUntil)) return;
-
-    // 이미 설치됨 (standalone 모드)
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
 
     // 모바일 기기만
     const ua = navigator.userAgent;
