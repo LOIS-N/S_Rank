@@ -138,7 +138,9 @@ interface LocalEnhanceState {
 
 export default function EnhancePage() {
   const { getAccessToken } = usePrivy();
-  const { accessToken, gold, increaseGold, tutorialQuestStep } = useGameStore();
+  const { accessToken, gold, increaseGold, tutorialQuestStep, tutorialEnhanceCount } = useGameStore();
+  const [enhanceArrowDismissed, setEnhanceArrowDismissed] = useState(false);
+  useEffect(() => { setEnhanceArrowDismissed(false); }, [tutorialQuestStep]);
 
   // --- 로컬 강화 상태 ---
   const [localEnhancements, setLocalEnhancements] = useState<Record<number, LocalEnhanceState>>({});
@@ -561,14 +563,31 @@ export default function EnhancePage() {
                     return (
                       <div
                         key={card.cardId}
-                        className={`cardlist-card-item ${isSelected ? 'selected' : ''}`}
-                        data-grade={card.grade}
-                        onClick={() => handleCardClick(card.cardId)}
+                        style={{ position: 'relative' }}
                       >
-                        <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
-                        <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                        <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                        <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                        {tutorialQuestStep === 31 && tutorialEnhanceCount > 0 && tutorialEnhanceCount < 3 && (
+                          <img
+                            src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+                            alt=""
+                            className="tutorial-arrow-y"
+                            style={{
+                              position: 'absolute', bottom: '100%', left: '50%',
+                              transform: 'translateX(-50%)',
+                              height: '4.7cqw', width: 'auto',
+                              imageRendering: 'pixelated', pointerEvents: 'none', zIndex: 100,
+                            }}
+                          />
+                        )}
+                        <div
+                          className={`cardlist-card-item ${isSelected ? 'selected' : ''}`}
+                          data-grade={card.grade}
+                          onClick={() => handleCardClick(card.cardId)}
+                        >
+                          <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
+                          <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                          <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                          <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                        </div>
                       </div>
                     );
                   })
@@ -653,7 +672,7 @@ export default function EnhancePage() {
 
                     {/* 4. 강화 버튼 */}
                     <div style={{ position: 'relative' }}>
-                      {tutorialQuestStep === 31 && (
+                      {tutorialQuestStep === 31 && !enhanceArrowDismissed && (
                         <img
                           src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
                           alt=""
@@ -669,7 +688,7 @@ export default function EnhancePage() {
                       <button
                         className="enhance-action-btn"
                         disabled={displayEnhanceTries >= 7 || isEnhancing}
-                        onClick={handleEnhance}
+                        onClick={() => { setEnhanceArrowDismissed(true); handleEnhance(); }}
                       >
                         {isEnhancing ? '강화 중...' : '강화하기'}
                       </button>
@@ -715,13 +734,28 @@ export default function EnhancePage() {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: 'auto', paddingBottom: '12px' }}>
-                      <button
-                        className="enhance-result-btn"
-                        disabled={displayEnhanceTries >= 7 || isEnhancing}
-                        onClick={() => { setEnhanceResult(null); handleEnhance(); }}
-                      >
-                        {isEnhancing ? '강화 중...' : '연속 강화'}
-                      </button>
+                      <div style={{ position: 'relative' }}>
+                        {tutorialQuestStep === 31 && tutorialEnhanceCount > 0 && tutorialEnhanceCount < 3 && (
+                          <img
+                            src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+                            alt=""
+                            className="tutorial-arrow-y"
+                            style={{
+                              position: 'absolute', bottom: '100%', left: '50%',
+                              transform: 'translateX(-50%)',
+                              height: '4.7cqw', width: 'auto',
+                              imageRendering: 'pixelated', pointerEvents: 'none', zIndex: 100,
+                            }}
+                          />
+                        )}
+                        <button
+                          className="enhance-result-btn"
+                          disabled={displayEnhanceTries >= 7 || isEnhancing}
+                          onClick={() => { setEnhanceResult(null); handleEnhance(); }}
+                        >
+                          {isEnhancing ? '강화 중...' : `연속 강화${tutorialQuestStep === 31 ? ` (${tutorialEnhanceCount}/3)` : ''}`}
+                        </button>
+                      </div>
                       <button
                         className="enhance-result-btn"
                         onClick={() => setEnhanceResult(null)}

@@ -168,6 +168,9 @@ export default function GachaPage() {
     tutorialQuestStep, tutorialGachaCount, setTutorialGachaCount,
     setTutorialQuestStep, setTutorialScriptId, setTutorialAccessPage,
   } = useGameStore();
+  const [gachaArrowDismissed, setGachaArrowDismissed] = useState(false);
+  // tutorialQuestStep 변경 시 화살표 재표시
+  useEffect(() => { setGachaArrowDismissed(false); }, [tutorialQuestStep, tutorialGachaCount]);
   const { getAccessToken } = usePrivy();
   const [drawnCards, setDrawnCards] = useState<GachaCardResult[]>([]);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
@@ -296,7 +299,7 @@ export default function GachaPage() {
   const PullButtons = () => (
     <>
       <div style={{ position: 'relative' }}>
-        {isTutorialStep1 && (
+        {isTutorialStep1 && !gachaArrowDismissed && (
           <img
             src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
             alt=""
@@ -312,7 +315,7 @@ export default function GachaPage() {
       <div
         className={`gacha-action-btn${!canPull1 || isPulling ? ' btn-disabled' : ''}`}
         style={{ backgroundImage: `url('${ASSET_BASE}/assets/006/gachaButton_000.webp')` }}
-        onClick={canPull1 && !isPulling ? () => handlePull(1) : undefined}
+        onClick={canPull1 && !isPulling ? () => { setGachaArrowDismissed(true); handlePull(1); } : undefined}
       >
         <span>1회 뽑기</span>
         <span className="btn-subtitle">({GACHA_COSTS[currentTab].single.toLocaleString()}G)</span>
@@ -449,9 +452,11 @@ export default function GachaPage() {
               </div>
 
               {/* 뽑기 버튼 */}
-              <div className="gacha-single-pull-buttons">
-                <PullButtons />
-              </div>
+              {!(isTutorialStep1 && tutorialGachaCount >= 3) && (
+                <div className="gacha-single-pull-buttons">
+                  <PullButtons />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -481,9 +486,11 @@ export default function GachaPage() {
               </div>
             </div>
 
-            <div className="gacha-bottom-buttons" onClick={(e) => e.stopPropagation()}>
-              <PullButtons />
-            </div>
+            {!(isTutorialStep1 && tutorialGachaCount >= 3) && (
+              <div className="gacha-bottom-buttons" onClick={(e) => e.stopPropagation()}>
+                <PullButtons />
+              </div>
+            )}
           </div>
         )}
 

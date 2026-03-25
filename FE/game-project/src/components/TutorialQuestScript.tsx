@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TUTORIAL_SCRIPTS } from "@/lib/tutorialData";
 import { useGameStore } from "@/store/useGameStore";
 
@@ -12,15 +12,22 @@ export default function TutorialQuestScript({ scriptId, onDone }: Props) {
   const lines = TUTORIAL_SCRIPTS[scriptId] ?? [];
   const [lineIdx, setLineIdx] = useState(0);
   const nickname = useGameStore(s => s.nickname);
+  // 스크립트 표시 직후 클릭 이벤트가 즉시 전달되는 것을 막기 위한 guard
+  const readyTimeRef = useRef(0);
 
-  useEffect(() => { setLineIdx(0); }, [scriptId]);
+  useEffect(() => {
+    setLineIdx(0);
+    readyTimeRef.current = Date.now() + 400;
+  }, [scriptId]);
 
   if (lines.length === 0) { onDone(); return null; }
 
   const currentLine = lines[lineIdx];
   if (!currentLine) return null;
 
-  const advance = () => {
+  const advance = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (Date.now() < readyTimeRef.current) return; // 400ms guard
     if (lineIdx < lines.length - 1) setLineIdx(lineIdx + 1);
     else onDone();
   };
@@ -29,7 +36,7 @@ export default function TutorialQuestScript({ scriptId, onDone }: Props) {
     <div
       className="absolute inset-0 z-[200] pointer-events-auto flex flex-col justify-end"
       style={{ padding: "0 12.5cqw 6.5cqw" }}
-      onClick={advance}
+      onClick={(e) => advance(e)}
     >
       <div style={{
         background: currentLine.isSystem ? "rgba(8,18,58,0.93)" : "rgba(14,24,50,0.88)",

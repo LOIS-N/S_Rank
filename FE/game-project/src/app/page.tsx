@@ -23,7 +23,7 @@ const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 export default function Home() {
   const { login, logout, authenticated, ready } = usePrivy();
   const { isAuthenticated, isNewUser, nickname } = useUserStore();
-  const { gameStatus, setNickname, startGame, setGameStatus, isHUDModalOpen } = useGameStore();
+  const { gameStatus, setNickname, startGame, setGameStatus, isHUDModalOpen, setTutorialActive } = useGameStore();
   const [syncTimedOut, setSyncTimedOut] = useState(false);
 
   // Problem 1: 인증 완료 시 게임 상태 동기화 (useUserStore 기준)
@@ -31,13 +31,18 @@ export default function Home() {
     // 우리 서비스 인증 완료 + 기존 유저 → 게임 시작
     if (isAuthenticated && isNewUser === false && gameStatus !== 'PLAYING') {
       if (nickname) setNickname(nickname);
+      // 신규 유저 튜토리얼 플래그 확인 (NicknameModal에서 설정)
+      if (sessionStorage.getItem('tutorialPending') === '1') {
+        sessionStorage.removeItem('tutorialPending');
+        setTutorialActive(true);
+      }
       startGame();
     }
     // 로그아웃 시 게임 상태 초기화
     if (!isAuthenticated && gameStatus === 'PLAYING') {
       setGameStatus('IDLE');
     }
-  }, [isAuthenticated, isNewUser, nickname, gameStatus, setNickname, startGame, setGameStatus]);
+  }, [isAuthenticated, isNewUser, nickname, gameStatus, setNickname, startGame, setGameStatus, setTutorialActive]);
 
 
   // 서버 동기화 20초 타임아웃

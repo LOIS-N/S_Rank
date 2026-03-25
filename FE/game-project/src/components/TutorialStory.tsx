@@ -1,6 +1,6 @@
 "use client";
-import { useState, useCallback, useEffect } from 'react';
-import { pauseGameBgm, playTutorialBgm } from './BgmPlayer';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { pauseGameBgm, playTutorialBgm, fadeTutorialBgmOut } from './BgmPlayer';
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -73,6 +73,13 @@ export default function TutorialStory({ onComplete }: Props) {
   // 이미지 씬 진입 시 천천히 fade-in
   const [imgVisible, setImgVisible]   = useState(true);
 
+  // 언마운트 후 setTimeout 내 state 업데이트 방지
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const currentScene = SCENES[sceneIdx];
   const currentLine  = currentScene.lines[lineIdx];
   const isLastStep   = sceneIdx === SCENES.length - 1 && lineIdx === currentScene.lines.length - 1;
@@ -83,12 +90,17 @@ export default function TutorialStory({ onComplete }: Props) {
 
   const showNextLine = useCallback((nextLine: number) => {
     setTextVisible(false);
-    setTimeout(() => { setLineIdx(nextLine); setTextVisible(true); }, 120);
+    setTimeout(() => {
+      if (!mountedRef.current) return;
+      setLineIdx(nextLine);
+      setTextVisible(true);
+    }, 120);
   }, []);
 
   const goToScene = useCallback((nextSi: number, nextLi: number) => {
     setFading(true);
     setTimeout(() => {
+      if (!mountedRef.current) return;
       setSceneIdx(nextSi);
       setLineIdx(nextLi);
       setTextVisible(true);
@@ -96,7 +108,7 @@ export default function TutorialStory({ onComplete }: Props) {
       // 이미지 씬이면 0 → 1 fade-in
       if (SCENES[nextSi].bg !== 'black') {
         setImgVisible(false);
-        setTimeout(() => setImgVisible(true), 40);
+        setTimeout(() => { if (mountedRef.current) setImgVisible(true); }, 40);
       } else {
         setImgVisible(true);
       }
@@ -128,6 +140,11 @@ export default function TutorialStory({ onComplete }: Props) {
     const timer = setTimeout(() => playTutorialBgm(), 2000);
     return () => { clearTimeout(timer); };
   }, []);
+
+  // 마지막 스크립트 진입 시 awake.mp3 서서히 페이드 아웃
+  useEffect(() => {
+    if (isLastStep) fadeTutorialBgmOut(1200);
+  }, [isLastStep]);
 
 
   return (
