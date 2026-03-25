@@ -1,4 +1,4 @@
-package com.srank.blockchain.contracts;
+package com.ssafy.srank.blockchain.contracts;
 
 import io.reactivex.Flowable;
 import io.reactivex.functions.Function;
@@ -38,7 +38,7 @@ import org.web3j.tx.gas.ContractGasProvider;
  * <p>Generated with web3j version 1.4.1.
  */
 @SuppressWarnings("rawtypes")
-public class CardMerge extends Contract {
+public class CardGacha extends Contract {
     public static final String BINARY = "Bin file was not provided";
 
     public static final String FUNC_NEXTSERVERSEEDHASH = "nextServerSeedHash";
@@ -49,14 +49,14 @@ public class CardMerge extends Contract {
 
     public static final String FUNC_RENOUNCEOWNERSHIP = "renounceOwnership";
 
-    public static final String FUNC_REQUESTMERGE = "requestMerge";
+    public static final String FUNC_REQUESTGACHA = "requestGacha";
 
     public static final String FUNC_SETNEXTSERVERSEEDHASH = "setNextServerSeedHash";
 
     public static final String FUNC_TRANSFEROWNERSHIP = "transferOwnership";
 
-    public static final Event MERGERESULT_EVENT = new Event("MergeResult", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<DynamicArray<Utf8String>>() {}, new TypeReference<Uint8>() {}, new TypeReference<Utf8String>() {}));
+    public static final Event GACHAEXECUTED_EVENT = new Event("GachaExecuted", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Uint8>() {}, new TypeReference<DynamicArray<Uint8>>() {}, new TypeReference<DynamicArray<Utf8String>>() {}));
     ;
 
     public static final Event OWNERSHIPTRANSFERRED_EVENT = new Event("OwnershipTransferred", 
@@ -64,58 +64,58 @@ public class CardMerge extends Contract {
     ;
 
     @Deprecated
-    protected CardMerge(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
+    protected CardGacha(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
         super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);
     }
 
-    protected CardMerge(String contractAddress, Web3j web3j, Credentials credentials, ContractGasProvider contractGasProvider) {
+    protected CardGacha(String contractAddress, Web3j web3j, Credentials credentials, ContractGasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, credentials, contractGasProvider);
     }
 
     @Deprecated
-    protected CardMerge(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
+    protected CardGacha(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
         super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);
     }
 
-    protected CardMerge(String contractAddress, Web3j web3j, TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
+    protected CardGacha(String contractAddress, Web3j web3j, TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
         super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public List<MergeResultEventResponse> getMergeResultEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(MERGERESULT_EVENT, transactionReceipt);
-        ArrayList<MergeResultEventResponse> responses = new ArrayList<MergeResultEventResponse>(valueList.size());
+    public List<GachaExecutedEventResponse> getGachaExecutedEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(GACHAEXECUTED_EVENT, transactionReceipt);
+        ArrayList<GachaExecutedEventResponse> responses = new ArrayList<GachaExecutedEventResponse>(valueList.size());
         for (Contract.EventValuesWithLog eventValues : valueList) {
-            MergeResultEventResponse typedResponse = new MergeResultEventResponse();
+            GachaExecutedEventResponse typedResponse = new GachaExecutedEventResponse();
             typedResponse.log = eventValues.getLog();
             typedResponse.user = (String) eventValues.getIndexedValues().get(0).getValue();
-            typedResponse.targetDbIds = (List<String>) eventValues.getNonIndexedValues().get(0).getValue();
-            typedResponse.resultGrade = (BigInteger) eventValues.getNonIndexedValues().get(1).getValue();
-            typedResponse.newDbId = (String) eventValues.getNonIndexedValues().get(2).getValue();
+            typedResponse.gachaType = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
+            typedResponse.grades = (List<BigInteger>) eventValues.getNonIndexedValues().get(1).getValue();
+            typedResponse.dbCardIds = (List<String>) eventValues.getNonIndexedValues().get(2).getValue();
             responses.add(typedResponse);
         }
         return responses;
     }
 
-    public Flowable<MergeResultEventResponse> mergeResultEventFlowable(EthFilter filter) {
-        return web3j.ethLogFlowable(filter).map(new Function<Log, MergeResultEventResponse>() {
+    public Flowable<GachaExecutedEventResponse> gachaExecutedEventFlowable(EthFilter filter) {
+        return web3j.ethLogFlowable(filter).map(new Function<Log, GachaExecutedEventResponse>() {
             @Override
-            public MergeResultEventResponse apply(Log log) {
-                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(MERGERESULT_EVENT, log);
-                MergeResultEventResponse typedResponse = new MergeResultEventResponse();
+            public GachaExecutedEventResponse apply(Log log) {
+                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(GACHAEXECUTED_EVENT, log);
+                GachaExecutedEventResponse typedResponse = new GachaExecutedEventResponse();
                 typedResponse.log = log;
                 typedResponse.user = (String) eventValues.getIndexedValues().get(0).getValue();
-                typedResponse.targetDbIds = (List<String>) eventValues.getNonIndexedValues().get(0).getValue();
-                typedResponse.resultGrade = (BigInteger) eventValues.getNonIndexedValues().get(1).getValue();
-                typedResponse.newDbId = (String) eventValues.getNonIndexedValues().get(2).getValue();
+                typedResponse.gachaType = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
+                typedResponse.grades = (List<BigInteger>) eventValues.getNonIndexedValues().get(1).getValue();
+                typedResponse.dbCardIds = (List<String>) eventValues.getNonIndexedValues().get(2).getValue();
                 return typedResponse;
             }
         });
     }
 
-    public Flowable<MergeResultEventResponse> mergeResultEventFlowable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+    public Flowable<GachaExecutedEventResponse> gachaExecutedEventFlowable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
-        filter.addSingleTopic(EventEncoder.encode(MERGERESULT_EVENT));
-        return mergeResultEventFlowable(filter);
+        filter.addSingleTopic(EventEncoder.encode(GACHAEXECUTED_EVENT));
+        return gachaExecutedEventFlowable(filter);
     }
 
     public List<OwnershipTransferredEventResponse> getOwnershipTransferredEvents(TransactionReceipt transactionReceipt) {
@@ -180,15 +180,15 @@ public class CardMerge extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> requestMerge(List<String> targetDbIds, BigInteger currentGrade, String newDbId, BigInteger clientSeed) {
+    public RemoteFunctionCall<TransactionReceipt> requestGacha(BigInteger gachaType, BigInteger count, BigInteger clientSeed, List<String> dbCardIds) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-                FUNC_REQUESTMERGE, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.DynamicArray<org.web3j.abi.datatypes.Utf8String>(
+                FUNC_REQUESTGACHA, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint8(gachaType), 
+                new org.web3j.abi.datatypes.generated.Uint32(count), 
+                new org.web3j.abi.datatypes.generated.Uint256(clientSeed), 
+                new org.web3j.abi.datatypes.DynamicArray<org.web3j.abi.datatypes.Utf8String>(
                         org.web3j.abi.datatypes.Utf8String.class,
-                        org.web3j.abi.Utils.typeMap(targetDbIds, org.web3j.abi.datatypes.Utf8String.class)), 
-                new org.web3j.abi.datatypes.generated.Uint8(currentGrade), 
-                new org.web3j.abi.datatypes.Utf8String(newDbId), 
-                new org.web3j.abi.datatypes.generated.Uint256(clientSeed)), 
+                        org.web3j.abi.Utils.typeMap(dbCardIds, org.web3j.abi.datatypes.Utf8String.class))), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
@@ -210,31 +210,31 @@ public class CardMerge extends Contract {
     }
 
     @Deprecated
-    public static CardMerge load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
-        return new CardMerge(contractAddress, web3j, credentials, gasPrice, gasLimit);
+    public static CardGacha load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
+        return new CardGacha(contractAddress, web3j, credentials, gasPrice, gasLimit);
     }
 
     @Deprecated
-    public static CardMerge load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
-        return new CardMerge(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
+    public static CardGacha load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
+        return new CardGacha(contractAddress, web3j, transactionManager, gasPrice, gasLimit);
     }
 
-    public static CardMerge load(String contractAddress, Web3j web3j, Credentials credentials, ContractGasProvider contractGasProvider) {
-        return new CardMerge(contractAddress, web3j, credentials, contractGasProvider);
+    public static CardGacha load(String contractAddress, Web3j web3j, Credentials credentials, ContractGasProvider contractGasProvider) {
+        return new CardGacha(contractAddress, web3j, credentials, contractGasProvider);
     }
 
-    public static CardMerge load(String contractAddress, Web3j web3j, TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
-        return new CardMerge(contractAddress, web3j, transactionManager, contractGasProvider);
+    public static CardGacha load(String contractAddress, Web3j web3j, TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
+        return new CardGacha(contractAddress, web3j, transactionManager, contractGasProvider);
     }
 
-    public static class MergeResultEventResponse extends BaseEventResponse {
+    public static class GachaExecutedEventResponse extends BaseEventResponse {
         public String user;
 
-        public List<String> targetDbIds;
+        public BigInteger gachaType;
 
-        public BigInteger resultGrade;
+        public List<BigInteger> grades;
 
-        public String newDbId;
+        public List<String> dbCardIds;
     }
 
     public static class OwnershipTransferredEventResponse extends BaseEventResponse {

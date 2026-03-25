@@ -1,4 +1,4 @@
-package com.srank.blockchain.contracts;
+package com.ssafy.srank.blockchain.contracts;
 
 import io.reactivex.Flowable;
 import io.reactivex.functions.Function;
