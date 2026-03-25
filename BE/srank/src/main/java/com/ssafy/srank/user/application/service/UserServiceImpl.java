@@ -43,6 +43,11 @@ public class UserServiceImpl implements UserService {
     public MyGachaInfo getMyGachaInfo(Long userId) { return MyGachaInfo.from(getActiveUser(userId)); }
 
     @Override
+    public String getWalletAddress(Long userId) {
+        return getActiveUser(userId).getWalletAddress();
+    }
+
+    @Override
     @Transactional
     public void updateNickname(Long userId, UpdateNicknameRequest request) {
         User user = getActiveUser(userId);

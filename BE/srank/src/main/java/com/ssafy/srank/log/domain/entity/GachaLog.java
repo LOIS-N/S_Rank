@@ -118,4 +118,9 @@ public class GachaLog {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    public void updateBlockchainResult(BlockchainStatus status, String txHash) {
+        this.blockchainStatus = status;
+        this.blockchainTxHash = txHash;
+    }
 }

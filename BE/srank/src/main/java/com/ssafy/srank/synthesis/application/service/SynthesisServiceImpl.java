@@ -1,5 +1,6 @@
 package com.ssafy.srank.synthesis.application.service;
 
+import com.ssafy.srank.blockchain.application.service.BlockchainRequestDispatchService;
 import com.ssafy.srank.card.application.dto.response.UserCardResponse;
 import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.domain.enums.CardGrade;
@@ -18,6 +19,7 @@ import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.application.facade.SynthesisLogFacade;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.quest.application.service.UserQuestCardService;
+import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.rabbitmq.log.message.GoldLogMessage;
 import com.ssafy.srank.rabbitmq.log.producer.GoldLogProducer;
 import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
@@ -67,6 +69,7 @@ public class SynthesisServiceImpl implements SynthesisService {
     private final EconomyLogFacade economyLogFacade;
     private final SynthesisLogFacade synthesisLogFacade;
     private final SynthesisLogCommandFactory synthesisLogCommandFactory;
+    private final BlockchainRequestDispatchService blockchainRequestDispatchService;
     private final ApplicationEventPublisher eventPublisher;
     private final GoldLogProducer goldProducer;
 
@@ -118,7 +121,7 @@ public class SynthesisServiceImpl implements SynthesisService {
                     savedResultCard
             );
 
-            synthesisLogFacade.record(synthesisLogCommandFactory.create(
+            Long synthesisLogId = synthesisLogFacade.record(synthesisLogCommandFactory.create(
                     userId,
                     cardIds,
                     savedResultCard,
@@ -132,6 +135,12 @@ public class SynthesisServiceImpl implements SynthesisService {
                     resultRoll,
                     resultDigest,
                     now
+            ));
+
+            blockchainRequestDispatchService.dispatchAfterCommit(BlockchainRequestMessage.forSynthesis(
+                    synthesisLogId,
+                    user.getWalletAddress(),
+                    cardIds
             ));
 
             log.info("synthesis completed userId={} sourceGrade={} cardCount={} success={}", userId, sourceGrade, cardIds.size(), success);

@@ -11,6 +11,8 @@ public interface UserService {
 
     MyGachaInfo getMyGachaInfo(Long userId);
 
+    String getWalletAddress(Long userId);
+
     void updateNickname(Long userId, UpdateNicknameRequest request);
 
     void withdraw(Long userId);
