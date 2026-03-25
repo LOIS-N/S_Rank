@@ -70,6 +70,15 @@ node_modules
 /artifacts
 /deployments
 
+### Node.js & Hardhat (Blockchain) ###
+node_modules/
+artifacts/
+cache/
+coverage/
+coverage.json
+typechain/
+typechain-types/
+
 # TypeChain files
 /typechain
 /typechain-types

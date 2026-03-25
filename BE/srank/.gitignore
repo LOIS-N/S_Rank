@@ -48,3 +48,12 @@ AGENTS.md
 
 ### OMX runtime artifacts ###
 .omx/
+
+### Node.js & Hardhat (Blockchain) ###
+node_modules/
+artifacts/
+cache/
+coverage/
+coverage.json
+typechain/
+typechain-types/
