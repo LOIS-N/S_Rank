@@ -50,8 +50,7 @@ export default function PWAInstallBanner() {
     if (!isMobile) return;
 
     // iOS 감지
-    const isIOS =
-      /iphone|ipad|ipod/i.test(navigator.userAgent) &&
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) &&
       !(window.navigator as Navigator & { standalone?: boolean }).standalone;
 
     if (isIOS) {
@@ -59,10 +58,9 @@ export default function PWAInstallBanner() {
       return;
     }
 
-    // Android: 이미 캡처된 deferredPrompt가 있으면 배너 표시
-    if (deferredPrompt) {
-      setShowAndroid(true);
-    }
+    // Android: beforeinstallprompt 발생 여부와 무관하게 항상 배너 표시
+    // (deferredPrompt가 있으면 "설치" 버튼도 함께 표시됨)
+    setShowAndroid(true);
   }, [pathname, isAuthenticated, deferredPrompt]);
 
   const handleInstall = async () => {
@@ -122,7 +120,10 @@ export default function PWAInstallBanner() {
         </div>
         {showAndroid ? (
           <div style={{ color: "#8888bb", fontSize: 10 }}>
-            홈 화면에 추가하고 앱처럼 사용하세요
+            {deferredPrompt
+              ? "홈 화면에 추가하고 앱처럼 사용하세요"
+              : <>Chrome 메뉴(⋮) → <span style={{ color: "#aaddff" }}>홈 화면에 추가</span></>
+            }
           </div>
         ) : (
           <div style={{ color: "#8888bb", fontSize: 10 }}>
