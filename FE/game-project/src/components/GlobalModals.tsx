@@ -289,26 +289,6 @@ export default function GlobalModals() {
 
   return (
     <>
-      {/* --- [DEV] 튜토리얼 quit 버튼 --- */}
-      {isTutorialActive && (
-        <div className="fixed z-[999] pointer-events-auto font-dot" style={{ top: "calc(var(--game-clip-y, 0px) + 1cqw)", right: "calc(1cqw)" }}>
-          <button
-            onClick={handleTutorialQuit}
-            style={{
-              background: "rgba(180,30,30,0.9)",
-              border: "2px solid #ff6666",
-              color: "#fff",
-              fontWeight: "bold",
-              fontSize: "1.0cqw",
-              padding: "0.4cqw 1.0cqw",
-              cursor: "pointer",
-              letterSpacing: "0.05em",
-            }}
-          >
-            [DEV] quit
-          </button>
-        </div>
-      )}
 
       {/* Tutorial Quest Script Overlay (shows on all pages) */}
       {tutorialQuestScriptVisible && tutorialScriptId && (
