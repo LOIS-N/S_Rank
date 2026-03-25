@@ -11,5 +11,7 @@ public class EnhanceResultResponse {
     private boolean success;
     private int enhanceTryCount;
     private int enhanceSuccessCount;
-    private int increasedValue;
+    private int increasedValue1;
+    private int increasedValue2;
+    private int increasedValue3;
 }
