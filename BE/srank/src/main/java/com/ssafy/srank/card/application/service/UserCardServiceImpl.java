@@ -101,10 +101,10 @@ public class UserCardServiceImpl implements UserCardService {
     }
 
     @Override
-    public void applyEnhanceSuccess(Long userId, Long cardId, int value) {
+    public void applyEnhanceSuccess(Long userId, Long cardId, int value1, int value2, int value3) {
         UserCard userCard = userCardRepository.findByIdAndUserId(cardId, userId).orElseThrow(
                 ()-> new BusinessException(ErrorCode.CARD_NOT_FOUND));
-        userCard.applyEnhanceSuccess(value);
+        userCard.applyEnhanceSuccess(value1, value2, value3);
     }
 
     @Override

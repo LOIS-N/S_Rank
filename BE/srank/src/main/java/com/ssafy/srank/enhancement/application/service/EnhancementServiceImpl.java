@@ -54,14 +54,35 @@ public class EnhancementServiceImpl implements EnhancementService {
                 ProbablyFairPurpose.of("ENHANCE_RESULT"),
                 100);
         if(enhanceResult < policy.successRate){ //성공
-            return success(userId, request, userCardDetail, policy);
+            int a = probablyFairService.roll(context,
+                    request.getClientSeed(),
+                    0,
+                    ProbablyFairPurpose.of("ENHANCE_VALUE"),
+                    policy.statIncrease+1);
+            int b = probablyFairService.roll(context,
+                    request.getClientSeed(),
+                    0,
+                    ProbablyFairPurpose.of("ENHANCE_VALUE"),
+                    policy.statIncrease+1);
+            int low = Math.min(a,b);
+            int high = Math.max(a,b);
+
+            return success(userId, request, userCardDetail, (long) policy.costGold, low, high-low, policy.statIncrease - high);
         }else{
             return fail(userId, request, userCardDetail, policy);
         }
     }
 
-    private EnhanceResultResponse success(Long userId, EnhancementRequest request, UserCardResponse userCardDetail, EnhancePolicy.Grade policy){
-        userCardService.applyEnhanceSuccess(userId, request.getCardId(), EnhancePolicy.Grade.valueOf(userCardDetail.grade()).statIncrease);
+    private EnhanceResultResponse success(
+            Long userId,
+            EnhancementRequest request,
+            UserCardResponse userCardDetail,
+            Long gold,
+            int statIncrease1,
+            int statIncrease2,
+            int statIncrease3
+            ){
+        userCardService.applyEnhanceSuccess(userId, request.getCardId(), statIncrease1, statIncrease2, statIncrease3);
 
         enhancementLogFacade.record(new EnhancementLogCommand(
                 userId,
@@ -71,12 +92,12 @@ public class EnhancementServiceImpl implements EnhancementService {
                 userCardDetail.enhanceSuccessCount(),
                 userCardDetail.enhanceSuccessCount() + 1,
                 userCardDetail.skill1().skillType(),
-                policy.statIncrease,
+                statIncrease1,
                 userCardDetail.skill2().skillType(),
-                policy.statIncrease,
+                statIncrease2,
                 userCardDetail.skill3().skillType(),
-                policy.statIncrease,
-                policy.costGold,
+                statIncrease3,
+                gold,
                 LocalDateTime.now()
         ));
 
@@ -85,7 +106,9 @@ public class EnhancementServiceImpl implements EnhancementService {
                 .success(true)
                 .enhanceTryCount(userCardDetail.enhanceTryCount()+1)
                 .enhanceSuccessCount(userCardDetail.enhanceSuccessCount()+1)
-                .increasedValue(EnhancePolicy.Grade.valueOf(userCardDetail.grade()).statIncrease)
+                .increasedValue1(statIncrease1)
+                .increasedValue2(statIncrease2)
+                .increasedValue3(statIncrease3)
                 .build();
     }
 
@@ -112,7 +135,9 @@ public class EnhancementServiceImpl implements EnhancementService {
                 .success(false)
                 .enhanceTryCount(userCardDetail.enhanceTryCount()+1)
                 .enhanceSuccessCount(userCardDetail.enhanceSuccessCount())
-                .increasedValue(0)
+                .increasedValue1(0)
+                .increasedValue2(0)
+                .increasedValue3(0)
                 .build();
     }
 }
