@@ -48,7 +48,7 @@ public class GameToken extends Contract {
 
     public static final String FUNC_DECIMALS = "decimals";
 
-    public static final String FUNC_FAUCET = "faucet";
+    public static final String FUNC_MINTREWARD = "mintReward";
 
     public static final String FUNC_NAME = "name";
 
@@ -230,9 +230,9 @@ public class GameToken extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> faucet(String to, BigInteger amount) {
+    public RemoteFunctionCall<TransactionReceipt> mintReward(String to, BigInteger amount) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-                FUNC_FAUCET, 
+                FUNC_MINTREWARD, 
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, to), 
                 new org.web3j.abi.datatypes.generated.Uint256(amount)), 
                 Collections.<TypeReference<?>>emptyList());
