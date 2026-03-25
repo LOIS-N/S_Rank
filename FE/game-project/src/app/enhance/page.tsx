@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
-import { simulateEnhance, EnhanceResult, getEnhanceData } from "@/lib/enhanceLogic";
+import { EnhanceResult, getEnhanceData } from "@/lib/enhanceLogic";
 import { EnhanceAnimationOverlay } from "./EnhanceAnimationOverlay";
 import "./enhance.css";
 
@@ -122,6 +122,7 @@ export default function EnhancePage() {
 
   // --- 애니메이션 상태 ---
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [pendingResult, setPendingResult] = useState<(EnhanceResult & { previousStats: { skill1: number; skill2: number; skill3: number } }) | null>(null);
 
   // --- 카드 목록 상태 ---
@@ -156,7 +157,7 @@ export default function EnhancePage() {
       if (currentFilter && currentFilter !== 'ALL') {
         params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
       }
-      const { data: json } = await api.get('/api/v1/cards', {
+      const { data: json } = await api.get('/api/v1/enhancements/cards', {
         params,
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -341,6 +342,53 @@ export default function EnhancePage() {
     const newRatio = Math.min(1, Math.max(0, (adjustedClickY - thumbSize / 2) / maxThumbTop));
     setScrollRatio(newRatio);
   }, []);
+
+  // --- 강화 API 호출 ---
+  const handleEnhance = useCallback(async () => {
+    if (!selectedListCard || isEnhancing) return;
+    setIsEnhancing(true);
+    try {
+      const token = await getAuthToken();
+      const cost = getEnhanceData(selectedListCard.grade).cost;
+      const { data: json } = await api.post(
+        `/api/v1/enhancements/cards/${selectedListCard.cardId}`,
+        { cardId: selectedListCard.cardId, clientSeed: crypto.randomUUID() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const resData = json.data;
+      const isSuccess: boolean = resData.success;
+      const increased: number = resData.increasedValue || 0;
+      const base = Math.floor(increased / 3);
+      const rem = increased % 3;
+
+      const result: EnhanceResult = {
+        success: isSuccess,
+        cost,
+        statsAdded: isSuccess
+          ? { skill1: base + (rem > 0 ? 1 : 0), skill2: base + (rem > 1 ? 1 : 0), skill3: base }
+          : { skill1: 0, skill2: 0, skill3: 0 },
+      };
+
+      increaseGold(-cost);
+      setPendingResult({
+        ...result,
+        previousStats: { skill1: displaySkill1, skill2: displaySkill2, skill3: displaySkill3 },
+      });
+      setIsAnimating(true);
+    } catch (err: any) {
+      const errCode = err?.response?.data?.code;
+      if (errCode === 'C008' || errCode === 'EN001') {
+        alert('강화 횟수를 초과했습니다.');
+      } else if (errCode === 'U003' || errCode === 'GD002') {
+        alert('골드가 부족합니다.');
+      } else {
+        alert('강화에 실패했습니다.');
+      }
+    } finally {
+      setIsEnhancing(false);
+    }
+  }, [selectedListCard, isEnhancing, getAuthToken, increaseGold, displaySkill1, displaySkill2, displaySkill3]);
 
   return (
     <div className="cardlist-page-container enhance-page">
@@ -535,29 +583,10 @@ export default function EnhancePage() {
                     {/* 4. 강화 버튼 */}
                     <button
                       className="enhance-action-btn"
-                      // TODO: 테스트 모드 — 골드 부족해도 강화 가능 (BE 연동 시 골드 체크 복원)
-                      disabled={displayEnhanceTries >= 7}
-                      onClick={() => {
-                        const result = simulateEnhance(selectedListCard.grade, displayEnhanceTries, gold);
-                        if (result.error === 'MAX_TRIES') {
-                          alert('강화 횟수를 초과했습니다.');
-                          return;
-                        }
-
-                        increaseGold(-result.cost);
-
-                        setPendingResult({
-                          ...result,
-                          previousStats: {
-                            skill1: displaySkill1,
-                            skill2: displaySkill2,
-                            skill3: displaySkill3,
-                          }
-                        });
-                        setIsAnimating(true);
-                      }}
+                      disabled={displayEnhanceTries >= 7 || isEnhancing}
+                      onClick={handleEnhance}
                     >
-                      강화하기
+                      {isEnhancing ? '강화 중...' : '강화하기'}
                     </button>
                   </>
                 ) : (
@@ -600,34 +629,13 @@ export default function EnhancePage() {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: 'auto' }}>
-                      <button 
+                      <button
                         className="enhance-action-btn"
                         style={{ marginTop: 0 }}
-                        // TODO: 테스트 모드 — 골드 부족해도 강화 가능 (BE 연동 시 골드 체크 복원)
-                        disabled={displayEnhanceTries >= 7}
-                        onClick={() => {
-                          setEnhanceResult(null);
-
-                          const result = simulateEnhance(selectedListCard.grade, displayEnhanceTries, gold);
-                          if (result.error === 'MAX_TRIES') {
-                            alert('강화 횟수를 초과했습니다.');
-                            return;
-                          }
-
-                          increaseGold(-result.cost);
-
-                          setPendingResult({
-                            ...result,
-                            previousStats: {
-                              skill1: displaySkill1,
-                              skill2: displaySkill2,
-                              skill3: displaySkill3,
-                            }
-                          });
-                          setIsAnimating(true);
-                        }}
+                        disabled={displayEnhanceTries >= 7 || isEnhancing}
+                        onClick={() => { setEnhanceResult(null); handleEnhance(); }}
                       >
-                        연속 강화
+                        {isEnhancing ? '강화 중...' : '연속 강화'}
                       </button>
                       <button 
                         className="enhance-action-btn"
