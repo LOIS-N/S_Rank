@@ -120,7 +120,7 @@ export default function GlobalModals() {
           setCompleteError(true);
           return;
         } catch (e: any) {
-          const code = e?.response?.data?.errorCode;
+          const code = e?.response?.data?.error?.code || e?.response?.data?.errorCode;
           if (code === 'Q008' && retryCount < 5) {
             retryCount++;
             await new Promise(resolve => setTimeout(resolve, 2000));
