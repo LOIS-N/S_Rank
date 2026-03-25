@@ -340,6 +340,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const [hasMore, setHasMore] = useState(true);
   const [isCardLoading, setIsCardLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [totalCnt, setTotalCnt] = useState<number | null>(null);
 
   // --- 필터 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
@@ -388,7 +389,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     try {
       const token = await getAuthToken();
       const currentFilter = filterOverride ?? capacitySort;
-      const params: Record<string, string> = { limit: '30' };
+      const params: Record<string, string> = { limit: '200' };
       if (cursor) params.cursor = cursor;
       if (currentFilter && currentFilter !== 'ALL') {
         params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
@@ -402,6 +403,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
         setCards(prev => cursor ? [...prev, ...newCards] : newCards);
         setNextCursor(json.data.nextCursor || null);
         setHasMore(json.data.hasMore);
+        if (json.data.totalCnt !== undefined) setTotalCnt(json.data.totalCnt);
         if (!cursor && newCards.length === 0) {
           setShowNoCardModal(true);
         }
@@ -830,6 +832,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
             onClick={() => setSortOrder('asc')}
             title="능력치 오름차순"
           >▲ 오름차순</button>
+          {totalCnt !== null && (
+            <span className="cardlist-total-cnt">{totalCnt} / 200</span>
+          )}
         </div>
 
         {tStep !== null && selectedCards.length < (tStep === 42 ? 1 : Math.min(3, quest?.cardSlotCount ?? 3)) && (

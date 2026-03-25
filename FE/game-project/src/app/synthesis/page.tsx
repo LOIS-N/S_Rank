@@ -127,6 +127,7 @@ export default function SynthesisPage() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [totalCnt, setTotalCnt] = useState<number | null>(null);
 
   // --- 선택된 카드 ID 목록 (합성 슬롯) ---
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -184,7 +185,7 @@ export default function SynthesisPage() {
     try {
       const token = await getAuthToken();
       const currentFilter = filterOverride ?? capacitySort;
-      const params: Record<string, string> = { limit: '30' };
+      const params: Record<string, string> = { limit: '200' };
       if (cursor) params.cursor = cursor;
       if (currentFilter && currentFilter !== 'ALL') {
         params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
@@ -199,6 +200,7 @@ export default function SynthesisPage() {
         setCards(prev => cursor ? [...prev, ...newCards] : newCards);
         setNextCursor(json.data.nextCursor || null);
         setHasMore(json.data.hasMore);
+        if (json.data.totalCnt !== undefined) setTotalCnt(json.data.totalCnt);
       }
     } catch (err) {
       console.error("카드 목록 조회 실패:", err);
@@ -537,6 +539,9 @@ export default function SynthesisPage() {
               onClick={() => setSortOrder('asc')}
               title="능력치 오름차순"
             >▲ 오름차순</button>
+            {totalCnt !== null && (
+              <span className="cardlist-total-cnt">{totalCnt} / 200</span>
+            )}
           </div>
 
           {/* 카드 리스트 박스 */}

@@ -155,6 +155,7 @@ export default function EnhancePage() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [totalCnt, setTotalCnt] = useState<number | null>(null);
 
   // --- 선택 / 상세 상태 ---
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
@@ -187,7 +188,7 @@ export default function EnhancePage() {
     try {
       const token = await getAuthToken();
       const currentFilter = filterOverride ?? capacitySort;
-      const params: Record<string, string> = { limit: '30' };
+      const params: Record<string, string> = { limit: '200' };
       if (cursor) params.cursor = cursor;
       if (currentFilter && currentFilter !== 'ALL') {
         params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
@@ -202,6 +203,7 @@ export default function EnhancePage() {
         setCards(prev => cursor ? [...prev, ...newCards] : newCards);
         setNextCursor(json.data.nextCursor || null);
         setHasMore(json.data.hasMore);
+        if (json.data.totalCnt !== undefined) setTotalCnt(json.data.totalCnt);
 
         // 첫 로드 시 첫 번째 카드 자동 선택
         if (!cursor && newCards.length > 0) {
@@ -483,6 +485,9 @@ export default function EnhancePage() {
               onClick={() => setSortOrder('asc')}
               title="능력치 오름차순"
             >▲ 오름차순</button>
+            {totalCnt !== null && (
+              <span className="cardlist-total-cnt">{totalCnt} / 200</span>
+            )}
           </div>
 
           {/* 카드 리스트 박스 */}
