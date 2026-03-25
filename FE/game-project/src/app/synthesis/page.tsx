@@ -95,6 +95,26 @@ interface CardListItem {
 // --- 스킬 필터 옵션 ---
 const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEV", "DESIGN"] as const;
 
+function getCardStatForType(card: CardListItem, type: string): number {
+  const norm = type.toUpperCase() === 'DEV' ? 'DEVOPS' : type.toUpperCase();
+  let total = 0;
+  if (card.skill1.skillType.toUpperCase() === norm) total += card.skill1.value;
+  if (card.skill2.skillType.toUpperCase() === norm) total += card.skill2.value;
+  if (card.skill3.skillType.toUpperCase() === norm) total += card.skill3.value;
+  return total;
+}
+
+function sortCards(cards: CardListItem[], filter: string, order: 'desc' | 'asc'): CardListItem[] {
+  return [...cards].sort((a, b) => {
+    const valA = filter === 'ALL'
+      ? a.skill1.value + a.skill2.value + a.skill3.value
+      : getCardStatForType(a, filter);
+    const valB = filter === 'ALL'
+      ? b.skill1.value + b.skill2.value + b.skill3.value
+      : getCardStatForType(b, filter);
+    return order === 'desc' ? valB - valA : valA - valB;
+  });
+}
 
 export default function SynthesisPage() {
   const { getAccessToken } = usePrivy();
