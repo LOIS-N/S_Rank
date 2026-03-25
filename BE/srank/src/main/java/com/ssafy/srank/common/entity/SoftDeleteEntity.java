@@ -15,4 +15,9 @@ public abstract class SoftDeleteEntity extends BaseEntity {
 
     @Column(name = "is_delete")
     private boolean isDeleted;
+
+    protected void softDelete(LocalDateTime deletedAt) {
+        this.isDeleted = true;
+        this.deletedAt = deletedAt;
+    }
 }

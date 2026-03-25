@@ -38,11 +38,12 @@ public class PrivyAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
         return "/api/v1/auth/login".equals(uri)
+                || "/api/v1/synthesis/verification".equals(uri)
                 || "/error".equals(uri)
                 || uri.startsWith("/v3/api-docs")
                 || uri.startsWith("/swagger-ui")
                 || uri.equals("/swagger-ui.html")
-                || uri.startsWith("/actuator");  // 추가
+                || uri.startsWith("/actuator");
     }
 
     @Override
