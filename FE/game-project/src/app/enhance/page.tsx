@@ -102,11 +102,33 @@ interface CardDetailData {
   name: string;
   stats: { [key: string]: number };
   enhanceLevel: number;
-  enhanceTries?: number; // fallback for current non-existing API data
+  enhanceTryCount?: number;     // BE UserCardResponse 필드명
+  enhanceSuccessCount?: number; // BE UserCardResponse 필드명
 }
 
 // --- 스킬 필터 옵션 ---
 const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEV", "DESIGN"] as const;
+
+function getCardStatForType(card: CardListItem, type: string): number {
+  const norm = type.toUpperCase() === 'DEV' ? 'DEVOPS' : type.toUpperCase();
+  let total = 0;
+  if (card.skill1.skillType.toUpperCase() === norm) total += card.skill1.value;
+  if (card.skill2.skillType.toUpperCase() === norm) total += card.skill2.value;
+  if (card.skill3.skillType.toUpperCase() === norm) total += card.skill3.value;
+  return total;
+}
+
+function sortCards(cards: CardListItem[], filter: string, order: 'desc' | 'asc'): CardListItem[] {
+  return [...cards].sort((a, b) => {
+    const valA = filter === 'ALL'
+      ? a.skill1.value + a.skill2.value + a.skill3.value
+      : getCardStatForType(a, filter);
+    const valB = filter === 'ALL'
+      ? b.skill1.value + b.skill2.value + b.skill3.value
+      : getCardStatForType(b, filter);
+    return order === 'desc' ? valB - valA : valA - valB;
+  });
+}
 
 interface LocalEnhanceState {
   enhanceLevel: number;
@@ -139,8 +161,9 @@ export default function EnhancePage() {
   const [selectedDetail, setSelectedDetail] = useState<CardDetailData | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
 
-  // --- 필터 상태 ---
+  // --- 필터 / 정렬 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // --- 인증 토큰 ---
   const getAuthToken = useCallback(async () => {
@@ -231,10 +254,11 @@ export default function EnhancePage() {
   const handleCardClick = useCallback((cardId: number) => {
     setSelectedCardId(cardId);
     fetchCardDetail(cardId);
+    setEnhanceResult(null);
   }, [fetchCardDetail]);
 
-  // --- 서버에서 정렬된 순서 그대로 사용 ---
-  const sortedCards = cards;
+  // --- 클라이언트 사이드 정렬 ---
+  const sortedCards = useMemo(() => sortCards(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
 
   // --- 선택된 카드의 리스트 데이터 ---
   const selectedListCard = useMemo(() => {
@@ -244,7 +268,7 @@ export default function EnhancePage() {
   // --- 추가된 로컬 상탯값 계산 ---
   const currentEnhancement = selectedCardId ? localEnhancements[selectedCardId] : null;
 
-  const displayEnhanceLevel = currentEnhancement ? currentEnhancement.enhanceLevel : (selectedDetail?.enhanceLevel || 0);
+  const displayEnhanceLevel = currentEnhancement ? currentEnhancement.enhanceLevel : (selectedListCard?.enhanceSuccessCount || 0);
   const displayEnhanceTries = currentEnhancement ? currentEnhancement.enhanceTries : (selectedListCard?.enhanceTryCount || 0);
 
   const displaySkill1 = selectedListCard ? selectedListCard.skill1.value + (currentEnhancement?.addedStats.skill1 || 0) : 0;
@@ -384,15 +408,16 @@ export default function EnhancePage() {
 
       const resData = json.data;
       const isSuccess: boolean = resData.success;
-      const increased: number = resData.increasedValue || 0;
-      const base = Math.floor(increased / 3);
-      const rem = increased % 3;
 
       const result: EnhanceResult = {
         success: isSuccess,
         cost,
         statsAdded: isSuccess
-          ? { skill1: base + (rem > 0 ? 1 : 0), skill2: base + (rem > 1 ? 1 : 0), skill3: base }
+          ? {
+              skill1: resData.increasedValue1 ?? resData.increasedValue ?? 0,
+              skill2: resData.increasedValue2 ?? resData.increasedValue ?? 0,
+              skill3: resData.increasedValue3 ?? resData.increasedValue ?? 0,
+            }
           : { skill1: 0, skill2: 0, skill3: 0 },
       };
 
@@ -435,7 +460,7 @@ export default function EnhancePage() {
 
         {/* ──── 좌측: 필터 + 카드 그리드 ──── */}
         <div className="cardlist-left-col">
-          {/* 스킬 필터 드롭다운 */}
+          {/* 스킬 필터 드롭다운 + 정렬 버튼 */}
           <div className="cardlist-filters">
             <div className="cardlist-select-wrapper">
               <select
@@ -448,6 +473,16 @@ export default function EnhancePage() {
                 ))}
               </select>
             </div>
+            <button
+              className={`cardlist-filter-btn${sortOrder === 'desc' ? ' active' : ''}`}
+              onClick={() => setSortOrder('desc')}
+              title="능력치 내림차순"
+            >▼ 내림차순</button>
+            <button
+              className={`cardlist-filter-btn${sortOrder === 'asc' ? ' active' : ''}`}
+              onClick={() => setSortOrder('asc')}
+              title="능력치 오름차순"
+            >▲ 오름차순</button>
           </div>
 
           {/* 카드 리스트 박스 */}
@@ -649,48 +684,46 @@ export default function EnhancePage() {
                     className="cardlist-info-panel enhance-result-panel fade-in-up"
                     style={{ flex: 1 }}
                   >
-                    <div className="enhance-modal-title" style={{ fontSize: '28px', marginBottom: '20px', color: enhanceResult.success ? '#222' : '#888' }}>
+                    <div className="enhance-modal-title" style={{ color: enhanceResult.success ? '#222' : '#888' }}>
                       강화 {enhanceResult.success ? '성공!' : '실패'}
                     </div>
 
                     <div style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                       {enhanceResult.success && enhanceResult.statsAdded && (
                         <div className="enhance-modal-content" style={{ textAlign: 'center' }}>
-                          <div className="enhance-modal-text" style={{ marginBottom: 8 }}>
+                          <div className="enhance-modal-text" style={{ marginBottom: 6 }}>
                             {displaySkillType(selectedListCard.skill1.skillType)} {enhanceResult.previousStats.skill1} &rarr; {enhanceResult.previousStats.skill1 + enhanceResult.statsAdded.skill1} <span style={{color: '#4caf50', fontWeight: 'bold'}}>(+{enhanceResult.statsAdded.skill1})</span>
                           </div>
-                          <div className="enhance-modal-text" style={{ marginBottom: 8 }}>
+                          <div className="enhance-modal-text" style={{ marginBottom: 6 }}>
                             {displaySkillType(selectedListCard.skill2.skillType)} {enhanceResult.previousStats.skill2} &rarr; {enhanceResult.previousStats.skill2 + enhanceResult.statsAdded.skill2} <span style={{color: '#4caf50', fontWeight: 'bold'}}>(+{enhanceResult.statsAdded.skill2})</span>
                           </div>
-                          <div className="enhance-modal-text" style={{ marginBottom: 8 }}>
+                          <div className="enhance-modal-text" style={{ marginBottom: 6 }}>
                             {displaySkillType(selectedListCard.skill3.skillType)} {enhanceResult.previousStats.skill3} &rarr; {enhanceResult.previousStats.skill3 + enhanceResult.statsAdded.skill3} <span style={{color: '#4caf50', fontWeight: 'bold'}}>(+{enhanceResult.statsAdded.skill3})</span>
                           </div>
                         </div>
                       )}
-                      
+
                       {!enhanceResult.success && (
-                        <div className="enhance-modal-content" style={{ textAlign: 'center', marginTop: 10 }}>
-                          <div className="enhance-modal-text" style={{ color: '#ff6b6b', fontSize: '18px' }}>(스탯 변화 없음)</div>
+                        <div className="enhance-modal-content" style={{ textAlign: 'center', marginTop: 8 }}>
+                          <div className="enhance-modal-text" style={{ color: '#ff6b6b' }}>(스탯 변화 없음)</div>
                         </div>
                       )}
-                      
-                      <div className="enhance-modal-tries" style={{ marginTop: 20, marginBottom: 20, fontSize: '16px', color: '#111' }}>
+
+                      <div className="enhance-modal-tries" style={{ marginTop: 16, marginBottom: 16 }}>
                         남은 강화횟수 : {Math.max(0, 7 - (displayEnhanceTries))}
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: 'auto' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: 'auto', paddingBottom: '12px' }}>
                       <button
-                        className="enhance-action-btn"
-                        style={{ marginTop: 0 }}
+                        className="enhance-result-btn"
                         disabled={displayEnhanceTries >= 7 || isEnhancing}
                         onClick={() => { setEnhanceResult(null); handleEnhance(); }}
                       >
                         {isEnhancing ? '강화 중...' : '연속 강화'}
                       </button>
-                      <button 
-                        className="enhance-action-btn"
-                        style={{ background: '#7a7a7a', borderColor: '#4d4d4d', marginTop: 0 }}
+                      <button
+                        className="enhance-result-btn"
                         onClick={() => setEnhanceResult(null)}
                       >
                         확인
@@ -714,6 +747,26 @@ export default function EnhancePage() {
         <EnhanceAnimationOverlay
           card={selectedListCard}
           isSuccess={pendingResult.success}
+          statChanges={pendingResult.statsAdded ? [
+            {
+              skillType: selectedListCard.skill1.skillType,
+              before: pendingResult.previousStats.skill1,
+              after: pendingResult.previousStats.skill1 + pendingResult.statsAdded.skill1,
+              delta: pendingResult.statsAdded.skill1,
+            },
+            {
+              skillType: selectedListCard.skill2.skillType,
+              before: pendingResult.previousStats.skill2,
+              after: pendingResult.previousStats.skill2 + pendingResult.statsAdded.skill2,
+              delta: pendingResult.statsAdded.skill2,
+            },
+            {
+              skillType: selectedListCard.skill3.skillType,
+              before: pendingResult.previousStats.skill3,
+              after: pendingResult.previousStats.skill3 + pendingResult.statsAdded.skill3,
+              delta: pendingResult.statsAdded.skill3,
+            },
+          ] : undefined}
           onShowResult={() => {
             // 튜토리얼: store에 강화 반영
             if (useGameStore.getState().tutorialQuestStep === 31) {
@@ -723,22 +776,28 @@ export default function EnhancePage() {
 
             // 애니메이션 진행 중(3.5초 지점) 카드 왼쪽 슬라이드와 함께 실제 상태 반영 & 결과 모달 표출
             let newLevel = displayEnhanceLevel;
-            const prevAddedStats = currentEnhancement?.addedStats || { skill1: 0, skill2: 0, skill3: 0 };
-            const newAddedStats = { ...prevAddedStats };
 
             if (pendingResult.success && pendingResult.statsAdded) {
               newLevel += 1;
-              newAddedStats.skill1 += pendingResult.statsAdded.skill1;
-              newAddedStats.skill2 += pendingResult.statsAdded.skill2;
-              newAddedStats.skill3 += pendingResult.statsAdded.skill3;
+              // cards 배열 직접 업데이트 → 카드 목록에 실시간 반영
+              setCards(prev => prev.map(card => {
+                if (card.cardId !== selectedListCard.cardId) return card;
+                return {
+                  ...card,
+                  skill1: { ...card.skill1, value: card.skill1.value + pendingResult.statsAdded!.skill1 },
+                  skill2: { ...card.skill2, value: card.skill2.value + pendingResult.statsAdded!.skill2 },
+                  skill3: { ...card.skill3, value: card.skill3.value + pendingResult.statsAdded!.skill3 },
+                };
+              }));
             }
 
+            // cards 배열에 반영됐으므로 delta(addedStats)는 0으로 리셋
             setLocalEnhancements(prev => ({
               ...prev,
               [selectedListCard.cardId]: {
                 enhanceLevel: newLevel,
                 enhanceTries: displayEnhanceTries + 1,
-                addedStats: newAddedStats,
+                addedStats: { skill1: 0, skill2: 0, skill3: 0 },
               }
             }));
 

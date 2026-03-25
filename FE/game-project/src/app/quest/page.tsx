@@ -1300,7 +1300,7 @@ export default function QuestPage() {
   const getThumbTop = useCallback(() => {
     if (!trackHeight) return 0;
     const thumbSize = 100;
-    const trackPadding = 14;
+    const trackPadding = -5;
     const maxThumbTop = trackHeight - thumbSize - (trackPadding * 2);
     if (maxThumbTop <= 0) return trackPadding;
     return trackPadding + (scrollRatio * maxThumbTop);
@@ -1322,7 +1322,7 @@ export default function QuestPage() {
       if (!isDraggingRef.current || !scrollTrackRef.current) return;
       const trackHeightCurrent = scrollTrackRef.current.clientHeight;
       const thumbSize = 100;
-      const trackPadding = 14;
+      const trackPadding = -5;
       const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
       if (maxThumbTop <= 0) return;
 
@@ -1351,7 +1351,7 @@ export default function QuestPage() {
       const clickY = e.clientY - rect.top;
       const trackHeightCurrent = rect.height;
       const thumbSize = 100;
-      const trackPadding = 14;
+      const trackPadding = -5;
       const maxThumbTop = trackHeightCurrent - thumbSize - (trackPadding * 2);
       if (maxThumbTop <= 0) return;
 
