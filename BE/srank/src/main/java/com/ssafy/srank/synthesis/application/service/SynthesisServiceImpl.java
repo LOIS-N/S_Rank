@@ -14,11 +14,12 @@ import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.common.probablyfair.application.service.ProbablyFairService;
 import com.ssafy.srank.common.probablyfair.domain.ProbablyFairContext;
 import com.ssafy.srank.common.probablyfair.domain.ProbablyFairPurpose;
-import com.ssafy.srank.log.application.command.GoldLogCommand;
 import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.application.facade.SynthesisLogFacade;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.quest.application.service.UserQuestCardService;
+import com.ssafy.srank.rabbitmq.log.message.GoldLogMessage;
+import com.ssafy.srank.rabbitmq.log.producer.GoldLogProducer;
 import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import com.ssafy.srank.synthesis.application.dto.request.SynthesisAttemptRequest;
 import com.ssafy.srank.synthesis.application.dto.request.SynthesisVerificationRequest;
@@ -67,6 +68,7 @@ public class SynthesisServiceImpl implements SynthesisService {
     private final SynthesisLogFacade synthesisLogFacade;
     private final SynthesisLogCommandFactory synthesisLogCommandFactory;
     private final ApplicationEventPublisher eventPublisher;
+    private final GoldLogProducer goldProducer;
 
     @Override
     @Transactional
@@ -90,7 +92,8 @@ public class SynthesisServiceImpl implements SynthesisService {
 
             LocalDateTime now = LocalDateTime.now();
             user.decreaseGold((long) costGold);
-            economyLogFacade.recordGoldChange(new GoldLogCommand(
+
+            goldProducer.sendGoldLogMessage(new GoldLogMessage(
                     userId,
                     -costGold,
                     user.getGold(),

@@ -18,15 +18,11 @@ import com.ssafy.srank.gacha.application.service.model.GachaProofMaterial;
 import com.ssafy.srank.gacha.application.service.model.PreparedDraw;
 import com.ssafy.srank.gacha.domain.enums.GachaType;
 import com.ssafy.srank.gacha.domain.policy.GachaPolicyRegistry;
-import com.ssafy.srank.log.application.command.GoldLogCommand;
-import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.application.facade.GachaLogFacade;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import com.ssafy.srank.user.application.dto.response.MyGachaInfo;
 import com.ssafy.srank.user.application.service.UserService;
-import com.ssafy.srank.user.domain.entity.User;
-import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -51,7 +47,6 @@ public class GachaServiceImpl implements GachaService {
     private final GachaDrawPreparationService gachaDrawPreparationService;
     private final GachaDigestBuilder gachaDigestBuilder;
     private final GachaDrawLogCommandFactory gachaDrawLogCommandFactory;
-    private final EconomyLogFacade economyLogFacade;
     private final GachaLogFacade gachaLogFacade;
     private final ApplicationEventPublisher eventPublisher;
 
