@@ -36,7 +36,8 @@ public class UserCardServiceImpl implements UserCardService {
             PositionType statType,
             SortType sortType,
             String cursorToken,
-            int limit
+            int limit,
+            boolean isEnhance
     ) {
         UserCardCursor cursor = decodeCursor(cursorToken);
         int fetchLimit = (limit <= 0) ? DEFAULT_LIMIT : limit;
@@ -71,7 +72,11 @@ public class UserCardServiceImpl implements UserCardService {
 
         String nextCursor = hasMore ? encodeCursor(page.get(page.size() - 1)) : null;
 
-        return new CursorPageResponse<>(cards, nextCursor, hasMore, cards.size());
+        int totalCnt;
+        if(isEnhance) totalCnt = userCardRepository.countByUserIdAndIsDeletedFalseAndEnhanceTryCountLessThan(userId, 7);
+        else totalCnt = userCardRepository.countByUserIdAndIsDeletedFalse(userId);
+
+        return new CursorPageResponse<>(cards, nextCursor, hasMore, totalCnt);
     }
 
     @Transactional(readOnly = true)

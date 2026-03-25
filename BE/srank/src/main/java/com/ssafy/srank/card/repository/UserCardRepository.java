@@ -36,4 +36,6 @@ public interface UserCardRepository extends JpaRepository<UserCard, Long> {
 
     @Query("select count(uc) from UserCard uc where uc.userId = :userId and uc.isDeleted = false")
     long countActiveByUserId(@Param("userId") Long userId);
+    int countByUserIdAndIsDeletedFalse(Long userId);
+    int countByUserIdAndIsDeletedFalseAndEnhanceTryCountLessThan(Long userId, int enhanceTryCount);
 }
