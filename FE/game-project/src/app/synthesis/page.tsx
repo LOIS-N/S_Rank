@@ -5,6 +5,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
 import { getSynthesisProb, getSynthesisCost, getNextGrade, getRequiredCardCount } from "@/lib/synthesisLogic";
+import { SynthesisAnimationOverlay } from "./SynthesisAnimationOverlay";
 import "./synthesis.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -134,6 +135,32 @@ export default function SynthesisPage() {
   const [synthesisResult, setSynthesisResult] = useState<{ success: boolean; resultCard?: CardListItem; cost: number } | null>(null);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
 
+  // --- 수동/자동 탭 ---
+  const [synthMode, setSynthMode] = useState<'manual' | 'auto'>('manual');
+
+  // --- 자동 합성 설정 상태 ---
+  const [autoGrade, setAutoGrade] = useState<string>('A');
+  const [autoCount, setAutoCount] = useState<number>(3);
+
+  // --- 토스트 ---
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback((msg: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastMsg(msg);
+    toastTimerRef.current = setTimeout(() => setToastMsg(null), 2500);
+  }, []);
+
+  // --- 합성 애니메이션 상태 ---
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [pendingResult, setPendingResult] = useState<{
+    isSuccess: boolean;
+    resultCard: CardListItem;
+    sourceGrade: string;
+    cost: number;
+    selectedCardIds: number[];
+  } | null>(null);
+
   // --- 필터 / 정렬 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
@@ -259,24 +286,77 @@ export default function SynthesisPage() {
       // BE는 성공/실패 모두 resultCard 반환 (실패 시 같은 등급의 새 카드)
       const resultCard: CardListItem = resData.resultCard;
 
-      increaseGold(-cost);
-
-      // 재료 카드 제거 + 결과 카드 추가 (성공/실패 공통)
-      setCards(prev => [...prev.filter(c => !selectedCards.includes(c.cardId)), resultCard]);
-      setSelectedCards([]);
-      setSynthesisResult({ success: isSuccess, resultCard, cost });
+      // 애니메이션 시작 (실제 UI 업데이트는 onShowResult에서)
+      setPendingResult({ isSuccess, resultCard, sourceGrade: selectedGrade, cost, selectedCardIds: [...selectedCards] });
+      setIsAnimating(true);
     } catch (err: any) {
       const errCode = err?.response?.data?.error?.code;
-      if (errCode === 'SY002') alert('같은 등급 카드만 합성 가능합니다.');
-      else if (errCode === 'SY006') alert('골드가 부족합니다.');
+      if (errCode === 'SY006') showToast('골드가 부족합니다.');
+      else if (errCode === 'SY002') alert('같은 등급 카드만 합성 가능합니다.');
       else if (errCode === 'SY001') alert('카드 수가 올바르지 않습니다. (3~5장)');
       else if (errCode === 'SY005') alert('중복된 카드를 선택할 수 없습니다.');
-      else if (errCode === 'SY003') alert('이미 최고 등급 카드입니다.');
       else alert('합성에 실패했습니다.');
     } finally {
       setIsSynthesizing(false);
     }
-  }, [selectedGrade, selectedCards, minSlots, isSynthesizing, getAuthToken, increaseGold]);
+  }, [selectedGrade, selectedCards, minSlots, isSynthesizing, getAuthToken, showToast]);
+
+  // 애니메이션 2.3초 시점: 결과 카드 노출 (카드 목록·결과 상태 업데이트)
+  const handleAnimationShowResult = useCallback(() => {
+    if (!pendingResult) return;
+    const { isSuccess, resultCard, cost, selectedCardIds } = pendingResult;
+    increaseGold(-cost);
+    setCards(prev => [...prev.filter(c => !selectedCardIds.includes(c.cardId)), resultCard]);
+    setSelectedCards([]);
+    setSynthesisResult({ success: isSuccess, resultCard, cost });
+  }, [pendingResult, increaseGold]);
+
+  // 애니메이션 3.9초 시점: 오버레이 닫기
+  const handleAnimationComplete = useCallback(() => {
+    setIsAnimating(false);
+    setPendingResult(null);
+  }, []);
+
+  // --- 자동 합성 실행 ---
+  const handleAutoSynthesize = useCallback(async () => {
+    if (isSynthesizing) return;
+
+    const { min, max } = getRequiredCardCount(autoGrade);
+    const clampedCount = Math.min(Math.max(autoCount, min), max);
+    const gradeCards = cards.filter(c => c.grade === autoGrade);
+
+    if (gradeCards.length < clampedCount) {
+      alert(`${autoGrade}등급 카드가 ${clampedCount}장 이상 필요합니다. (현재 ${gradeCards.length}장)`);
+      return;
+    }
+
+    const pickedIds = gradeCards.slice(0, clampedCount).map(c => c.cardId);
+
+    setIsSynthesizing(true);
+    try {
+      const token = await getAuthToken();
+      const cost = getSynthesisCost(autoGrade);
+      const { data: json } = await api.post(
+        '/api/v1/synthesis/attempt',
+        { cardIds: pickedIds, clientSeed: crypto.randomUUID() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const resData = json.data;
+      const isSuccess: boolean = resData.success;
+      const resultCard: CardListItem = resData.resultCard;
+
+      setSelectedCards([]);
+      setSynthesisResult(null);
+      setPendingResult({ isSuccess, resultCard, sourceGrade: autoGrade, cost, selectedCardIds: pickedIds });
+      setIsAnimating(true);
+    } catch (err: any) {
+      const errCode = err?.response?.data?.error?.code;
+      if (errCode === 'SY006') showToast('골드가 부족합니다.');
+      else alert('자동 합성에 실패했습니다.');
+    } finally {
+      setIsSynthesizing(false);
+    }
+  }, [isSynthesizing, autoGrade, autoCount, cards, getAuthToken, showToast]);
 
   // --- 스크롤 관련 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0);
@@ -384,6 +464,15 @@ export default function SynthesisPage() {
 
   return (
     <div className="cardlist-page-container">
+      {isAnimating && pendingResult && (
+        <SynthesisAnimationOverlay
+          resultCard={pendingResult.resultCard}
+          sourceGrade={pendingResult.sourceGrade}
+          isSuccess={pendingResult.isSuccess}
+          onShowResult={handleAnimationShowResult}
+          onComplete={handleAnimationComplete}
+        />
+      )}
 
       {/* 상단 타이틀 */}
       <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -530,6 +619,11 @@ export default function SynthesisPage() {
           borderScale={0.5}
           className="synthesis-right-box"
         >
+          {/* 골드 부족 토스트 */}
+          {toastMsg && (
+            <div className="synthesis-toast">{toastMsg}</div>
+          )}
+
           {/* 재화 정보 표시 */}
           <div className="enhance-currency-info-wrapper">
             <div className="currency-info-container">
@@ -543,89 +637,210 @@ export default function SynthesisPage() {
 
           {!synthesisResult ? (
             <>
-              {/* 합성 제목 + 카드 배치 현황판 */}
-              <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="synthesis-drop-box">
-                <div className="synthesis-info-title">카드 합성</div>
-                <div className="synthesis-info-subtitle">
-                  카드 배치 : {selectedCards.length} / {selectedGrade === 'S' ? '2' : `${minSlots}~${maxSlots}`}장
-                  {selectedGrade && <span style={{ marginLeft: 8 }}>({selectedGrade} → {nextGrade})</span>}
-                </div>
-                <div className="synthesis-drop-cards">
-                  {(() => {
-                    const total = maxSlots;
-                    const cardWidth = total <= 3 ? 130 : total === 4 ? 110 : 95;
-                    const overlap = total <= 3 ? -20 : total === 4 ? -25 : -30;
-                    const fanAngle = total <= 3 ? 10 : total === 4 ? 8 : 6;
-                    const yMultiplier = total <= 3 ? 10 : total === 4 ? 8 : 6;
-                    return Array.from({ length: total }).map((_, index) => {
-                      const cardId = selectedCards[index];
-                      const card = cardId ? cards.find(c => c.cardId === cardId) : null;
-                      const angle = (index - (total - 1) / 2) * fanAngle;
-                      const yOffset = Math.abs(index - (total - 1) / 2) * yMultiplier;
-                      const style = {
-                        width: `${cardWidth}px`,
-                        zIndex: index,
-                        marginLeft: index > 0 ? `${overlap}px` : '0',
-                        transform: `rotate(${angle}deg) translateY(${yOffset}px)`,
-                      };
-                      if (!card) {
-                        return (
-                          <div key={`slot-${index}`} className="synthesis-fan-card synthesis-fan-placeholder" style={style}>
-                            <div className="synthesis-placeholder-inner">?</div>
-                          </div>
-                        );
-                      }
-                      return (
-                        <div key={card.cardId} className="synthesis-fan-card" style={style} onClick={() => handleCardClick(card.cardId)}>
-                          <img src={card.imageUrl} alt={card.name} draggable={false} />
-                          <span className="synthesis-fan-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                          <span className="synthesis-fan-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                          <span className="synthesis-fan-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              </NineSliceBox>
-
-              {/* 합성 확률 박스 */}
-              <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="synthesis-info-box synthesis-info-box-full">
-                <div className="synthesis-info-box-label">합성 확률 및 비용</div>
-                <div className="synthesis-info-box-text">
-                  {selectedGrade ? (
-                    <>
-                      <div>성공률 : {selectedCards.length >= minSlots ? `${synthesisProb}%` : '-'}</div>
-                      <div>비용 : {synthesisCost.toLocaleString()}G</div>
-                    </>
-                  ) : (
-                    <div style={{ color: '#8a8ab0' }}>카드를 선택해주세요</div>
-                  )}
-                </div>
-              </NineSliceBox>
-
-              {/* 합성하기 / 초기화 버튼 */}
-              <div className="synthesis-action-buttons">
-                <NineSliceBox
-                  src={`${ASSET_BASE}/assets/008/questCard_000.webp`}
-                  slice={[200, 208, 200, 208]}
-                  framePadding={14}
-                  borderScale={0.4}
-                  className="synthesis-btn-cancel"
-                  onClick={() => { setSelectedCards([]); setSynthesisResult(null); }}
-                >
-                  <span style={{ position: 'relative', zIndex: 2 }}>초기화</span>
-                </NineSliceBox>
-                <NineSliceBox
-                  src={`${ASSET_BASE}/assets/008/questCard_000.webp`}
-                  slice={[200, 208, 200, 208]}
-                  framePadding={14}
-                  borderScale={0.4}
-                  className={`synthesis-btn-accept ${selectedCards.length < minSlots || isSynthesizing ? 'disabled' : ''}`}
-                  onClick={handleSynthesize}
-                >
-                  <span style={{ position: 'relative', zIndex: 2 }}>합성하기</span>
-                </NineSliceBox>
+              {/* 수동 / 자동 탭 */}
+              <div className="synthesis-tab-row">
+                <button
+                  className={`synthesis-tab-btn${synthMode === 'manual' ? ' active' : ''}`}
+                  onClick={() => setSynthMode('manual')}
+                >수동 합성</button>
+                <button
+                  className={`synthesis-tab-btn${synthMode === 'auto' ? ' active' : ''}`}
+                  onClick={() => setSynthMode('auto')}
+                >자동 선택</button>
               </div>
+
+              {synthMode === 'manual' ? (
+                <>
+                  {/* 합성 제목 + 카드 배치 현황판 */}
+                  <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="synthesis-drop-box">
+                    <div className="synthesis-info-title">카드 합성</div>
+                    <div className="synthesis-info-subtitle">
+                      카드 배치 : {selectedCards.length} / {selectedGrade === 'S' ? '2' : `${minSlots}~${maxSlots}`}장
+                      {selectedGrade && <span style={{ marginLeft: 8 }}>({selectedGrade} → {nextGrade})</span>}
+                    </div>
+                    <div className="synthesis-drop-cards">
+                      {(() => {
+                        const total = maxSlots;
+                        const cardWidth = total <= 2 ? 100 : total === 3 ? 130 : total === 4 ? 110 : 95;
+                        const overlap = total <= 2 ? -10 : total === 3 ? -20 : total === 4 ? -25 : -30;
+                        const fanAngle = total <= 2 ? 6 : total === 3 ? 10 : total === 4 ? 8 : 6;
+                        const yMultiplier = total <= 2 ? 6 : total === 3 ? 10 : total === 4 ? 8 : 6;
+                        return Array.from({ length: total }).map((_, index) => {
+                          const cardId = selectedCards[index];
+                          const card = cardId ? cards.find(c => c.cardId === cardId) : null;
+                          const angle = (index - (total - 1) / 2) * fanAngle;
+                          const yOffset = Math.abs(index - (total - 1) / 2) * yMultiplier;
+                          const style = {
+                            width: `${cardWidth}px`,
+                            zIndex: index,
+                            marginLeft: index > 0 ? `${overlap}px` : '0',
+                            transform: `rotate(${angle}deg) translateY(${yOffset}px)`,
+                          };
+                          if (!card) {
+                            return (
+                              <div key={`slot-${index}`} className="synthesis-fan-card synthesis-fan-placeholder" style={style}>
+                                <div className="synthesis-placeholder-inner">?</div>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div key={card.cardId} className="synthesis-fan-card" style={style} onClick={() => handleCardClick(card.cardId)}>
+                              <img src={card.imageUrl} alt={card.name} draggable={false} />
+                              <span className="synthesis-fan-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                              <span className="synthesis-fan-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                              <span className="synthesis-fan-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </NineSliceBox>
+
+                  {/* 합성 확률 박스 */}
+                  <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="synthesis-info-box synthesis-info-box-full">
+                    <div className="synthesis-info-box-label">합성 확률 및 비용</div>
+                    <div className="synthesis-info-box-text">
+                      {selectedGrade ? (
+                        <>
+                          <div>성공률 : {selectedCards.length >= minSlots ? `${synthesisProb}%` : '-'}</div>
+                          <div>비용 : {synthesisCost.toLocaleString()}G</div>
+                        </>
+                      ) : (
+                        <div style={{ color: '#8a8ab0' }}>카드를 선택해주세요</div>
+                      )}
+                    </div>
+                  </NineSliceBox>
+
+                  {/* 합성하기 / 초기화 버튼 */}
+                  <div className="synthesis-action-buttons">
+                    <NineSliceBox
+                      src={`${ASSET_BASE}/assets/008/questCard_000.webp`}
+                      slice={[200, 208, 200, 208]}
+                      framePadding={14}
+                      borderScale={0.4}
+                      className="synthesis-btn-cancel"
+                      onClick={() => { setSelectedCards([]); setSynthesisResult(null); }}
+                    >
+                      <span style={{ position: 'relative', zIndex: 2 }}>초기화</span>
+                    </NineSliceBox>
+                    <NineSliceBox
+                      src={`${ASSET_BASE}/assets/008/questCard_000.webp`}
+                      slice={[200, 208, 200, 208]}
+                      framePadding={14}
+                      borderScale={0.4}
+                      className={`synthesis-btn-accept ${selectedCards.length < minSlots || isSynthesizing ? 'disabled' : ''}`}
+                      onClick={handleSynthesize}
+                    >
+                      <span style={{ position: 'relative', zIndex: 2 }}>합성하기</span>
+                    </NineSliceBox>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* 자동 선택: 카드 미리보기 */}
+                  <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="synthesis-drop-box">
+                    <div className="synthesis-info-title">자동 선택</div>
+                    <div className="synthesis-info-subtitle">
+                      {autoGrade}등급 카드 {autoCount}장 자동 선택 → {getNextGrade(autoGrade)}등급 도전
+                    </div>
+                    <div className="synthesis-drop-cards">
+                      {(() => {
+                        const gradeCards = cards.filter(c => c.grade === autoGrade);
+                        const total = getRequiredCardCount(autoGrade).max;
+                        const cardWidth = total <= 2 ? 100 : total === 3 ? 130 : total === 4 ? 110 : 95;
+                        const overlap = total <= 2 ? -10 : total === 3 ? -20 : total === 4 ? -25 : -30;
+                        const fanAngle = total <= 2 ? 6 : total === 3 ? 10 : total === 4 ? 8 : 6;
+                        const yMultiplier = total <= 2 ? 6 : total === 3 ? 10 : total === 4 ? 8 : 6;
+                        return Array.from({ length: total }).map((_, index) => {
+                          // autoCount 이하 인덱스만 실제 카드, 나머지는 placeholder
+                          const card = index < autoCount ? (gradeCards[index] ?? null) : null;
+                          const angle = (index - (total - 1) / 2) * fanAngle;
+                          const yOffset = Math.abs(index - (total - 1) / 2) * yMultiplier;
+                          const style = {
+                            width: `${cardWidth}px`,
+                            zIndex: index,
+                            marginLeft: index > 0 ? `${overlap}px` : '0',
+                            transform: `rotate(${angle}deg) translateY(${yOffset}px)`,
+                          };
+                          if (!card) {
+                            return (
+                              <div key={`auto-slot-${index}`} className="synthesis-fan-card synthesis-fan-placeholder" style={style}>
+                                <div className="synthesis-placeholder-inner">?</div>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div key={card.cardId} className="synthesis-fan-card" style={{ ...style, opacity: 0.85 }}>
+                              <img src={card.imageUrl} alt={card.name} draggable={false} />
+                              <span className="synthesis-fan-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                              <span className="synthesis-fan-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                              <span className="synthesis-fan-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </NineSliceBox>
+
+                  {/* 자동 합성 설정 */}
+                  <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="synthesis-info-box synthesis-info-box-full">
+                    <div className="synthesis-info-box-label">설정</div>
+                    <div className="synthesis-info-box-text">
+                      <div className="synthesis-auto-row">
+                        <span className="synthesis-auto-label">등급</span>
+                        <div className="synthesis-auto-select-wrapper">
+                          <select
+                            className="cardlist-select synthesis-auto-select"
+                            value={autoGrade}
+                            onChange={e => {
+                              const g = e.target.value;
+                              setAutoGrade(g);
+                              setAutoCount(getRequiredCardCount(g).min);
+                            }}
+                          >
+                            {['D', 'C', 'B', 'A', 'S'].map(g => (
+                              <option key={g} value={g}>{g}등급</option>
+                            ))}
+                          </select>
+                        </div>
+                        <span className="synthesis-auto-label">장 수</span>
+                        <div className="synthesis-auto-select-wrapper">
+                          <select
+                            className="cardlist-select synthesis-auto-select"
+                            value={autoCount}
+                            onChange={e => setAutoCount(Number(e.target.value))}
+                          >
+                            {(() => {
+                              const { min, max } = getRequiredCardCount(autoGrade);
+                              return Array.from({ length: max - min + 1 }, (_, i) => min + i).map(n => (
+                                <option key={n} value={n}>{n}장</option>
+                              ));
+                            })()}
+                          </select>
+                        </div>
+                      </div>
+                      <div style={{ color: '#8a8ab0', marginTop: 6 }}>
+                        성공률 : {getSynthesisProb(autoGrade, autoCount)}% &nbsp;|&nbsp; 비용 : {getSynthesisCost(autoGrade).toLocaleString()}G
+                      </div>
+                    </div>
+                  </NineSliceBox>
+
+                  {/* 자동 합성 실행 버튼 */}
+                  <div className="synthesis-action-buttons">
+                    <NineSliceBox
+                      src={`${ASSET_BASE}/assets/008/questCard_000.webp`}
+                      slice={[200, 208, 200, 208]}
+                      framePadding={14}
+                      borderScale={0.4}
+                      className={`synthesis-btn-accept ${isSynthesizing || cards.filter(c => c.grade === autoGrade).length < autoCount ? 'disabled' : ''}`}
+                      style={{ flex: 1 }}
+                      onClick={handleAutoSynthesize}
+                    >
+                      <span style={{ position: 'relative', zIndex: 2 }}>자동 합성 실행</span>
+                    </NineSliceBox>
+                  </div>
+                </>
+              )}
             </>
           ) : (
             /* === 합성 결과 화면 === */
