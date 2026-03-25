@@ -1,5 +1,6 @@
 package com.ssafy.srank.card.application.service;
 
+import com.ssafy.srank.card.application.dto.request.DeleteCardRequest;
 import com.ssafy.srank.card.application.dto.response.CursorPageResponse;
 import com.ssafy.srank.card.application.dto.response.UserCardResponse;
 import com.ssafy.srank.card.domain.entity.UserCard;
@@ -25,4 +26,5 @@ public interface UserCardService {
     void validateCardsOwned(Long userId, List<Long> cards);
     void applyEnhanceSuccess(Long userId, Long cardId, int value1, int value2, int value3);
     void applyEnhanceFail(Long userId, Long cardId);
+    void deleteCard(Long userId, DeleteCardRequest request);
 }

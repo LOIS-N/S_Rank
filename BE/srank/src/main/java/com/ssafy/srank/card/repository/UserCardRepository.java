@@ -17,7 +17,7 @@ public interface UserCardRepository extends JpaRepository<UserCard, Long> {
 
     int countByIdInAndUserId(List<Long> cards, Long userId);
 
-    Optional<UserCard> findByIdAndUserId(Long id, Long userId);
+    Optional<UserCard> findByIdAndUserIdAndIsDeletedFalse(Long id, Long userId);
 
     @Query("select uc from UserCard uc where uc.userId = :userId and uc.id in :ids and uc.isDeleted = false")
     List<UserCard> findAllActiveByUserIdAndIdIn(@Param("userId") Long userId, @Param("ids") Collection<Long> ids);

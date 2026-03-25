@@ -68,6 +68,7 @@ public enum ErrorCode {
     CARD_DELETED(HttpStatus.CONFLICT,                   "C006", "삭제된 카드입니다."),
     CARD_CANNOT_ENHANCE_DELETED(HttpStatus.CONFLICT,    "C007", "삭제된 카드는 강화할 수 없습니다."),
     CARD_ENHANCE_TRY_EXCEEDED(HttpStatus.BAD_REQUEST,   "C008", "강화 가능 횟수를 모두 소진했습니다."),
+    CARD_IN_USE_CANNOT_DELETE(HttpStatus.BAD_REQUEST, "C009", "진행 중인 퀘스트에 사용 중인 카드는 삭제할 수 없습니다."),
 
     // ======================== Q : Quest ========================
     QUEST_NOT_FOUND(HttpStatus.NOT_FOUND,               "Q001", "퀘스트를 찾을 수 없습니다."),

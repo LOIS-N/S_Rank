@@ -1,5 +1,6 @@
 package com.ssafy.srank.card.application.service;
 
+import com.ssafy.srank.card.application.dto.request.DeleteCardRequest;
 import com.ssafy.srank.card.application.dto.response.*;
 import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.domain.entity.SpecialSkillTemplate;
@@ -12,10 +13,12 @@ import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.application.service.QuestFacadeService;
+import com.ssafy.srank.quest.application.service.UserQuestCardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,6 +31,7 @@ public class UserCardServiceImpl implements UserCardService {
     private final UserCardQueryRepository userCardQueryRepository;
     private final UserCardRepository userCardRepository;
     private final SpecialSkillTemplateRepository specialSkillTemplateRepository;
+    private final UserQuestCardService userQuestCardService;
 
     @Transactional(readOnly = true)
     @Override
@@ -82,7 +86,7 @@ public class UserCardServiceImpl implements UserCardService {
     @Transactional(readOnly = true)
     @Override
     public UserCardResponse getUserCardDetail(Long userId, Long cardId) {
-        return userCardRepository.findByIdAndUserId(cardId, userId)
+        return userCardRepository.findByIdAndUserIdAndIsDeletedFalse(cardId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND))
                 .toResponse();
     }
@@ -107,16 +111,30 @@ public class UserCardServiceImpl implements UserCardService {
 
     @Override
     public void applyEnhanceSuccess(Long userId, Long cardId, int value1, int value2, int value3) {
-        UserCard userCard = userCardRepository.findByIdAndUserId(cardId, userId).orElseThrow(
+        UserCard userCard = userCardRepository.findByIdAndUserIdAndIsDeletedFalse(cardId, userId).orElseThrow(
                 ()-> new BusinessException(ErrorCode.CARD_NOT_FOUND));
         userCard.applyEnhanceSuccess(value1, value2, value3);
     }
 
     @Override
     public void applyEnhanceFail(Long userId, Long cardId) {
-        UserCard userCard = userCardRepository.findByIdAndUserId(cardId, userId).orElseThrow(
+        UserCard userCard = userCardRepository.findByIdAndUserIdAndIsDeletedFalse(cardId, userId).orElseThrow(
                 ()-> new BusinessException(ErrorCode.CARD_NOT_FOUND));
         userCard.applyEnhanceFail();
+    }
+
+    @Transactional
+    @Override
+    public void deleteCard(Long userId, DeleteCardRequest request) {
+        //진행중인 퀘스트 있는 경우 No
+        Set<Long> usedSet = new HashSet<>(userQuestCardService.getUsedCardList(userId));
+        boolean hasUsedCard = request.cards().stream()
+                .anyMatch(usedSet::contains);
+        if (hasUsedCard) {
+            throw new BusinessException(ErrorCode.CARD_IN_USE_CANNOT_DELETE);
+        }
+        List<UserCard> cardList = userCardRepository.findAllActiveByUserIdAndIdInForUpdate(userId, request.cards());
+        cardList.forEach(card -> card.softDelete(LocalDateTime.now()));
     }
 
     // ── specialAbility 변환 ───────────────────────────────────────────────────
