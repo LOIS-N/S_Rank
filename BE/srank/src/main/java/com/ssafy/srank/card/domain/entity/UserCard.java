@@ -80,30 +80,25 @@ public class UserCard extends SoftDeleteEntity {
         return !isDeleted() && enhanceTryCount < MAX_ENHANCE_TRY_COUNT;
     }
 
-    public void applyEnhanceSuccess(int stat1BonusIncrease, int stat2BonusIncrease, int stat3BonusIncrease) {
-        validateEnhancePossible();
-
+    public void applyEnhanceSuccess(int value1, int value2, int value3) {
         this.enhanceTryCount++;
         this.enhanceSuccessCount++;
 
-        this.stat1.increaseBonusValue(stat1BonusIncrease);
-        this.stat2.increaseBonusValue(stat2BonusIncrease);
-        this.stat3.increaseBonusValue(stat3BonusIncrease);
+        this.stat1.increaseBonusValue(value1);
+        this.stat2.increaseBonusValue(value2);
+        this.stat3.increaseBonusValue(value3);
 
     }
 
     public void applyEnhanceFail() {
-        validateEnhancePossible();
         this.enhanceTryCount++;
     }
 
-    private void validateEnhancePossible() {
+    public void consumeForSynthesis(LocalDateTime now) {
         if (isDeleted()) {
-            throw new BusinessException(ErrorCode.CARD_CANNOT_ENHANCE_DELETED);
+            throw new BusinessException(ErrorCode.CARD_DELETED);
         }
-        if (enhanceTryCount >= MAX_ENHANCE_TRY_COUNT) {
-            throw new BusinessException(ErrorCode.CARD_ENHANCE_TRY_EXCEEDED);
-        }
+        softDelete(now);
     }
 
     public UserCardResponse toResponse() {
@@ -136,6 +131,8 @@ public class UserCard extends SoftDeleteEntity {
                 new CardSkillResponse(stat1.getSkillType(), stat1.getTotalValue()),
                 new CardSkillResponse(stat2.getSkillType(), stat2.getTotalValue()),
                 new CardSkillResponse(stat3.getSkillType(), stat3.getTotalValue()),
+                enhanceTryCount,
+                enhanceSuccessCount,
                 specialAbility
         );
     }

@@ -8,5 +8,7 @@ public record UserCardResponse(
         CardSkillResponse skill1,
         CardSkillResponse skill2,
         CardSkillResponse skill3,
+        int enhanceTryCount,
+        int enhanceSuccessCount,
         SpecialAbilityResponse specialAbility
 ) {}

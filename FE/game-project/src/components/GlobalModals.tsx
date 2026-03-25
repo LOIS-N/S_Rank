@@ -158,8 +158,8 @@ export default function GlobalModals() {
     <>
       {/* --- Complete Quest Error Modal --- */}
       {completeError && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 font-dot pointer-events-auto">
-          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-8 text-center max-w-sm shadow-[8px_8px_0px_#4a5d73]">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 font-dot pointer-events-auto" onClick={() => setCompleteError(false)}>
+          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-8 text-center max-w-sm shadow-[8px_8px_0px_#4a5d73]" onClick={e => e.stopPropagation()}>
             <p className="text-2xl mb-8 leading-relaxed text-slate-900 font-bold">
               에러가 발생했습니다.<br />잠시 후 다시 요청해주세요.
             </p>
@@ -175,8 +175,8 @@ export default function GlobalModals() {
 
       {/* --- Session Expired Modal --- */}
       {sessionExpiredModal && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 font-dot pointer-events-auto">
-          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 font-dot pointer-events-auto" onClick={handleSessionExpiredConfirm}>
+          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]" onClick={e => e.stopPropagation()}>
             <h2 className="text-3xl mb-4 text-slate-900 font-bold">세션 만료</h2>
             <p className="text-xl mb-8 leading-relaxed text-slate-700 font-bold">
               로그인 세션이 만료되었습니다.<br/>다시 로그인해주세요.
@@ -193,8 +193,8 @@ export default function GlobalModals() {
 
       {/* --- Coming Soon Modal --- */}
       {comingSoonModal?.isOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 font-dot pointer-events-auto">
-          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-6 text-center max-w-sm shadow-[4px_4px_0px_#4a5d73]">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 font-dot pointer-events-auto" onClick={closeComingSoonModal}>
+          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-6 text-center max-w-sm shadow-[4px_4px_0px_#4a5d73]" onClick={e => e.stopPropagation()}>
             <p className="text-xl mb-6 leading-relaxed text-blue-700 font-bold">{comingSoonModal.text}</p>
             <button
               onClick={closeComingSoonModal}
@@ -208,8 +208,8 @@ export default function GlobalModals() {
 
       {/* --- Reward Modal --- */}
       {activeRewardModal?.isOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#8ea4b8]/80 font-dot pointer-events-auto">
-          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#8ea4b8]/80 font-dot pointer-events-auto" onClick={closeRewardModal}>
+          <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]" onClick={e => e.stopPropagation()}>
             <h2 className="text-4xl mb-6 text-slate-900 font-bold">{activeRewardModal.title}</h2>
             <p className="text-2xl mb-10 leading-relaxed text-blue-700 font-bold">{activeRewardModal.text}</p>
             <button
@@ -228,8 +228,8 @@ export default function GlobalModals() {
           ? new Date(questInfoModal.endAt).getTime() <= Date.now()
           : questInfoModal.remainMs <= 0;
         return (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 font-dot pointer-events-auto">
-            <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]">
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 font-dot pointer-events-auto" onClick={() => setQuestInfoModal(null)}>
+            <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-10 text-center max-w-md shadow-[8px_8px_0px_#4a5d73]" onClick={e => e.stopPropagation()}>
               <h2 className="text-3xl mb-4 text-slate-900 font-bold">
                 [{questInfoModal.questTitle}]
               </h2>
@@ -265,8 +265,8 @@ export default function GlobalModals() {
         const reqLevel = deskQuest?.requiredLevel ?? 0;
         const reqTitle = CHAPTER_TITLES[reqLevel];
         return (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#8ea4b8]/80 font-dot pointer-events-auto">
-          <div className="bg-[#b0c4de] border-4 border-[#6b859e] p-10 text-center max-w-lg shadow-[8px_8px_0px_#4a5d73]">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#8ea4b8]/80 font-dot pointer-events-auto" onClick={() => { setUnlockConfirm(null); setUnlockError(null); }}>
+          <div className="bg-[#b0c4de] border-4 border-[#6b859e] p-10 text-center max-w-lg shadow-[8px_8px_0px_#4a5d73]" onClick={e => e.stopPropagation()}>
             <h2 className="text-3xl mb-6 text-slate-900 font-bold">[퀘스트 슬롯 해금]</h2>
             {reqLevel > 0 && reqTitle && (
               <p className="text-xl mb-3 text-slate-800 font-bold">

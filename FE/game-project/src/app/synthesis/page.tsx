@@ -64,6 +64,17 @@ function displaySkillType(type: string): string {
   return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
 }
 
+function normalizeSkillType(type: string): string {
+  const upper = type.toUpperCase();
+  return upper === 'DEV' || upper === 'DEVOPS' ? 'DEVOPS' : upper;
+}
+
+function getSkillIcon(type: string): string {
+  return `${ASSET_BASE}/assets/003-01/${normalizeSkillType(type).toLowerCase()}.webp`;
+}
+
+const SKILL_ICON_STYLE: React.CSSProperties = { height: '1em', width: 'auto', verticalAlign: 'middle', imageRendering: 'pixelated', display: 'inline-block' };
+
 // --- API 응답 타입 ---
 interface CardSkill {
   skillType: string;
@@ -83,6 +94,27 @@ interface CardListItem {
 
 // --- 스킬 필터 옵션 ---
 const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEV", "DESIGN"] as const;
+
+function getCardStatForType(card: CardListItem, type: string): number {
+  const norm = type.toUpperCase() === 'DEV' ? 'DEVOPS' : type.toUpperCase();
+  let total = 0;
+  if (card.skill1.skillType.toUpperCase() === norm) total += card.skill1.value;
+  if (card.skill2.skillType.toUpperCase() === norm) total += card.skill2.value;
+  if (card.skill3.skillType.toUpperCase() === norm) total += card.skill3.value;
+  return total;
+}
+
+function sortCards(cards: CardListItem[], filter: string, order: 'desc' | 'asc'): CardListItem[] {
+  return [...cards].sort((a, b) => {
+    const valA = filter === 'ALL'
+      ? a.skill1.value + a.skill2.value + a.skill3.value
+      : getCardStatForType(a, filter);
+    const valB = filter === 'ALL'
+      ? b.skill1.value + b.skill2.value + b.skill3.value
+      : getCardStatForType(b, filter);
+    return order === 'desc' ? valB - valA : valA - valB;
+  });
+}
 
 // --- Mock 이미지 (합성 결과 카드용) ---
 const MOCK_IMAGES = Array.from({ length: 10 }, (_, i) => `/assets/008/SCardImage_00${i}.webp`);
@@ -127,8 +159,9 @@ export default function SynthesisPage() {
   // --- 합성 결과 상태 ---
   const [synthesisResult, setSynthesisResult] = useState<{ success: boolean; resultCard?: CardListItem; cost: number } | null>(null);
 
-  // --- 필터 상태 ---
+  // --- 필터 / 정렬 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // --- 인증 토큰 ---
   const getAuthToken = useCallback(async () => {
@@ -215,8 +248,8 @@ export default function SynthesisPage() {
     });
   }, [cards]);
 
-  // --- 카드 목록은 항상 전체 표시 (등급 필터링 제거) ---
-  const sortedCards = cards;
+  // --- 클라이언트 사이드 정렬 ---
+  const sortedCards = useMemo(() => sortCards(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
 
   // --- 합성 확률/비용 계산 ---
   const synthesisProb = useMemo(() => {
@@ -240,9 +273,11 @@ export default function SynthesisPage() {
 
     const result = simulateSynthesis(selectedGrade, selectedCards.length, gold);
     if (result.error) {
-      alert(result.error === 'GRADE_MISMATCH' ? '같은 등급 카드만 합성 가능합니다.' :
-            result.error === 'INSUFFICIENT_CARDS' ? '카드가 부족합니다.' :
-            result.error === 'INSUFFICIENT_GOLD' ? '골드가 부족합니다.' : '합성할 수 없습니다.');
+      const errMsg = result.error === 'GRADE_MISMATCH' ? '같은 등급 카드만 합성 가능합니다.'
+        : result.error === 'INSUFFICIENT_CARDS' ? '카드가 부족합니다.'
+        : result.error === 'INSUFFICIENT_GOLD' ? '골드가 부족합니다.'
+        : '합성할 수 없습니다.';
+      useGameStore.getState().openComingSoonModal(errMsg);
       return;
     }
 
@@ -387,7 +422,7 @@ export default function SynthesisPage() {
 
         {/* ──── 좌측: 필터 + 카드 그리드 ──── */}
         <div className="cardlist-left-col">
-          {/* 스킬 필터 드롭다운 */}
+          {/* 스킬 필터 드롭다운 + 정렬 버튼 */}
           <div className="cardlist-filters">
             <div className="cardlist-select-wrapper">
               <select
@@ -400,6 +435,16 @@ export default function SynthesisPage() {
                 ))}
               </select>
             </div>
+            <button
+              className={`cardlist-filter-btn${sortOrder === 'desc' ? ' active' : ''}`}
+              onClick={() => setSortOrder('desc')}
+              title="능력치 내림차순"
+            >▼ 내림차순</button>
+            <button
+              className={`cardlist-filter-btn${sortOrder === 'asc' ? ' active' : ''}`}
+              onClick={() => setSortOrder('asc')}
+              title="능력치 오름차순"
+            >▲ 오름차순</button>
           </div>
 
           {/* 카드 리스트 박스 */}
@@ -472,9 +517,9 @@ export default function SynthesisPage() {
                         onClick={() => !isDisabled && handleCardClick(card.cardId)}
                       >
                         <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
-                        <span className="cardlist-card-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                        <span className="cardlist-card-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                        <span className="cardlist-card-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                        <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                        <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                        <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                       </div>
                     );
                   })
@@ -552,9 +597,9 @@ export default function SynthesisPage() {
                       return (
                         <div key={card.cardId} className="synthesis-fan-card" style={style} onClick={() => handleCardClick(card.cardId)}>
                           <img src={card.imageUrl} alt={card.name} draggable={false} />
-                          <span className="synthesis-fan-stat stat-1">{displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                          <span className="synthesis-fan-stat stat-2">{displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                          <span className="synthesis-fan-stat stat-3">{displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                          <span className="synthesis-fan-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                          <span className="synthesis-fan-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                          <span className="synthesis-fan-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
                         </div>
                       );
                     });
@@ -612,9 +657,9 @@ export default function SynthesisPage() {
                 <div className="synthesis-result-card-area">
                   <div className="synthesis-result-card-wrapper">
                     <img src={synthesisResult.resultCard.imageUrl} alt={synthesisResult.resultCard.name} draggable={false} />
-                    <span className="cardlist-card-stat stat-1">{displaySkillType(synthesisResult.resultCard.skill1.skillType)} {synthesisResult.resultCard.skill1.value}</span>
-                    <span className="cardlist-card-stat stat-2">{displaySkillType(synthesisResult.resultCard.skill2.skillType)} {synthesisResult.resultCard.skill2.value}</span>
-                    <span className="cardlist-card-stat stat-3">{displaySkillType(synthesisResult.resultCard.skill3.skillType)} {synthesisResult.resultCard.skill3.value}</span>
+                    <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(synthesisResult.resultCard.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(synthesisResult.resultCard.skill1.skillType)} {synthesisResult.resultCard.skill1.value}</span>
+                    <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(synthesisResult.resultCard.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(synthesisResult.resultCard.skill2.skillType)} {synthesisResult.resultCard.skill2.value}</span>
+                    <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(synthesisResult.resultCard.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(synthesisResult.resultCard.skill3.skillType)} {synthesisResult.resultCard.skill3.value}</span>
                   </div>
                   <div className="synthesis-result-card-name">
                     {synthesisResult.resultCard.name} ({synthesisResult.resultCard.grade}등급)

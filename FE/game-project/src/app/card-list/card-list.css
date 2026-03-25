@@ -457,6 +457,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 16px;
   min-width: 0;
 }
@@ -482,16 +483,15 @@
 
 /* S등급 추가 설명 란 */
 .cardlist-s-grade-desc {
-  flex: 0 0 calc((100% - 86px) / 2);
-  /* 능력치 박스와 동일 크기 고정 */
+  flex: 0 0 calc((100% - 86px) * 0.35);
+  /* 능력치 박스 대비 세로 70% 크기 */
 }
 
-/* 비-S등급: 능력치 박스를 남은 공간 중앙에 배치하는 래퍼 */
+/* 비-S등급: 능력치 박스 래퍼 (크기 고정, 부모 center로 그룹 정렬) */
 .cardlist-stats-center-wrapper {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: stretch;
   min-height: 0;
 }

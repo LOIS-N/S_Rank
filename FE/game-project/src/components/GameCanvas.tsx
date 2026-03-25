@@ -266,35 +266,53 @@ export default function GameCanvas() {
                   };
 
                   function spawnGoldenBug() {
-                    const gx = Phaser.Math.Between(BUG_BOUNDS.xMin + 60, BUG_BOUNDS.xMax - 60);
-                    const gy = Phaser.Math.Between(BUG_BOUNDS.yMin + 30, BUG_BOUNDS.yMax - 30);
-                    const goldImg = sceneRef.add.image(gx, gy, 'goldBug');
+                    const startPos = getNextBugPos(0, 0);
+                    const goldImg = sceneRef.add.image(startPos.x, startPos.y, 'goldBug');
                     goldImg.setScale(floatScale * (2 / 3));
                     goldImg.setInteractive({ useHandCursor: true });
                     bugLayer.add(goldImg);
 
                     let goldActive = true;
 
+                    // 일반 버그처럼 여기저기 돌아다님
+                    const crawlGolden = () => {
+                      if (!goldActive) return;
+                      const dest = getNextBugPos(goldImg.x, goldImg.y);
+                      goldImg.setFlipX(dest.x < goldImg.x);
+                      const dist = Phaser.Math.Distance.Between(goldImg.x, goldImg.y, dest.x, dest.y);
+                      sceneRef.tweens.add({
+                        targets: goldImg,
+                        x: dest.x,
+                        y: dest.y,
+                        duration: Math.max(1200, dist * 6),
+                        ease: 'Sine.easeInOut',
+                        onComplete: () => {
+                          if (!goldActive) return;
+                          const landY = goldImg.y;
+                          sceneRef.tweens.add({
+                            targets: goldImg,
+                            y: landY - 30,
+                            duration: 100,
+                            yoyo: true,
+                            repeat: Phaser.Math.Between(1, 3),
+                            ease: 'Cubic.easeOut',
+                            onComplete: () => { if (goldActive) crawlGolden(); },
+                          });
+                        },
+                      });
+                    };
+                    crawlGolden();
+
                     // 15초 뒤 미클릭 시 자동 사라짐 → 60초 후 리젠
                     const autoHide = sceneRef.time.delayedCall(15000, () => {
                       if (!goldActive) return;
                       goldActive = false;
+                      sceneRef.tweens.killTweensOf(goldImg);
                       sceneRef.tweens.add({
                         targets: goldImg, alpha: 0, duration: 500,
                         onComplete: () => { goldImg.destroy(); scheduleGoldenBug(); },
                       });
                     });
-
-                    // 제자리 바운스
-                    const goldenBounce = () => {
-                      if (!goldActive) return;
-                      sceneRef.tweens.add({
-                        targets: goldImg, y: goldImg.y - 52, duration: 120,
-                        yoyo: true, repeat: Phaser.Math.Between(2, 4), ease: 'Cubic.easeOut',
-                        onComplete: () => { if (goldActive) sceneRef.time.delayedCall(400, goldenBounce); },
-                      });
-                    };
-                    sceneRef.time.delayedCall(100, goldenBounce);
 
                     goldImg.on('pointerdown', async () => {
                       if (!goldActive) return;

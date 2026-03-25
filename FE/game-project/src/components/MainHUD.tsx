@@ -10,6 +10,7 @@ import DiscordModal from "./modals/DiscordModal";
 import NotificationModal from "./modals/NotificationModal";
 import AchievementModal from "./modals/AchievementModal";
 import { toggleBgm, isBgmMuted } from "./BgmPlayer";
+import TutorialStory from "./TutorialStory";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -43,7 +44,7 @@ interface MainQuestItem {
 }
 
 export default function MainHUD() {
-  const { gold, coffee, nickname, openComingSoonModal, setHUDModalOpen, bugsEnabled, toggleBugs } = useGameStore();
+  const { gold, coffee, nickname, openComingSoonModal, setHUDModalOpen, bugsEnabled, toggleBugs, tutorialActive, setTutorialActive } = useGameStore();
   const { accessToken } = useUserStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [bgmMuted, setBgmMuted] = useState(() => isBgmMuted());
@@ -192,7 +193,7 @@ export default function MainHUD() {
               { id: "ranking",      icon: `${ASSET_BASE}/assets/002/ranking_002.webp`,  label: "랭킹",       comingSoon: false },
               { id: "discord",      icon: `${ASSET_BASE}/assets/002/discord_002.webp`,  label: "디스코드",   comingSoon: false },
               { id: "notification", icon: `${ASSET_BASE}/assets/002/message_002.webp`,  label: "알림",       comingSoon: false },
-              { id: "achievement",  icon: `${ASSET_BASE}/assets/002/awards_002.webp`,   label: "업적",       comingSoon: false },
+              { id: "achievement",  icon: `${ASSET_BASE}/assets/002/awards_002.webp`,   label: "업적",       comingSoon: true },
             ].map((item) => (
               <button
                 key={item.id}
@@ -239,6 +240,20 @@ export default function MainHUD() {
             style={{ width: "4.43cqw", height: "4.43cqw", imageRendering: "pixelated" }}
           />
         </button>
+        {/* [DEV] 튜토리얼 버튼 */}
+        <button
+          onClick={() => setTutorialActive(true)}
+          className="flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110 text-white font-bold border border-white/30"
+          style={{
+            height: "4cqw",
+            padding: "0 1.0cqw",
+            fontSize: "1.0cqw",
+            background: "rgba(30,30,60,0.85)",
+          }}
+          title="튜토리얼 스토리 보기"
+        >
+          튜토리얼
+        </button>
         {/* Debug 토글 버튼 */}
         <button
           onClick={toggleBugs}
@@ -272,6 +287,11 @@ export default function MainHUD() {
       )}
 
       <div className="flex-1" />
+
+      {/* ── [DEV] 튜토리얼 스토리 오버레이 ── */}
+      {tutorialActive && (
+        <TutorialStory onComplete={() => setTutorialActive(false)} />
+      )}
     </div>
   );
 }

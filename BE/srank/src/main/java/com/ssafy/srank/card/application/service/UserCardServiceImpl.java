@@ -100,6 +100,20 @@ public class UserCardServiceImpl implements UserCardService {
         return userCardRepository.saveAll(userCards);
     }
 
+    @Override
+    public void applyEnhanceSuccess(Long userId, Long cardId, int value1, int value2, int value3) {
+        UserCard userCard = userCardRepository.findByIdAndUserId(cardId, userId).orElseThrow(
+                ()-> new BusinessException(ErrorCode.CARD_NOT_FOUND));
+        userCard.applyEnhanceSuccess(value1, value2, value3);
+    }
+
+    @Override
+    public void applyEnhanceFail(Long userId, Long cardId) {
+        UserCard userCard = userCardRepository.findByIdAndUserId(cardId, userId).orElseThrow(
+                ()-> new BusinessException(ErrorCode.CARD_NOT_FOUND));
+        userCard.applyEnhanceFail();
+    }
+
     // ── specialAbility 변환 ───────────────────────────────────────────────────
 
     private SpecialAbilityResponse toSpecialAbilityResponse(SpecialSkillTemplate template) {

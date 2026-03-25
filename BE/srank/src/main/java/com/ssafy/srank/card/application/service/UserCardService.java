@@ -19,8 +19,9 @@ public interface UserCardService {
     );
 
     UserCardResponse getUserCardDetail(Long userId, Long cardId);
-    Set<Long> getUsedUserCardList(Long userId);
     long countActiveCards(Long userId);
     List<UserCard> saveUserCards(List<UserCard> userCards);
     void validateCardsOwned(Long userId, List<Long> cards);
+    void applyEnhanceSuccess(Long userId, Long cardId, int value1, int value2, int value3);
+    void applyEnhanceFail(Long userId, Long cardId);
 }

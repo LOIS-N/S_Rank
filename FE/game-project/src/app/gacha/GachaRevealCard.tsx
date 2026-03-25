@@ -24,10 +24,23 @@ interface GachaRevealCardProps {
   instantReveal?: boolean;
 }
 
+const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 // --- Helpers ---
 function displaySkillType(type: string): string {
   return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
 }
+
+function normalizeSkillType(type: string): string {
+  const upper = type.toUpperCase();
+  return upper === 'DEV' || upper === 'DEVOPS' ? 'DEVOPS' : upper;
+}
+
+function getSkillIcon(type: string): string {
+  return `${ASSET_BASE}/assets/003-01/${normalizeSkillType(type).toLowerCase()}.webp`;
+}
+
+const SKILL_ICON_STYLE = { height: '1em', width: 'auto', verticalAlign: 'middle' as const, imageRendering: 'pixelated' as const, display: 'inline-block' };
 
 const GRADE_BORDER: Record<string, string> = {
   S: 'conic-gradient(from var(--gacha-border-angle, 0deg), #b9f2ff, #00e5ff, #ffffff, #76d7ff, #00e5ff, #b9f2ff)',
@@ -265,13 +278,13 @@ export function GachaRevealCard({ card, revealDelay, statFontSize = 12, instantR
             style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated', display: 'block' }}
           />
           <span className="gacha-card-stat stat-1" style={{ fontSize: statFontSize }}>
-            {displaySkillType(card.skill1.skillType)} {card.skill1.value}
+            <img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}
           </span>
           <span className="gacha-card-stat stat-2" style={{ fontSize: statFontSize }}>
-            {displaySkillType(card.skill2.skillType)} {card.skill2.value}
+            <img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}
           </span>
           <span className="gacha-card-stat stat-3" style={{ fontSize: statFontSize }}>
-            {displaySkillType(card.skill3.skillType)} {card.skill3.value}
+            <img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}
           </span>
         </div>
       </div>
