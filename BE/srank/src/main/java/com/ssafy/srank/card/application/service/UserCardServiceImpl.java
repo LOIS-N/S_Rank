@@ -6,6 +6,7 @@ import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.domain.entity.SpecialSkillTemplate;
 import com.ssafy.srank.card.domain.enums.PositionType;
 import com.ssafy.srank.card.domain.enums.SortType;
+import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import com.ssafy.srank.card.repository.SpecialSkillTemplateRepository;
 import com.ssafy.srank.card.repository.UserCardQueryRepository;
 import com.ssafy.srank.card.repository.UserCardRepository;
@@ -15,6 +16,7 @@ import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.application.service.QuestFacadeService;
 import com.ssafy.srank.quest.application.service.UserQuestCardService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,7 @@ public class UserCardServiceImpl implements UserCardService {
     private final UserCardRepository userCardRepository;
     private final SpecialSkillTemplateRepository specialSkillTemplateRepository;
     private final UserQuestCardService userQuestCardService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     @Override
@@ -135,6 +138,7 @@ public class UserCardServiceImpl implements UserCardService {
         }
         List<UserCard> cardList = userCardRepository.findAllActiveByUserIdAndIdInForUpdate(userId, request.cards());
         cardList.forEach(card -> card.softDelete(LocalDateTime.now()));
+        eventPublisher.publishEvent(new UserCardsChangedEvent(userId));
     }
 
     // ── specialAbility 변환 ───────────────────────────────────────────────────
