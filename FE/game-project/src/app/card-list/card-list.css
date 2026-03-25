@@ -413,7 +413,8 @@
 .cardlist-detail-split {
   display: flex;
   width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   gap: 20px;
   min-width: 0;
 }
@@ -557,4 +558,99 @@
 
 .animate-detail {
   animation: detailAppear 0.3s ease-out forwards;
+}
+
+/* ============================
+   해고하기 버튼
+   ============================ */
+.cardlist-fire-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 0 2px;
+  flex-shrink: 0;
+}
+
+.cardlist-fire-btn {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  background-color: #c0392b;
+  border: 3px solid #922b21;
+  border-radius: 4px;
+  padding: 11px 52px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+  letter-spacing: 2px;
+  transition: background-color 0.15s, transform 0.1s;
+}
+
+.cardlist-fire-btn:hover {
+  background-color: #e74c3c;
+  transform: scale(1.04);
+}
+
+.cardlist-fire-btn:active {
+  transform: scale(0.97);
+}
+
+.cardlist-fire-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.cardlist-fire-confirm-text {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 16px;
+  color: #c0392b;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.cardlist-fire-confirm-btns {
+  display: flex;
+  gap: 12px;
+}
+
+.cardlist-fire-confirm-yes,
+.cardlist-fire-confirm-no {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 4px;
+  padding: 10px 36px;
+  cursor: pointer;
+  border: 3px solid;
+  box-shadow: 3px 3px 0px rgba(0,0,0,0.4);
+  letter-spacing: 1px;
+}
+
+.cardlist-fire-confirm-yes {
+  background-color: #c0392b;
+  border-color: #922b21;
+  color: #fff;
+}
+
+.cardlist-fire-confirm-yes:hover:not(:disabled) {
+  background-color: #e74c3c;
+}
+
+.cardlist-fire-confirm-no {
+  background-color: #e0e0e0;
+  border-color: #555;
+  color: #333;
+}
+
+.cardlist-fire-confirm-no:hover:not(:disabled) {
+  background-color: #d0d0d0;
+}
+
+.cardlist-fire-confirm-yes:disabled,
+.cardlist-fire-confirm-no:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
