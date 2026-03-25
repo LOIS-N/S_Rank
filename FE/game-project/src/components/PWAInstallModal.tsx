@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useUserStore } from "@/store/useUserStore";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -16,7 +16,7 @@ export default function PWAInstallModal() {
   const [platform, setPlatform] = useState<"android" | "ios" | null>(null);
   const [portalTarget, setPortalTarget] = useState<Element | null>(null);
   const pathname = usePathname();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isAuthenticated = useUserStore((s) => s.isAuthenticated);
 
   // portal-root 마운트
   useEffect(() => {
@@ -79,71 +79,51 @@ export default function PWAInstallModal() {
   if (!visible || !portalTarget) return null;
 
   const guideText = platform === "ios"
-    ? <>Safari 하단 <span className="text-[#3a5a8a]">공유(□↑)</span> 버튼 →<br /><span className="text-[#3a5a8a]">홈 화면에 추가</span> 를 눌러주세요</>
+    ? <>Safari 공유(□↑) → <span className="text-[#3a5a8a] font-bold">홈 화면에 추가</span></>
     : deferredPrompt
-      ? <>아래 <span className="text-[#3a5a8a]">설치하기</span> 버튼을 눌러<br />홈 화면에 추가하세요</>
-      : <>Chrome 메뉴 <span className="text-[#3a5a8a]">⋮</span> →<br /><span className="text-[#3a5a8a]">홈 화면에 추가</span> 를 눌러주세요</>;
+      ? <>아래 버튼으로 홈 화면에 추가하세요</>
+      : <>Chrome 메뉴(⋮) → <span className="text-[#3a5a8a] font-bold">홈 화면에 추가</span></>;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold pointer-events-auto">
-      <div className="bg-[#b0c4de] p-6 border-4 border-[#6b859e] w-[320px] max-w-[90%] flex flex-col items-center gap-4 shadow-[8px_8px_0px_#4a5d73] relative">
+    <div className="fixed top-0 left-0 right-0 z-[99999] font-dot font-bold pointer-events-auto
+      bg-[#b0c4de] border-b-4 border-[#6b859e] shadow-[0px_4px_0px_#4a5d73]
+      flex items-center gap-3 px-3 py-2">
 
-        {/* 닫기 버튼 */}
+      {/* 아이콘 */}
+      <img
+        src="/assets/icons/icon-192.png"
+        alt="앱 아이콘"
+        className="w-8 h-8 rounded-lg border-2 border-[#6b859e] flex-shrink-0"
+      />
+
+      {/* 텍스트 */}
+      <div className="flex-1 min-w-0">
+        <div className="text-[#4a5d73] text-xs leading-none mb-1">앱 설치 안내</div>
+        <div className="text-[#1a2a3a] text-xs leading-snug">{guideText}</div>
+      </div>
+
+      {/* 버튼 영역 */}
+      <div className="flex gap-2 flex-shrink-0">
+        {platform === "android" && deferredPrompt && (
+          <button
+            onClick={handleInstall}
+            className="px-3 py-1 text-xs bg-[#ffcc00] text-black border-b-2 border-r-2 border-[#cc9900] active:border-0 active:translate-y-0.5 transition-all whitespace-nowrap"
+          >
+            설치
+          </button>
+        )}
+        <button
+          onClick={handleHideToday}
+          className="px-2 py-1 text-xs bg-[#6b859e] text-white border-b-2 border-r-2 border-[#3e5368] active:border-0 active:translate-y-0.5 transition-all whitespace-nowrap"
+        >
+          오늘은 안보기
+        </button>
         <button
           onClick={handleClose}
-          className="absolute top-2 right-3 text-[#6b859e] text-xl hover:text-[#4a5d73] leading-none"
+          className="px-2 py-1 text-xs bg-[#6b859e] text-white border-b-2 border-r-2 border-[#3e5368] active:border-0 active:translate-y-0.5 transition-all"
         >
           ✕
         </button>
-
-        {/* 타이틀 */}
-        <div className="text-[#4a5d73] text-base tracking-wide mt-1">
-          앱 설치 안내
-        </div>
-
-        {/* 구분선 */}
-        <div className="w-full border-t-2 border-[#6b859e]" />
-
-        {/* 아이콘 */}
-        <img
-          src="/assets/icons/icon-192.png"
-          alt="앱 아이콘"
-          className="w-16 h-16 rounded-xl shadow-[4px_4px_0px_#4a5d73]"
-        />
-
-        {/* 앱 이름 */}
-        <div className="text-[#4a5d73] text-sm text-center leading-snug">
-          S급 개발자들이<br />나를 따르는 이유
-        </div>
-
-        {/* 안내 문구 */}
-        <div className="bg-[#8ea4b8] border-2 border-[#6b859e] w-full text-center text-[#1a2a3a] text-xs py-3 px-4 leading-relaxed">
-          {guideText}
-        </div>
-
-        {/* 버튼 영역 */}
-        <div className="flex gap-3 w-full">
-          {platform === "android" && deferredPrompt && (
-            <button
-              onClick={handleInstall}
-              className="flex-1 py-3 text-sm bg-[#ffcc00] text-black border-b-4 border-r-4 border-[#cc9900] active:border-0 active:translate-y-1 transition-all"
-            >
-              설치하기
-            </button>
-          )}
-          <button
-            onClick={handleHideToday}
-            className="flex-1 py-3 text-xs bg-[#6b859e] text-white border-b-4 border-r-4 border-[#3e5368] active:border-0 active:translate-y-1 transition-all"
-          >
-            오늘은 안보기
-          </button>
-          <button
-            onClick={handleClose}
-            className="flex-1 py-3 text-xs bg-[#6b859e] text-white border-b-4 border-r-4 border-[#3e5368] active:border-0 active:translate-y-1 transition-all"
-          >
-            닫기
-          </button>
-        </div>
       </div>
     </div>,
     portalTarget
