@@ -5,6 +5,27 @@
    - pixel-art 에셋 기반 UI
    ============================================================ */
 
+/* ============================================================
+   합성 애니메이션 모달 (전기/번개 테마)
+   ============================================================ */
+
+@keyframes electric-float {
+  0%   { opacity: 0;   transform: translateY(0px); }
+  15%  { opacity: 0.9; }
+  70%  { opacity: 0.6; }
+  100% { opacity: 0;   transform: translateY(-80px); }
+}
+
+@keyframes synthesis-fadein {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes synthesis-result-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* --- 게임 컨테이너: 부모 game-wrapper를 꽉 채움 --- */
 .cardlist-page-container {
   width: 100%;
@@ -620,6 +641,112 @@
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* 수동/자동 탭 */
+.synthesis-tab-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.synthesis-tab-btn {
+  flex: 1;
+  padding: 7px 0;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  background: transparent;
+  border: 1px solid #4a4a6a;
+  border-radius: 3px;
+  color: #6a6a9a;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.synthesis-tab-btn.active {
+  background: #2a2a4a;
+  border-color: #8080c0;
+  color: #c0c0ff;
+}
+
+.synthesis-tab-btn:hover:not(.active) {
+  border-color: #6060a0;
+  color: #9090c0;
+}
+
+/* 자동 합성 설정 행 */
+.synthesis-auto-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.synthesis-auto-label {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 18px;
+  color: #8a8ab0;
+  flex-shrink: 0;
+}
+
+/* 자동 선택 탭 전용 드롭다운 */
+.synthesis-auto-select {
+  font-size: 14px !important;
+  padding: 7px 34px 7px 10px !important;
+  width: 90px;
+}
+
+.synthesis-auto-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.synthesis-auto-select-wrapper::after {
+  content: "▼";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-size: 11px;
+  color: #111;
+  background: rgba(0,0,0,0.08);
+  border-left: 2px solid #555;
+  border-radius: 0 4px 4px 0;
+}
+
+/* 골드 부족 토스트 */
+.synthesis-toast {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a0000;
+  border: 2px solid #ff4444;
+  border-radius: 6px;
+  padding: 18px 32px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff8888;
+  white-space: nowrap;
+  z-index: 20;
+  pointer-events: none;
+  animation: toast-in 0.2s ease-out;
+  text-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
 /* ============================
