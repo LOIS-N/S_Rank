@@ -195,7 +195,7 @@ function OverlayContent({ resultCard, sourceGrade, isSuccess, onShowResult, onCo
         {phase === 'fusing' ? (
           <>
             <div style={{ color: '#FFD700', fontSize: '16px', marginBottom: '14px', letterSpacing: '2px' }}>
-              융합 중...
+              합성 중...
             </div>
             <div style={{
               background: '#0d0c00',
@@ -234,7 +234,7 @@ function OverlayContent({ resultCard, sourceGrade, isSuccess, onShowResult, onCo
               fontSize: '13px',
               color: isSuccess ? '#aa8800' : '#aa5a5a',
             }}>
-              {isSuccess ? `[ ${sourceGrade} → ${resultCard.grade} 등급 ]` : '[ ERROR: 융합 실패 ]'}
+              {isSuccess ? `[ ${sourceGrade} → ${resultCard.grade} 등급 ]` : '[ ERROR: 합성 실패 ]'}
             </div>
           </div>
         )}

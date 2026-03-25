@@ -84,6 +84,7 @@ interface CardListItem {
   skill2: CardSkill;
   skill3: CardSkill;
   specialAbility: { name: string; description: string; effects: string } | null;
+  enhanceSuccessCount: number;
 }
 
 // --- 스킬 필터 옵션 ---
@@ -919,6 +920,11 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
                       style={{ filter: isUsed ? 'brightness(0.5)' : undefined, cursor: isUsed ? 'not-allowed' : undefined }}
                     >
                       <img src={card.imageUrl} alt={card.name} draggable={false} />
+                      {card.enhanceSuccessCount > 0 && (
+                        <span className="card-enhance-badge" data-level={String(card.enhanceSuccessCount)} data-grade={card.grade}>
+                          <span className="badge-plus">+</span><span className="badge-num">{card.enhanceSuccessCount}</span>
+                        </span>
+                      )}
                       <span className="phase2-card-stat stat-1" style={{ color: reqTypes.has(normalizeSkillType(card.skill1.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                       <span className="phase2-card-stat stat-2" style={{ color: reqTypes.has(normalizeSkillType(card.skill2.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                       <span className="phase2-card-stat stat-3" style={{ color: reqTypes.has(normalizeSkillType(card.skill3.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>

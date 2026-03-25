@@ -571,6 +571,11 @@ export default function EnhancePage() {
                         onClick={() => handleCardClick(card.cardId)}
                       >
                         <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
+                        {card.enhanceSuccessCount > 0 && (
+                          <span className="card-enhance-badge" data-level={String(card.enhanceSuccessCount)} data-grade={card.grade}>
+                            <span className="badge-plus">+</span><span className="badge-num">{card.enhanceSuccessCount}</span>
+                          </span>
+                        )}
                         <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                         <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                         <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
@@ -792,6 +797,7 @@ export default function EnhancePage() {
                   skill1: { ...card.skill1, value: card.skill1.value + pendingResult.statsAdded!.skill1 },
                   skill2: { ...card.skill2, value: card.skill2.value + pendingResult.statsAdded!.skill2 },
                   skill3: { ...card.skill3, value: card.skill3.value + pendingResult.statsAdded!.skill3 },
+                  enhanceSuccessCount: card.enhanceSuccessCount + 1,
                 };
               }));
             }
