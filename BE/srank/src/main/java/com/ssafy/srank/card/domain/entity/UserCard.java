@@ -94,6 +94,13 @@ public class UserCard extends SoftDeleteEntity {
         this.enhanceTryCount++;
     }
 
+    public void consumeForSynthesis(LocalDateTime now) {
+        if (isDeleted()) {
+            throw new BusinessException(ErrorCode.CARD_DELETED);
+        }
+        softDelete(now);
+    }
+
     public UserCardResponse toResponse() {
         SpecialAbilityResponse specialAbility = null;
         if (specialSkillTemplate != null) {

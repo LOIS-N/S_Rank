@@ -193,7 +193,7 @@ export default function MainHUD() {
               { id: "ranking",      icon: `${ASSET_BASE}/assets/002/ranking_002.webp`,  label: "랭킹",       comingSoon: false },
               { id: "discord",      icon: `${ASSET_BASE}/assets/002/discord_002.webp`,  label: "디스코드",   comingSoon: false },
               { id: "notification", icon: `${ASSET_BASE}/assets/002/message_002.webp`,  label: "알림",       comingSoon: false },
-              { id: "achievement",  icon: `${ASSET_BASE}/assets/002/awards_002.webp`,   label: "업적",       comingSoon: false },
+              { id: "achievement",  icon: `${ASSET_BASE}/assets/002/awards_002.webp`,   label: "업적",       comingSoon: true },
             ].map((item) => (
               <button
                 key={item.id}
@@ -258,20 +258,6 @@ export default function MainHUD() {
             alt="debug"
             style={{ width: "2.48cqw", height: "2.48cqw", imageRendering: "pixelated" }}
           />
-        </button>
-        {/* [DEV] 튜토리얼 버튼 */}
-        <button
-          onClick={() => setTutorialActive(true)}
-          className="flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110 text-white font-bold border border-white/30"
-          style={{
-            height: "4cqw",
-            padding: "0 1.0cqw",
-            fontSize: "1.0cqw",
-            background: "rgba(30,30,60,0.85)",
-          }}
-          title="튜토리얼 스토리 보기"
-        >
-          튜토리얼
         </button>
       </div>
 

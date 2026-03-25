@@ -28,7 +28,7 @@ export default function BottomNavBar() {
     { name: "뽑기",     disabled: false },
     { name: "강화",     disabled: false },
     { name: "합성",     disabled: false },
-    { name: "거래",     disabled: false },
+    { name: "거래",     disabled: true },
   ];
 
   const handleMenuClick = (item: string, disabled: boolean) => {

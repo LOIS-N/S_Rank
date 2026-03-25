@@ -77,15 +77,9 @@ interface CardListItem {
   skill1: CardSkill;
   skill2: CardSkill;
   skill3: CardSkill;
+  enhanceTryCount: number;
+  enhanceSuccessCount: number;
   specialAbility: { name: string; description: string; effects: string } | null;
-}
-
-interface CardDetailData {
-  cardId: number;
-  grade: string;
-  name: string;
-  stats: { [key: string]: number };
-  enhanceLevel: number;
 }
 
 // --- 스킬 필터 옵션 ---
@@ -139,8 +133,6 @@ export default function CardListPage() {
 
   // --- 선택 / 상세 상태 ---
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<CardDetailData | null>(null);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
 
   // --- 필터 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
@@ -178,7 +170,6 @@ export default function CardListPage() {
         // 첫 로드 시 첫 번째 카드 자동 선택
         if (!cursor && newCards.length > 0) {
           setSelectedCardId(newCards[0].cardId);
-          fetchCardDetail(newCards[0].cardId);
         }
       }
     } catch (err) {
@@ -190,32 +181,12 @@ export default function CardListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getAuthToken, capacitySort]);
 
-  // --- 카드 상세 조회 ---
-  const fetchCardDetail = useCallback(async (cardId: number) => {
-    setIsDetailLoading(true);
-    try {
-      const token = await getAuthToken();
-      const { data: json } = await api.get(`/api/v1/cards/${cardId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (json.success && json.data) {
-        setSelectedDetail(json.data);
-      }
-    } catch (err) {
-      console.error("카드 상세 조회 실패:", err);
-    } finally {
-      setIsDetailLoading(false);
-    }
-  }, [getAuthToken]);
-
   // --- 초기 로드 + 필터 변경 시 리셋 후 다시 fetch ---
   useEffect(() => {
     setCards([]);
     setNextCursor(null);
     setHasMore(true);
     setSelectedCardId(null);
-    setSelectedDetail(null);
     setScrollRatio(0);
     setIsInitialLoad(true);
     fetchCards(null, capacitySort);
@@ -225,8 +196,7 @@ export default function CardListPage() {
   // --- 카드 클릭 ---
   const handleCardClick = useCallback((cardId: number) => {
     setSelectedCardId(cardId);
-    fetchCardDetail(cardId);
-  }, [fetchCardDetail]);
+  }, []);
 
   // --- 선택된 필터 스탯 기준 오름/내림차순 정렬 ---
   const sortedCards = useMemo(() => sortCards(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
@@ -506,6 +476,10 @@ export default function CardListPage() {
                   <div className="cardlist-info-header-text">
                     {selectedListCard.name}({selectedListCard.grade}등급)
                   </div>
+                  <div style={{ display: 'flex', gap: '1.2em', marginTop: '0.3em', fontSize: '0.8em', opacity: 0.8 }}>
+                    <span>강화 횟수: {selectedListCard.enhanceTryCount}/7</span>
+                    <span>강화 성공: {selectedListCard.enhanceSuccessCount}</span>
+                  </div>
                 </NineSliceBox>
 
                 {selectedListCard.specialAbility ? (
@@ -517,9 +491,12 @@ export default function CardListPage() {
                       <div className="cardlist-info-text"><img src={getSkillIcon(selectedListCard.skill2.skillType)} alt="" style={SKILL_ICON_DETAIL_STYLE} /> {displaySkillType(selectedListCard.skill2.skillType)} +{selectedListCard.skill2.value}</div>
                       <div className="cardlist-info-text"><img src={getSkillIcon(selectedListCard.skill3.skillType)} alt="" style={SKILL_ICON_DETAIL_STYLE} /> {displaySkillType(selectedListCard.skill3.skillType)} +{selectedListCard.skill3.value}</div>
                     </NineSliceBox>
-                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc">
+                    <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={18} borderScale={0.35} className="cardlist-info-panel cardlist-s-grade-desc" style={{ paddingTop: '6px', paddingBottom: '6px' }}>
                       <div className="cardlist-info-text">
                         능력 : {selectedListCard.specialAbility.name}
+                      </div>
+                      <div className="cardlist-info-text" style={{ marginTop: '0.4em', opacity: 0.85, fontSize: '0.85em' }}>
+                        {selectedListCard.specialAbility.description}
                       </div>
                     </NineSliceBox>
                   </>

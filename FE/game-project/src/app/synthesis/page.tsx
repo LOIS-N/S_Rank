@@ -251,9 +251,11 @@ export default function SynthesisPage() {
 
     const result = simulateSynthesis(selectedGrade, selectedCards.length, gold);
     if (result.error) {
-      alert(result.error === 'GRADE_MISMATCH' ? '같은 등급 카드만 합성 가능합니다.' :
-            result.error === 'INSUFFICIENT_CARDS' ? '카드가 부족합니다.' :
-            result.error === 'INSUFFICIENT_GOLD' ? '골드가 부족합니다.' : '합성할 수 없습니다.');
+      const errMsg = result.error === 'GRADE_MISMATCH' ? '같은 등급 카드만 합성 가능합니다.'
+        : result.error === 'INSUFFICIENT_CARDS' ? '카드가 부족합니다.'
+        : result.error === 'INSUFFICIENT_GOLD' ? '골드가 부족합니다.'
+        : '합성할 수 없습니다.';
+      useGameStore.getState().openComingSoonModal(errMsg);
       return;
     }
 

@@ -459,7 +459,7 @@ export default function TradePage() {
       fetchListings();
     } catch (e: any) {
       setBuyStep("");
-      alert((e as any)?.response?.data?.error?.message ?? "구매 중 오류가 발생했습니다.");
+      useGameStore.getState().openComingSoonModal((e as any)?.response?.data?.error?.message ?? "구매 중 오류가 발생했습니다.");
     } finally {
       setIsBuying(false);
     }
@@ -469,7 +469,7 @@ export default function TradePage() {
   const handleSell = async () => {
     if (!selectedMyCard || !sellPrice) return;
     const price = parseInt(sellPrice, 10);
-    if (isNaN(price) || price <= 0) { alert("올바른 가격을 입력해주세요."); return; }
+    if (isNaN(price) || price <= 0) { useGameStore.getState().openComingSoonModal("올바른 가격을 입력해주세요."); return; }
     setIsSelling(true);
     try {
       // 0. setApprovalForAll 미승인 시 자동 처리 (최초 1회만 서명 발생)
@@ -504,7 +504,7 @@ export default function TradePage() {
       fetchMyCards();
     } catch (e: any) {
       setSellStep("");
-      alert((e as any)?.response?.data?.error?.message ?? "판매 등록 중 오류가 발생했습니다.");
+      useGameStore.getState().openComingSoonModal((e as any)?.response?.data?.error?.message ?? "판매 등록 중 오류가 발생했습니다.");
     } finally {
       setIsSelling(false);
     }
