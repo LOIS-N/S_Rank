@@ -19,6 +19,7 @@ import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.application.facade.SynthesisLogFacade;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.quest.application.service.UserQuestCardService;
+import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import com.ssafy.srank.synthesis.application.dto.request.SynthesisAttemptRequest;
 import com.ssafy.srank.synthesis.application.dto.request.SynthesisVerificationRequest;
 import com.ssafy.srank.synthesis.application.dto.response.SynthesisAttemptResponse;
@@ -35,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.dao.QueryTimeoutException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +66,7 @@ public class SynthesisServiceImpl implements SynthesisService {
     private final EconomyLogFacade economyLogFacade;
     private final SynthesisLogFacade synthesisLogFacade;
     private final SynthesisLogCommandFactory synthesisLogCommandFactory;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -104,6 +107,7 @@ public class SynthesisServiceImpl implements SynthesisService {
 
             CreatedCardDraft createdCard = createResultCard(userId, resultGrade, clientSeed, context);
             UserCard savedResultCard = userCardRepository.save(createdCard.userCard());
+            eventPublisher.publishEvent(new UserCardsChangedEvent(userId));
             String resultDigest = synthesisProofHelper.buildResultDigest(
                     sourceGrade,
                     cardIds.size(),
