@@ -8,7 +8,7 @@ import BottomNavBar from "@/components/BottomNavBar";
 import GlobalModals from "@/components/GlobalModals";
 import ZoomGuard from "@/components/ZoomGuard";
 import BgmPlayer from "@/components/BgmPlayer";
-import PWAInstallBanner from "@/components/PWAInstallBanner";
+import PWAInstallModal from "@/components/PWAInstallModal";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -59,7 +59,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ZoomGuard />
         <BgmPlayer />
-        <PWAInstallBanner />
+        <PWAInstallModal />
         {/* 세로 모드 회전 안내 — portrait 에서만 CSS로 표시 */}
         <div className="portrait-overlay">
           <span className="rotate-icon">📱</span>
