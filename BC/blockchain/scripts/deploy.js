@@ -1,53 +1,46 @@
+console.log("🚨 1. deploy.js 스크립트 파일 진입 성공!");
 const hre = require("hardhat");
+console.log("🚨 2. 하드햇 모듈 로드 성공!");
 
 async function main() {
-  const [deployer] = await hre.ethers.getSigners();
-  console.log("Deploying contracts with the account:", deployer.address);
+  console.log("🚀 싸피 네트워크(31221) 4대장 배포를 시작합니다...\n");
 
-  // 1. GameToken (CFF) 배포
+  // 1. 나만의 기축통화 (Srank Token) 배포
+  console.log("1️⃣ GameToken 배포 중...");
   const GameToken = await hre.ethers.getContractFactory("GameToken");
   const token = await GameToken.deploy();
   await token.waitForDeployment();
-  console.log("GameToken deployed to:", await token.getAddress());
+  console.log(`✅ GameToken 배포 완료! 주소: ${token.target}`);
 
-  // 2. CardNFT (DCN) 배포
+  // 2. 공정성 기록 장부 (Ledger) 배포
+  console.log("\n2️⃣ Ledger 배포 중...");
+  const Ledger = await hre.ethers.getContractFactory("Ledger");
+  const ledger = await Ledger.deploy();
+  await ledger.waitForDeployment();
+  console.log(`✅ Ledger 배포 완료! 주소: ${ledger.target}`);
+
+  // 3. 카드 NFT 배포 (burnBatch 함수가 추가된 버전)
+  console.log("\n3️⃣ CardNFT 배포 중...");
   const CardNFT = await hre.ethers.getContractFactory("CardNFT");
   const nft = await CardNFT.deploy();
   await nft.waitForDeployment();
-  const nftAddress = await nft.getAddress();
-  console.log("CardNFT deployed to:", nftAddress);
+  console.log(`✅ CardNFT 배포 완료! 주소: ${nft.target}`);
 
-  // 3. CardGacha 배포 (NFT 주소 필요)
-  const CardGacha = await hre.ethers.getContractFactory("CardGacha");
-  const gacha = await CardGacha.deploy(nftAddress);
-  await gacha.waitForDeployment();
-  const gachaAddress = await gacha.getAddress();
-  console.log("CardGacha deployed to:", gachaAddress);
-
-  // 4. CardUpgrade 배포
-  const CardUpgrade = await hre.ethers.getContractFactory("CardUpgrade");
-  const upgrade = await CardUpgrade.deploy();
-  await upgrade.waitForDeployment();
-  console.log("CardUpgrade deployed to:", await upgrade.getAddress());
-
-  // 5. CardMerge 배포 (NFT 주소 필요)
-  const CardMerge = await hre.ethers.getContractFactory("CardMerge");
-  const merge = await CardMerge.deploy(nftAddress);
-  await merge.waitForDeployment();
-  const mergeAddress = await merge.getAddress();
-  console.log("CardMerge deployed to:", mergeAddress);
-
-  // 6. CardMarket 배포 (Token & NFT 주소 필요)
+  // 4. 마켓 배포 (🌟 핵심: 방금 만든 내 코인 주소와 NFT 주소를 연결!)
+  console.log("\n4️⃣ CardMarket 배포 중...");
   const CardMarket = await hre.ethers.getContractFactory("CardMarket");
-  const market = await CardMarket.deploy(await token.getAddress(), nftAddress);
+  // token.target 이 바로 위에서 배포한 내 코인 주소입니다!
+  const market = await CardMarket.deploy(token.target, nft.target);
   await market.waitForDeployment();
-  console.log("CardMarket deployed to:", await market.getAddress());
+  console.log(`✅ CardMarket 배포 완료! 주소: ${market.target}`);
 
-  // [중요] 권한 설정: Gacha와 Composer가 NFT 민팅 권한을 갖도록 설정
-  console.log("Setting up permissions...");
-  await nft.setController(gachaAddress, true);
-  await nft.setController(mergeAddress, true);
-  console.log("Permissions set successfully!");
+  console.log(
+    "\n🎉 [배포 대성공] 아래 주소들을 Spring Boot application.properties 에 복붙하세요!",
+  );
+  console.log(`contract.token.address=${token.target}`);
+  console.log(`contract.ledger.address=${ledger.target}`);
+  console.log(`contract.nft.address=${nft.target}`);
+  console.log(`contract.market.address=${market.target}`);
 }
 
 main().catch((error) => {
