@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +36,10 @@ public class EnhancementServiceImpl implements EnhancementService {
 
     @Override
     public CursorPageResponse<UserCardResponse> getEnhancementCardList(Long userId, PositionType statType, SortType sortType, String cursorToken, int limit) {
-        return userCardService.getUserCards(userId, statType, sortType, cursorToken, limit);
+        CursorPageResponse<UserCardResponse> result = userCardService.getUserCards(userId, statType, sortType, cursorToken, limit);
+        List<UserCardResponse> cards = new ArrayList<>(result.cards());
+        cards.removeIf((card)->card.enhanceTryCount() == 7);
+        return new CursorPageResponse<>(cards, result.nextCursor(), result.hasMore(), cards.size() );
     }
 
     @Transactional
