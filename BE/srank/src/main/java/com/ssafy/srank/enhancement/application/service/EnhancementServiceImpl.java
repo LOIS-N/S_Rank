@@ -16,6 +16,8 @@ import com.ssafy.srank.enhancement.domain.policy.EnhancePolicy;
 import com.ssafy.srank.log.application.command.EnhancementLogCommand;
 import com.ssafy.srank.log.application.facade.EnhancementLogFacade;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.rabbitmq.log.producer.EnhanceLogProducer;
+import com.ssafy.srank.rabbitmq.log.producer.QuestLogProducer;
 import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ public class EnhancementServiceImpl implements EnhancementService {
     private final UserCardService userCardService;
     private final UserService userService;
     private final ProbablyFairService probablyFairService;
+    private final EnhanceLogProducer producer;
     private final EnhancementLogFacade enhancementLogFacade;
 
     @Override

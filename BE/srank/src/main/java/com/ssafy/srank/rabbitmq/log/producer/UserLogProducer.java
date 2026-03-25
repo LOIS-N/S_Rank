@@ -8,15 +8,15 @@ import org.springframework.stereotype.Component;
   
 @Component
 @RequiredArgsConstructor
-public class UserAuthProducer {
+public class UserLogProducer {
   
     private final RabbitTemplate rabbitTemplate;
   
     public void sendUserMessage(UserAuthMessage message) {
         rabbitTemplate.convertAndSend(  
                 RabbitMqConfig.LOG_EXCHANGE,
-                RabbitMqConfig.LOG_ROUTING_KEY,
+                RabbitMqConfig.LOG_USER_ROUTING_KEY,
                 message  
         );  
-    }  
+    }
 }

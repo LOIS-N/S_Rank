@@ -11,7 +11,8 @@ import com.ssafy.srank.quest.application.dto.request.QuestDateTimeRequest;
 import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.domain.entity.*;
-import com.ssafy.srank.quest.repository.*;
+import com.ssafy.srank.rabbitmq.log.message.QuestMessage;
+import com.ssafy.srank.rabbitmq.log.producer.QuestLogProducer;
 import com.ssafy.srank.sse.application.event.QuestCompletedEvent;
 import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +34,7 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
 
     private final StringRedisTemplate redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
+    private final QuestLogProducer producer;
 
     private final MainQuestService mainService;
     private final SubQuestService subService;
@@ -45,7 +46,6 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
     @Transactional
     @Override
     public List<InProcessQuestResponse> getInProcessQuestList(Long userId) {
-        log.debug("[Quest] 진행 중인 퀘스트 목록 조회 시작 - userId={}", userId);
         LocalDateTime now = LocalDateTime.now();
         //main
         List<InProcessQuestResponse> list = new ArrayList<>(mainService.getUserMainQuestList(userId, now));
@@ -81,7 +81,16 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         redisTemplate.opsForValue().set(key,"1", request.duration(), TimeUnit.SECONDS);
 
         //로그 생성
-
+        producer.sendQuestLogMessage(
+                new QuestMessage(
+                        userId,
+                        "MAIN",
+                        questTemplateId,
+                        null,
+                        request.duration(),
+                        "START",
+                        startAt
+                        ));
         return mainQuest.getId();
     }
 
@@ -109,6 +118,18 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         String key = "quest:%d:%d:%s".formatted(userId, subQuest.getId(), "sub");
         redisTemplate.opsForValue().set(key,"1",request.duration(), TimeUnit.SECONDS);
 
+        //로그 생성
+        producer.sendQuestLogMessage(
+                new QuestMessage(
+                        userId,
+                        "SUB",
+                        questTemplateId,
+                        null,
+                        request.duration(),
+                        "START",
+                        startAt
+                ));
+
         return subQuest.getId();
     }
 
@@ -123,6 +144,18 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
             gold = subService.claimRewardSubQuest(userId, request.questId());
         }
         userService.rewardGold(userId, gold, GoldLogReason.QUEST_REWARD);
+
+        //로그 생성
+        producer.sendQuestLogMessage(
+                new QuestMessage(
+                        userId,
+                        request.questType().toString(),
+                        null,
+                        request.questId(),
+                        null,
+                        "Reward",
+                        LocalDateTime.now()
+                ));
     }
 
     @Transactional
@@ -147,6 +180,18 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
                         "퀘스트가 완료되었습니다."
                 )
         );
+
+        //로그 생성
+        producer.sendQuestLogMessage(
+                new QuestMessage(
+                        userId,
+                        type.toUpperCase(),
+                        null,
+                        questId,
+                        null,
+                        "Reward",
+                        LocalDateTime.now()
+                ));
     }
 
     public List<Long> getUsedUserCardList(Long userId){
