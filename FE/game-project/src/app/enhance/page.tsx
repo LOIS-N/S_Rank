@@ -384,14 +384,16 @@ export default function EnhancePage() {
 
       const resData = json.data;
       const isSuccess: boolean = resData.success;
-      const increased: number = resData.increasedValue || 0;
 
-      // BE는 3개 스탯 각각에 increased 값을 동일하게 적용 (UserCard.applyEnhanceSuccess)
       const result: EnhanceResult = {
         success: isSuccess,
         cost,
         statsAdded: isSuccess
-          ? { skill1: increased, skill2: increased, skill3: increased }
+          ? {
+              skill1: resData.increasedValue1 ?? resData.increasedValue ?? 0,
+              skill2: resData.increasedValue2 ?? resData.increasedValue ?? 0,
+              skill3: resData.increasedValue3 ?? resData.increasedValue ?? 0,
+            }
           : { skill1: 0, skill2: 0, skill3: 0 },
       };
 
