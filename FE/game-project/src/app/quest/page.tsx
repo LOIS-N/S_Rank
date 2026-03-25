@@ -8,6 +8,7 @@ import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import api from "@/lib/axios";
 import { sendGAEvent } from "@/lib/gtag";
+import { TUTORIAL_QUEST_2, TUTORIAL_QUEST_3, TUTORIAL_QUEST_4 } from "@/lib/tutorialData";
 import "./quest.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -242,6 +243,8 @@ function QuestCard({
 
 // --- 퀘스트 상세 정보 컴포넌트 ---
 function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = false, onAccept }: { quest: Quest | null; isAccepting: boolean; isInProgress?: boolean; isAllBusy?: boolean; onAccept: () => void }) {
+  const { tutorialQuestStep: tqStep } = useGameStore();
+  const showTutorialArrow = tqStep !== null && quest !== null && !isInProgress && !isAllBusy;
   if (!quest) {
     return (
       <div className="quest-detail-panel">
@@ -287,19 +290,34 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
       </div>
 
       {/* 수락하기 버튼 */}
-      <NineSliceBox
-        src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
-        slice={[200, 208, 200, 208]}
-        framePadding={10}
-        borderScale={0.35}
-        className="quest-accept-button"
-        onClick={onAccept}
-        style={(isInProgress || isAllBusy) ? { filter: 'brightness(0.65)', cursor: 'default' } : undefined}
-      >
-        <span style={{ position: 'relative', zIndex: 2 }}>
-          {isAccepting ? "수락 중..." : isInProgress ? "진행 중" : isAllBusy ? "근무 중" : "수락하기"}
-        </span>
-      </NineSliceBox>
+      <div style={{ position: 'relative' }}>
+        {showTutorialArrow && (
+          <img
+            src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+            alt=""
+            className="tutorial-arrow-y"
+            style={{
+              position: 'absolute', bottom: '100%', left: '50%',
+              transform: 'translateX(-50%)',
+              height: '4.7cqw', width: 'auto',
+              imageRendering: 'pixelated', pointerEvents: 'none', zIndex: 100,
+            }}
+          />
+        )}
+        <NineSliceBox
+          src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
+          slice={[200, 208, 200, 208]}
+          framePadding={10}
+          borderScale={0.35}
+          className="quest-accept-button"
+          onClick={onAccept}
+          style={(isInProgress || isAllBusy) ? { filter: 'brightness(0.65)', cursor: 'default' } : undefined}
+        >
+          <span style={{ position: 'relative', zIndex: 2 }}>
+            {isAccepting ? "수락 중..." : isInProgress ? "진행 중" : isAllBusy ? "근무 중" : "수락하기"}
+          </span>
+        </NineSliceBox>
+      </div>
     </NineSliceBox>
   );
 }
@@ -307,7 +325,8 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
 // --- Phase 2: 카드 배치 콘텐츠 ---
 function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () => void }) {
   const router = useRouter();
-  const { selectingDeskId, startQuest, quests: storeQuests } = useGameStore();
+  const { selectingDeskId, startQuest, quests: storeQuests, tutorialQuestStep: tStep, tutorialCards } = useGameStore();
+  const isTutorialPhase2 = tStep !== null && [2, 32, 42].includes(tStep);
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [usedCardWarning, setUsedCardWarning] = useState(false);
@@ -358,6 +377,12 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   }, [selectingDeskId]);
 
   const fetchCards = useCallback(async (cursor?: string | null, filterOverride?: string) => {
+    // 튜토리얼 모드: API 대신 store의 tutorialCards 사용
+    if (tStep !== null) {
+      setCards(useGameStore.getState().tutorialCards as unknown as CardListItem[]);
+      setIsInitialLoad(false);
+      return;
+    }
     if (isCardLoading) return;
     setIsCardLoading(true);
     try {
@@ -388,7 +413,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       setIsInitialLoad(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getAuthToken, capacitySort]);
+  }, [getAuthToken, capacitySort, isTutorialPhase2]);
 
   useEffect(() => {
     setCards([]);
@@ -558,8 +583,22 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const handleAcceptQuest = useCallback(async () => {
     if (!quest || isStarting) return;
 
-    // 카드 수 검증 (최소 3장, 최대 cardSlotCount)
-    const minCards = Math.min(3, quest.cardSlotCount);
+    // 튜토리얼 모드: API 생략, 책상 타이머 사용
+    if (isTutorialPhase2) {
+      const step = tStep!;
+      const timerSec = step === 2 ? 3 : 5;
+      const reward = step === 2 ? 500 : 0;
+      const questTitle =
+        step === 2 ? '시장조사를 하자' :
+        step === 32 ? '프로젝트를 기획하자' :
+        '프로젝트 프로토타입을 만들자';
+      startQuest(0, timerSec, reward, questTitle, -step, 'sub');
+      router.push('/');
+      return;
+    }
+
+    // 카드 수 검증 (최소 3장, 최대 cardSlotCount) — 튜토리얼 step42: 1장으로 가능
+    const minCards = tStep === 42 ? 1 : Math.min(3, quest.cardSlotCount);
     if (selectedCards.length < minCards) {
       setWarningMessage(`최소 ${minCards}장의 카드를 배치해야 합니다!`);
       return;
@@ -793,6 +832,18 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
           >▲ 오름차순</button>
         </div>
 
+        {tStep !== null && selectedCards.length < (tStep === 42 ? 1 : Math.min(3, quest?.cardSlotCount ?? 3)) && (
+          <img
+            src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+            alt=""
+            className="tutorial-arrow-y"
+            style={{
+              display: 'block', margin: '0 auto 0.5cqw',
+              height: '4.7cqw', width: 'auto',
+              imageRendering: 'pixelated', pointerEvents: 'none',
+            }}
+          />
+        )}
         <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="phase2-left-box">
           <div
             className="phase2-card-grid-wrapper"
@@ -984,29 +1035,46 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
             <span style={{ position: 'relative', zIndex: 2 }}>취소하기</span>
           </NineSliceBox>
 
-          <NineSliceBox
-            src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
-            slice={[200, 208, 200, 208]}
-            framePadding={14}
-            borderScale={0.4}
-            className="phase2-btn-auto"
-            onClick={handleAutoSelect}
-          >
-            <span style={{ position: 'relative', zIndex: 2 }}>자동 선택</span>
-          </NineSliceBox>
+          {!isTutorialPhase2 && (
+            <NineSliceBox
+              src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
+              slice={[200, 208, 200, 208]}
+              framePadding={14}
+              borderScale={0.4}
+              className="phase2-btn-auto"
+              onClick={handleAutoSelect}
+            >
+              <span style={{ position: 'relative', zIndex: 2 }}>자동 선택</span>
+            </NineSliceBox>
+          )}
 
-          <NineSliceBox
-            src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
-            slice={[200, 208, 200, 208]}
-            framePadding={14}
-            borderScale={0.4}
-            className={`phase2-btn-accept ${selectedCards.length < Math.min(3, quest.cardSlotCount) ? 'disabled' : ''}`}
-            onClick={handleAcceptQuest}
-          >
-            <span style={{ position: 'relative', zIndex: 2 }}>
-              {isStarting ? '시작 중...' : '수락하기'}
-            </span>
-          </NineSliceBox>
+          <div style={{ position: 'relative' }}>
+            {tStep !== null && selectedCards.length >= (tStep === 42 ? 1 : Math.min(3, quest.cardSlotCount)) && (
+              <img
+                src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+                alt=""
+                className="tutorial-arrow-y"
+                style={{
+                  position: 'absolute', bottom: '100%', left: '50%',
+                  transform: 'translateX(-50%)',
+                  height: '4.7cqw', width: 'auto',
+                  imageRendering: 'pixelated', pointerEvents: 'none', zIndex: 100,
+                }}
+              />
+            )}
+            <NineSliceBox
+              src={`${ASSET_BASE}/assets/003-01/questCard_000.webp`}
+              slice={[200, 208, 200, 208]}
+              framePadding={14}
+              borderScale={0.4}
+              className={`phase2-btn-accept ${selectedCards.length < (tStep === 42 ? 1 : Math.min(3, quest.cardSlotCount)) ? 'disabled' : ''}`}
+              onClick={handleAcceptQuest}
+            >
+              <span style={{ position: 'relative', zIndex: 2 }}>
+                {isStarting ? '시작 중...' : '수락하기'}
+              </span>
+            </NineSliceBox>
+          </div>
         </div>
 
       </NineSliceBox>
@@ -1019,7 +1087,14 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
    ============================================================ */
 export default function QuestPage() {
   const { getAccessToken } = usePrivy();
-  const { quests: storeQuests } = useGameStore();
+  const { quests: storeQuests, tutorialQuestStep, tutorialAccessPage, setTutorialScriptId } = useGameStore();
+  const isTutorialMode = tutorialQuestStep !== null && [2, 3, 32, 4, 42].includes(tutorialQuestStep);
+
+  const tutorialQuestDef =
+    (tutorialQuestStep === 2) ? TUTORIAL_QUEST_2 :
+    (tutorialQuestStep === 3 || tutorialQuestStep === 32) ? TUTORIAL_QUEST_3 :
+    (tutorialQuestStep === 4 || tutorialQuestStep === 42) ? TUTORIAL_QUEST_4 :
+    null;
 
   // store에서 현재 IN_PROGRESS/COMPLETED 퀘스트의 questId/title Set 계산
   const activeQuestIds = new Set(
@@ -1125,6 +1200,15 @@ export default function QuestPage() {
 
   // --- 초기 데이터 로드 ---
   useEffect(() => {
+    if (isTutorialMode && tutorialQuestDef) {
+      // 튜토리얼 모드: API 대신 mock 퀘스트 사용
+      const q: Quest = { ...tutorialQuestDef };
+      setSubQuests([q]);
+      setMainQuest(null);
+      setSelectedQuest(q);
+      setIsLoading(false);
+      return;
+    }
     const init = async () => {
       setIsLoading(true);
       await Promise.all([fetchMainQuest(chapterNumber), fetchSubQuests()]);
@@ -1132,7 +1216,23 @@ export default function QuestPage() {
     };
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isTutorialMode, tutorialQuestStep]);
+
+  // 튜토리얼 step3/4: 퀘스트 페이지 진입 시 스크립트 표시
+  useEffect(() => {
+    if (tutorialQuestStep === 3 && tutorialAccessPage === 'quest') {
+      const timer = setTimeout(() => {
+        setTutorialScriptId('step3_hard');
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+    if (tutorialQuestStep === 4 && tutorialAccessPage === 'quest') {
+      const timer = setTimeout(() => {
+        setTutorialScriptId('step4_missing');
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [tutorialQuestStep, tutorialAccessPage, setTutorialScriptId]);
 
   // --- 퀘스트 수락 ---
   const handleAcceptQuest = useCallback(() => {
@@ -1294,8 +1394,8 @@ export default function QuestPage() {
           {/* ──── 좌측: 퀘스트 리스트 ──── */}
           <div className="quest-left-area" onWheel={handleWheel}>
             <div className="quest-list-column">
-              {/* 메인 퀘스트 (고정) */}
-              {mainQuest ? (
+              {/* 메인 퀘스트 (튜토리얼 모드에서는 숨김) */}
+              {!isTutorialMode && (mainQuest ? (
                 <QuestCard
                   quest={mainQuest}
                   isMain
@@ -1306,7 +1406,7 @@ export default function QuestPage() {
                 <div style={{ minHeight: 68, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: '18px' }}>
                   {isLoading ? "로딩 중..." : "메인 퀘스트 없음"}
                 </div>
-              )}
+              ))}
 
               {/* 서브 퀘스트 (스크롤 영역) */}
               <div

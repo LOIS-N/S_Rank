@@ -46,6 +46,16 @@ interface GameState {
   notifications: InAppNotification[];
   bugsEnabled: boolean;
   tutorialActive: boolean;
+  tutorialQuestStep: number | null;  // null=비활성, 1~6=현재 튜토리얼 퀘스트 단계
+  tutorialQuestScriptVisible: boolean;
+  tutorialGachaCount: number;
+  tutorialCards: import('@/lib/tutorialData').TutorialCard[];
+  tutorialEnhanceCount: number;
+  tutorialScriptId: string | null;    // current script group to show
+  tutorialAccessPage: string | null;  // which page nav is accessible
+  tutorialQuestTimerActive: boolean;
+  tutorialQuestTimerSec: number;
+  tutorialQuestTimerReward: number;
   setAuth: (token: string | null) => void;
   increaseScore: (by: number) => void;
   increaseGold: (by: number) => void;
@@ -61,6 +71,7 @@ interface GameState {
   finishQuestTimer: (id: number) => void;
   completeQuest: (id: number) => void;
   completeQuestNoGold: (id: number) => void;
+  completeQuestSilent: (id: number) => void;
   unlockQuestSlot: (id: number) => void;
   setUnlockConfirm: (id: number | null) => void;
   closeRewardModal: () => void;
@@ -77,6 +88,18 @@ interface GameState {
   setSessionExpiredModal: (v: boolean) => void;
   toggleBugs: () => void;
   setTutorialActive: (v: boolean) => void;
+  setTutorialQuestStep: (step: number | null) => void;
+  setTutorialQuestScriptVisible: (v: boolean) => void;
+  setTutorialGachaCount: (count: number) => void;
+  setTutorialScriptId: (id: string | null) => void;
+  setTutorialAccessPage: (page: string | null) => void;
+  addTutorialCard: (card: import('@/lib/tutorialData').TutorialCard) => void;
+  enhanceTutorialCard: (cardId: number) => void;
+  addSynthesisCard: (card: import('@/lib/tutorialData').TutorialCard) => void;
+  removeTutorialCards: (cardIds: number[]) => void;
+  startTutorialQuestTimer: (sec: number, reward: number) => void;
+  stopTutorialQuestTimer: () => void;
+  resetTutorialState: () => void;
   pushNotification: (title: string, body: string) => void;
   markNotificationRead: (id: number) => void;
 }
@@ -111,6 +134,16 @@ export const useGameStore = create<GameState>()(
   notifications: [],
   bugsEnabled: true,
   tutorialActive: false,
+  tutorialQuestStep: null,
+  tutorialQuestScriptVisible: false,
+  tutorialGachaCount: 0,
+  tutorialCards: [],
+  tutorialEnhanceCount: 0,
+  tutorialScriptId: null,
+  tutorialAccessPage: null,
+  tutorialQuestTimerActive: false,
+  tutorialQuestTimerSec: 0,
+  tutorialQuestTimerReward: 0,
 
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
@@ -164,6 +197,11 @@ export const useGameStore = create<GameState>()(
       activeRewardModal: { isOpen: true, title: "퀘스트 완료", text: `${rewardAcc.toLocaleString()} 골드를 획득하였습니다.` }
     };
   }),
+  completeQuestSilent: (id) => set((state) => ({
+    quests: state.quests.map(q =>
+      q.id === id ? { ...q, status: 'IDLE' as QuestStatus, endTime: null, endAt: null, title: '', questId: null, questType: null } : q
+    ),
+  })),
   // 골드는 BE에서 받아서 setResources로 갱신 — 로컬 gold 증가 없이 상태만 IDLE로
   completeQuestNoGold: (id) => set((state) => {
     const quest = state.quests.find(q => q.id === id);
@@ -199,6 +237,48 @@ export const useGameStore = create<GameState>()(
   setSessionExpiredModal: (v) => set({ sessionExpiredModal: v }),
   toggleBugs: () => set((state) => ({ bugsEnabled: !state.bugsEnabled })),
   setTutorialActive: (v) => set({ tutorialActive: v }),
+  setTutorialQuestStep: (step) => set({
+    tutorialQuestStep: step,
+    bugsEnabled: step !== null ? false : true,
+  }),
+  setTutorialQuestScriptVisible: (v) => set({ tutorialQuestScriptVisible: v }),
+  setTutorialGachaCount: (count) => set({ tutorialGachaCount: count }),
+  setTutorialScriptId: (id) => set({ tutorialScriptId: id, tutorialQuestScriptVisible: id !== null }),
+  setTutorialAccessPage: (page) => set({ tutorialAccessPage: page }),
+  addTutorialCard: (card) => set((state) => ({ tutorialCards: [...state.tutorialCards, card] })),
+  enhanceTutorialCard: (cardId) => set((state) => ({
+    tutorialCards: state.tutorialCards.map(c =>
+      c.cardId === cardId ? {
+        ...c,
+        skill1: { ...c.skill1, value: c.skill1.value + 10 },
+        skill2: { ...c.skill2, value: c.skill2.value + 10 },
+        skill3: { ...c.skill3, value: c.skill3.value + 10 },
+        enhanceTryCount: c.enhanceTryCount + 1,
+        enhanceSuccessCount: c.enhanceSuccessCount + 1,
+      } : c
+    ),
+    tutorialEnhanceCount: state.tutorialEnhanceCount + 1,
+  })),
+  addSynthesisCard: (card) => set((state) => ({ tutorialCards: [...state.tutorialCards, card] })),
+  removeTutorialCards: (cardIds) => set((state) => ({
+    tutorialCards: state.tutorialCards.filter(c => !cardIds.includes(c.cardId)),
+  })),
+  startTutorialQuestTimer: (sec, reward) => set({ tutorialQuestTimerActive: true, tutorialQuestTimerSec: sec, tutorialQuestTimerReward: reward }),
+  stopTutorialQuestTimer: () => set({ tutorialQuestTimerActive: false, tutorialQuestTimerSec: 0, tutorialQuestTimerReward: 0 }),
+  resetTutorialState: () => set({
+    tutorialActive: false,
+    tutorialQuestStep: null,
+    tutorialQuestScriptVisible: false,
+    tutorialGachaCount: 0,
+    tutorialCards: [],
+    tutorialEnhanceCount: 0,
+    tutorialScriptId: null,
+    tutorialAccessPage: null,
+    tutorialQuestTimerActive: false,
+    tutorialQuestTimerSec: 0,
+    tutorialQuestTimerReward: 0,
+    bugsEnabled: true,
+  }),
   pushNotification: (title, body) => set((state) => ({
     notifications: [
       { id: Date.now(), title, body, createdAt: Date.now(), isRead: false },

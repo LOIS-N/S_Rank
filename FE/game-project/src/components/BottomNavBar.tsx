@@ -10,7 +10,7 @@ const SUB_PAGES = ["/quest", "/gacha", "/card-list", "/enhance", "/synthesis", "
 
 
 export default function BottomNavBar() {
-  const { gameStatus, openComingSoonModal, tutorialActive } = useGameStore();
+  const { gameStatus, openComingSoonModal, tutorialActive, tutorialAccessPage } = useGameStore();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -21,18 +21,30 @@ export default function BottomNavBar() {
   // 튜토리얼 진행 중에는 숨김
   if (tutorialActive) return null;
 
+  // Map tutorialAccessPage to nav button name
+  const tutorialAllowedName: string | null =
+    tutorialAccessPage === 'gacha' ? '뽑기' :
+    tutorialAccessPage === 'quest' ? '퀘스트' :
+    tutorialAccessPage === 'enhance' ? '강화' :
+    tutorialAccessPage === 'synthesis' ? '합성' :
+    null;
+
   const menuItems = [
-    { name: "카드 목록", disabled: false },
-    { name: "퀘스트",   disabled: false },
-    { name: "메인",     disabled: false },
-    { name: "뽑기",     disabled: false },
-    { name: "강화",     disabled: false },
-    { name: "합성",     disabled: false },
+    { name: "카드 목록", disabled: tutorialAllowedName ? tutorialAllowedName !== "카드 목록" : false },
+    { name: "퀘스트",   disabled: tutorialAllowedName ? tutorialAllowedName !== "퀘스트"   : false },
+    { name: "메인",     disabled: tutorialAllowedName ? true : false },
+    { name: "뽑기",     disabled: tutorialAllowedName ? tutorialAllowedName !== "뽑기"     : false },
+    { name: "강화",     disabled: tutorialAllowedName ? tutorialAllowedName !== "강화"     : false },
+    { name: "합성",     disabled: tutorialAllowedName ? tutorialAllowedName !== "합성"     : false },
     { name: "거래",     disabled: true },
   ];
 
   const handleMenuClick = (item: string, disabled: boolean) => {
-    if (disabled) { openComingSoonModal(); return; }
+    if (disabled) {
+      const msg = tutorialAllowedName !== undefined ? "튜토리얼 진행 후 이용 가능합니다." : undefined;
+      openComingSoonModal(msg);
+      return;
+    }
     switch (item) {
       case "카드 목록": router.push("/card-list"); break;
       case "퀘스트":   router.push("/quest");     break;
@@ -55,13 +67,38 @@ export default function BottomNavBar() {
     pathname === "/trade"     ? "거래"     :
     pathname === "/"          ? "메인"     : "";
 
+  // 튜토리얼 화살표 위치: 버튼 인덱스 기준으로 cqw 계산
+  const BUTTON_W = 12.5;  // cqw
+  const GAP = 0.4;        // cqw
+  const H_PAD = 0.6;      // cqw (좌우 패딩)
+  const totalBtnW = menuItems.length * BUTTON_W + (menuItems.length - 1) * GAP;
+  const flexStart = H_PAD + (100 - H_PAD * 2 - totalBtnW) / 2;
+  const arrowIdx = tutorialAllowedName ? menuItems.findIndex(i => i.name === tutorialAllowedName) : -1;
+  const arrowCenterCqw = arrowIdx >= 0 ? flexStart + arrowIdx * (BUTTON_W + GAP) + BUTTON_W / 2 : 0;
+
   return (
-    <div className="absolute left-0 w-full z-[80] pointer-events-none overflow-hidden" style={{ bottom: "var(--game-clip-y, 0px)" }}>
+    <div className="absolute left-0 w-full z-[80] pointer-events-none overflow-visible" style={{ bottom: "var(--game-clip-y, 0px)" }}>
+      {/* 튜토리얼 화살표 — overflow-x-hidden 컨테이너 밖에서 렌더링 */}
+      {tutorialAllowedName && arrowIdx >= 0 && (
+        <img
+          src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+          alt=""
+          className="tutorial-arrow-bounce"
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: `${arrowCenterCqw}cqw`,
+            height: '4.7cqw',
+            width: 'auto',
+            imageRendering: 'pixelated',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
       <div
         className="w-full bg-[#8ea4b8] border-t-4 border-x-2 border-b-2 border-black pointer-events-auto shadow-[0_-4px_10px_rgba(0,0,0,0.5)]"
         style={{
           paddingTop: "0.6cqw",
-          // iOS PWA 홈 인디케이터 영역 확보 (viewport-fit=cover 필요 — layout.tsx에 설정됨)
           paddingBottom: "calc(0.6cqw + env(safe-area-inset-bottom, 0px))",
         }}
       >

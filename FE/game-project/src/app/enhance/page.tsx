@@ -138,7 +138,7 @@ interface LocalEnhanceState {
 
 export default function EnhancePage() {
   const { getAccessToken } = usePrivy();
-  const { accessToken, gold, increaseGold } = useGameStore();
+  const { accessToken, gold, increaseGold, tutorialQuestStep } = useGameStore();
 
   // --- 로컬 강화 상태 ---
   const [localEnhancements, setLocalEnhancements] = useState<Record<number, LocalEnhanceState>>({});
@@ -172,6 +172,16 @@ export default function EnhancePage() {
 
   // --- 카드 목록 조회 (cursor pagination) ---
   const fetchCards = useCallback(async (cursor?: string | null, filterOverride?: string) => {
+    // 튜토리얼 step31: API 대신 store의 tutorialCards 사용
+    const tutState = useGameStore.getState();
+    if (tutState.tutorialQuestStep !== null) {
+      setCards(tutState.tutorialCards as unknown as CardListItem[]);
+      setIsInitialLoad(false);
+      if (tutState.tutorialCards.length > 0) {
+        setSelectedCardId(tutState.tutorialCards[0].cardId);
+      }
+      return;
+    }
     if (isLoading) return;
     setIsLoading(true);
     try {
@@ -372,6 +382,20 @@ export default function EnhancePage() {
   // --- 강화 API 호출 ---
   const handleEnhance = useCallback(async () => {
     if (!selectedListCard || isEnhancing) return;
+
+    // 튜토리얼 step31: API 대신 store 강화 (애니메이션 포함)
+    if (tutorialQuestStep === 31) {
+      const cost = getEnhanceData(selectedListCard.grade).cost;
+      setPendingResult({
+        success: true,
+        cost,
+        statsAdded: { skill1: 10, skill2: 10, skill3: 10 },
+        previousStats: { skill1: displaySkill1, skill2: displaySkill2, skill3: displaySkill3 },
+      });
+      setIsAnimating(true);
+      return;
+    }
+
     setIsEnhancing(true);
     try {
       const token = await getAuthToken();
@@ -462,6 +486,18 @@ export default function EnhancePage() {
           </div>
 
           {/* 카드 리스트 박스 */}
+          {tutorialQuestStep === 31 && !selectedCardId && (
+            <img
+              src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+              alt=""
+              className="tutorial-arrow-y"
+              style={{
+                display: 'block', margin: '0 auto 0.5cqw',
+                height: '4.7cqw', width: 'auto',
+                imageRendering: 'pixelated', pointerEvents: 'none',
+              }}
+            />
+          )}
           <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
             <div
               className="cardlist-grid-wrapper"
@@ -616,13 +652,28 @@ export default function EnhancePage() {
                     </NineSliceBox>
 
                     {/* 4. 강화 버튼 */}
-                    <button
-                      className="enhance-action-btn"
-                      disabled={displayEnhanceTries >= 7 || isEnhancing}
-                      onClick={handleEnhance}
-                    >
-                      {isEnhancing ? '강화 중...' : '강화하기'}
-                    </button>
+                    <div style={{ position: 'relative' }}>
+                      {tutorialQuestStep === 31 && (
+                        <img
+                          src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+                          alt=""
+                          className="tutorial-arrow-y"
+                          style={{
+                            position: 'absolute', bottom: '100%', left: '50%',
+                            transform: 'translateX(-50%)',
+                            height: '4.7cqw', width: 'auto',
+                            imageRendering: 'pixelated', pointerEvents: 'none', zIndex: 100,
+                          }}
+                        />
+                      )}
+                      <button
+                        className="enhance-action-btn"
+                        disabled={displayEnhanceTries >= 7 || isEnhancing}
+                        onClick={handleEnhance}
+                      >
+                        {isEnhancing ? '강화 중...' : '강화하기'}
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <NineSliceBox 
@@ -717,6 +768,12 @@ export default function EnhancePage() {
             },
           ] : undefined}
           onShowResult={() => {
+            // 튜토리얼: store에 강화 반영
+            if (useGameStore.getState().tutorialQuestStep === 31) {
+              useGameStore.getState().enhanceTutorialCard(selectedListCard.cardId);
+              setCards(useGameStore.getState().tutorialCards as unknown as CardListItem[]);
+            }
+
             // 애니메이션 진행 중(3.5초 지점) 카드 왼쪽 슬라이드와 함께 실제 상태 반영 & 결과 모달 표출
             let newLevel = displayEnhanceLevel;
 
@@ -751,6 +808,13 @@ export default function EnhancePage() {
             // 모든 연출 완전 종료 시 (4.5초) Phaser 컨테이너만 언마운트
             setIsAnimating(false);
             setPendingResult(null);
+            // 튜토리얼: 3회 강화 완료 시 스크립트 표시
+            if (useGameStore.getState().tutorialQuestStep === 31) {
+              const newCount = useGameStore.getState().tutorialEnhanceCount;
+              if (newCount >= 3) {
+                useGameStore.getState().setTutorialScriptId('step31_done');
+              }
+            }
           }}
         />
       )}

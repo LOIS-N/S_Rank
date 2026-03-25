@@ -110,6 +110,7 @@ export default function GameCanvas() {
                 this.load.image("bug_001", `${ASSET_BASE}/assets/002/bug_001.webp`);
                 this.load.image("bug_002", `${ASSET_BASE}/assets/002/bug_002.webp`);
                 this.load.image("goldBug", `${ASSET_BASE}/assets/002/goldBug.webp`);
+                this.load.image("hammer", `${ASSET_BASE}/assets/002/hammer.png`);
 
                 const sceneRef = this;
                 this.load.once('complete', () => {
@@ -176,6 +177,37 @@ export default function GameCanvas() {
                   playContainer.add(bugLayer);
                   sceneRef.registry.set('bugLayer', bugLayer);
 
+                  // 버그 효과음 사전 로드
+                  const bugSfx = new Audio(`${ASSET_BASE}/assets/bug.mp3`);
+                  bugSfx.preload = 'auto';
+                  bugSfx.load();
+                  const playBugSfx = () => { bugSfx.currentTime = 0; bugSfx.play().catch(() => {}); };
+
+                  // 망치 스매시 효과
+                  const spawnHammer = (x: number, y: number) => {
+                    const hammer = sceneRef.add.image(x + 20, y - 20, 'hammer');
+                    hammer.setDisplaySize(70, 70 * (hammer.height / hammer.width));
+                    hammer.setOrigin(0.5, 1);
+                    hammer.setAngle(30);
+                    hammer.setDepth(9999);
+                    bugLayer.add(hammer);
+                    sceneRef.tweens.add({
+                      targets: hammer,
+                      angle: -60,
+                      duration: 128,
+                      ease: 'Cubic.easeIn',
+                      onComplete: () => {
+                        sceneRef.tweens.add({
+                          targets: hammer,
+                          alpha: 0.4,
+                          duration: 320,
+                          ease: 'Sine.easeOut',
+                          onComplete: () => hammer.destroy(),
+                        });
+                      },
+                    });
+                  };
+
                   bugConfigs.forEach(({ key, sx, sy, startDelay }) => {
                     const img = sceneRef.add.image(sx, sy, key);
                     img.setScale(floatScale);
@@ -215,6 +247,10 @@ export default function GameCanvas() {
                       if (!active) return;
                       active = false;
                       sceneRef.tweens.killTweensOf(img);
+
+                      // 버그 효과음 + 망치 애니메이션
+                      playBugSfx();
+                      spawnHammer(img.x, img.y);
 
                       // API 호출 (NORMAL 버그 = +50)
                       try {
@@ -319,6 +355,10 @@ export default function GameCanvas() {
                       goldActive = false;
                       autoHide.remove(false);
                       sceneRef.tweens.killTweensOf(goldImg);
+
+                      // 버그 효과음 + 망치 애니메이션
+                      playBugSfx();
+                      spawnHammer(goldImg.x, goldImg.y);
 
                       // API 호출 (GOLDEN 버그 = +100)
                       try {

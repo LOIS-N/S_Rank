@@ -132,6 +132,10 @@ export function useSSENotification(accessToken: string | null) {
                 }
               });
 
+              // 튜토리얼 퀘스트 중에는 stepNo3 제외하고 알림 억제
+              const tutorialStep = useGameStore.getState().tutorialQuestStep;
+              if (tutorialStep !== null && tutorialStep !== 3) break;
+
               const nickname = useGameStore.getState().nickname;
               const title = "S급 개발자들이 나를 따르는 이유";
               const body = payload.message ?? `${nickname || "개발자"}님, 프로젝트가 완수됐어요! 지금 바로 보상을 수령하세요!`;
