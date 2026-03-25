@@ -80,7 +80,7 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
     }
 
     private String cardGradeRankingSql(boolean singleUser) {
-        String filter = singleUser ? "\n    AND u.user_id = :userId" : "";
+        String filter = singleUser ? "\n    AND u.user_id = :userId\n" : "\n";
         return """
                 SELECT
                     u.user_id,
@@ -104,7 +104,7 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
     }
 
     private String cardStatRankingSql(boolean singleUser) {
-        String filter = singleUser ? "\n    AND u.user_id = :userId" : "";
+        String filter = singleUser ? "\n    AND u.user_id = :userId\n" : "\n";
         return """
                 WITH valid_cards AS (
                     SELECT
