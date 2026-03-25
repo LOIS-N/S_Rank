@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 
 interface EnhanceAnimationCard {
   cardId: number;
@@ -15,359 +16,226 @@ interface Props {
   onComplete: () => void;
 }
 
-// React Compiler에서 "Inline class declarations are not supported" 에러를 피하기 위해
-// 컴포넌트 밖에서 Phaser Scene 클래스들을 동적으로 생성하는 팩토리 함수를 정의합니다.
-function createScenes(Phaser: any) {
-  class EnhanceScene extends Phaser.Scene {
-    private cardData!: EnhanceAnimationCard;
-    private isSuccess!: boolean;
-    private onShowResultRef!: { current: () => void };
-    private onCompleteRef!: { current: () => void };
-    private W!: number;
-    private H!: number;
-    private CARD_W!: number;
-    private CARD_H!: number;
-    private centerX!: number;
-    private centerY!: number;
-    private leftTargetX!: number;
+const CODE_SNIPPETS = [
+  'const', '{ }', 'if()', 'for', '=>', '[ ]', '&&', '//',
+  'null', 'true', 'false', 'npm i', 'git push', 'merge',
+  'async', 'await', '.map()', 'try{ }', 'catch', 'import',
+  'class', 'return', '!==', '++', 'export', 'new',
+  'void', 'int', 'def', 'pull', 'commit', 'fetch',
+];
 
-    private bg!: Phaser.GameObjects.Rectangle;
-    private cardSprite!: Phaser.GameObjects.Sprite;
-    private cardContainer!: Phaser.GameObjects.Container;
-    private isEnding: boolean = false;
-
-    constructor() {
-      super({ key: 'EnhanceScene' });
-    }
-
-    init(data: any) {
-      this.cardData = data.cardData;
-      this.isSuccess = data.isSuccess;
-      this.onShowResultRef = data.onShowResultRef;
-      this.onCompleteRef = data.onCompleteRef;
-      this.W = data.W;
-      this.H = data.H;
-      this.CARD_W = data.CARD_W;
-      this.CARD_H = data.CARD_H;
-      this.centerX = data.centerX;
-      this.centerY = data.centerY;
-      this.leftTargetX = data.leftTargetX;
-    }
-
-    preload() {
-      this.load.image("enhance_card", this.cardData.imageUrl);
-    }
-
-    create() {
-      // 1. Dim background
-      this.bg = this.add.rectangle(this.W / 2, this.H / 2, this.W, this.H, 0x000000, 0);
-      this.bg.setDepth(0);
-
-      this.tweens.add({
-        targets: this.bg,
-        alpha: 0.85,
-        duration: 500,
-        ease: "Quad.easeIn",
-      });
-
-      this.time.delayedCall(1000, () => {
-         // Card Setup
-         this.cardSprite = this.add.sprite(0, 0, "enhance_card");
-         this.cardSprite.setDisplaySize(this.CARD_W, this.CARD_H);
-         
-         this.cardContainer = this.add.container(this.centerX, this.centerY, [this.cardSprite]);
-         this.cardContainer.setSize(this.CARD_W, this.CARD_H);
-         this.cardContainer.setDepth(5);
-         this.cardContainer.setScale(0); // Pop-in 준비
-
-         this.tweens.add({
-             targets: this.cardContainer,
-             scale: 1,
-             duration: 500,
-             ease: "Back.easeOut"
-         });
-
-         // Text prompt
-         const titleText = this.add.text(this.centerX, this.centerY - this.CARD_H / 2 - 60, "강화 중...", {
-            fontFamily: "'StardustS', 'Stardust', Arial, sans-serif",
-            fontSize: "48px",
-            fontStyle: "bold",
-            color: "#ffffff",
-            stroke: "#000000",
-            strokeThickness: 6,
-         });
-         titleText.setOrigin(0.5, 0.5).setAlpha(0).setDepth(10);
-         this.tweens.add({ targets: titleText, alpha: 1, duration: 400 });
-
-         // Phase 1: Energy Gathering
-         const startEnergyGathering = () => {
-            const g = this.make.graphics({ x: 0, y: 0 });
-            g.fillStyle(0xffffff, 1);
-            g.fillCircle(4, 4, 4);
-            g.generateTexture("energy_dot", 8, 8);
-            g.destroy();
-
-            const emitter = this.add.particles(this.centerX, this.centerY, "energy_dot", {
-                speed: { min: -100, max: -400 },
-                angle: { min: 0, max: 360 },
-                scale: { start: 1, end: 0 },
-                alpha: { start: 0, end: 1 },
-                lifespan: 600,
-                quantity: 3,
-                tint: [0xffec8b, 0xffd700, 0xffffff],
-                emitZone: {
-                    type: "edge",
-                    source: new Phaser.Geom.Circle(0, 0, this.CARD_H) as any,
-                    quantity: 60,
-                } as any,
-            }).setDepth(4);
-
-            this.tweens.add({
-                targets: this.cardContainer,
-                y: `+=${10}`,
-                duration: 60,
-                yoyo: true,
-                repeat: 24,
-                ease: "Sine.easeInOut"
-            });
-            
-            this.tweens.add({
-                targets: this.cardSprite,
-                scale: 1.05,
-                duration: 800,
-                yoyo: true,
-                repeat: 1,
-                ease: "Cubic.easeInOut"
-            });
-
-            this.time.delayedCall(1450, () => emitter.stop());
-         };
-
-         startEnergyGathering();
-
-         // Phase 2: Result
-         const playSuccessAnimation = () => {
-            const color = this.cardData.grade === 'S' ? 0x00e5ff : this.cardData.grade === 'A' ? 0xffea00 : 0x00ffaa;
-            
-            const flash = this.add.rectangle(this.centerX, this.centerY, this.W, this.H, color, 0.8).setDepth(100);
-            this.tweens.add({ targets: flash, alpha: 0, duration: 800, ease: "Expo.easeOut", onComplete: () => flash.destroy() });
-
-            this.cameras.main.shake(400, 0.02);
-
-            const txt = this.add.text(this.centerX, this.centerY, "SUCCESS!", {
-                fontFamily: "'StardustS', 'Stardust', Arial, sans-serif",
-                fontSize: "80px",
-                fontStyle: "bold",
-                color: "#ffffff",
-                stroke: "#000000",
-                strokeThickness: 10,
-            });
-            txt.setOrigin(0.5, 0.5).setDepth(11).setScale(0);
-            this.tweens.add({ targets: txt, scale: 1.2, duration: 400, yoyo: true, ease: "Back.easeOut" });
-
-            this.add.particles(this.centerX, this.centerY, "energy_dot", {
-                speed: { min: 200, max: 800 },
-                angle: { min: 0, max: 360 },
-                scale: { start: 2, end: 0 },
-                alpha: { start: 1, end: 0 },
-                lifespan: 800,
-                quantity: 40,
-                tint: [color, 0xffffff],
-                gravityY: 400,
-                duration: 200,
-            }).setDepth(15);
-
-            this.tweens.add({
-                targets: this.cardContainer,
-                scale: 1.2,
-                duration: 400,
-                ease: "Back.easeOut",
-            });
-         };
-
-         const playFailureAnimation = () => {
-            const flash = this.add.rectangle(this.centerX, this.centerY, this.W, this.H, 0xff0000, 0.4).setDepth(100);
-            this.tweens.add({ targets: flash, alpha: 0, duration: 500, ease: "Quad.easeOut", onComplete: () => flash.destroy() });
-
-            this.cameras.main.shake(300, 0.015);
-
-            const txt = this.add.text(this.centerX, this.centerY, "FAILED", {
-                fontFamily: "'StardustS', 'Stardust', Arial, sans-serif",
-                fontSize: "80px",
-                fontStyle: "bold",
-                color: "#888888",
-                stroke: "#000000",
-                strokeThickness: 10,
-            });
-            txt.setOrigin(0.5, 0.5).setDepth(11).setAlpha(0).setScale(2);
-            this.tweens.add({ targets: txt, scale: 1, alpha: 1, duration: 300, ease: "Bounce.easeOut" });
-
-            this.cardSprite.setTint(0x666666);
-            
-            this.tweens.add({
-                targets: this.cardContainer,
-                y: `+=${80}`,
-                rotation: 0.1,
-                alpha: 0.8,
-                duration: 600,
-                ease: "Cubic.easeIn",
-            });
-         };
-
-         this.time.delayedCall(1500, () => {
-            this.tweens.killTweensOf(titleText);
-            titleText.destroy();
-            if (this.isSuccess) playSuccessAnimation();
-            else playFailureAnimation();
-         });
-
-         // Phase 3: Transition Out
-         const slideLeftAndShowResult = () => {
-            this.tweens.add({
-               targets: this.bg,
-               alpha: 0,
-               duration: 500,
-               ease: "Sine.easeOut"
-            });
-
-            this.tweens.add({
-               targets: this.cardContainer,
-               x: this.leftTargetX,
-               duration: 600,
-               ease: "Cubic.easeInOut"
-            });
-
-            this.onShowResultRef.current();
-         };
-
-         this.time.delayedCall(2500, () => slideLeftAndShowResult());
-         
-         // Phase 4: Final Cleanup
-         this.time.delayedCall(3500, () => {
-            if (this.isEnding) return;
-            this.isEnding = true;
-            
-            this.tweens.add({
-               targets: this.cardContainer,
-               alpha: 0,
-               duration: 300,
-               ease: "Sine.easeIn",
-               onComplete: () => this.onCompleteRef.current()
-            });
-         });
-      });
-    }
-  }
-
-  class BootScene extends Phaser.Scene {
-     constructor() {
-        super({ key: 'BootScene' });
-     }
-     create(data: any) {
-        this.scene.add("EnhanceScene", EnhanceScene, true, data);
-     }
-  }
-
-  return [BootScene, EnhanceScene];
+interface FloatingSnippet {
+  id: number;
+  text: string;
+  left: string;
+  top: string;
+  duration: string;
+  fontSize: string;
+  opacity: string;
 }
 
-export function EnhanceAnimationOverlay({ card, isSuccess, onShowResult, onComplete }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const onShowResultRef = useRef(onShowResult);
-  onShowResultRef.current = onShowResult;
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+function OverlayContent({ card, isSuccess, onShowResult, onComplete }: Props) {
+  const [phase, setPhase] = useState<'compiling' | 'result'>('compiling');
+  const [progress, setProgress] = useState(0);
+  const [snippets, setSnippets] = useState<FloatingSnippet[]>([]);
+  const snippetIdRef = useRef(0);
 
+  // 코드 조각: 화면 전체에 랜덤 배치
   useEffect(() => {
-    if (!containerRef.current) return;
-    const el = containerRef.current;
-    let game: any = null;
-    let mounted = true;
-
-    (async () => {
-      const Phaser = (await import("phaser")).default;
-      if (!mounted || !el) return;
-
-      const W = window.innerWidth;
-      const H = window.innerHeight;
-
-      // 우측 상세/강화 패널 영역을 기준으로 애니메이션 좌표 설정
-      const gameContainer = document.querySelector('.cardlist-right-box');
-      const rect = gameContainer 
-          ? gameContainer.getBoundingClientRect() 
-          : { left: W * 0.5, top: 0, width: W * 0.5, height: H };
-
-      const gameW = rect.width;
-      const gameH = rect.height;
-      const originX = rect.left;
-      const originY = rect.top;
-
-      const centerX = originX + gameW / 2;
-      const centerY = originY + gameH / 2;
-      const leftTargetX = originX + gameW * 0.25;
-
-      // 카드의 눈에 띄게 큰 연출을 위하되, 게임 컨테이너 높이 대비 가독성 유지 (오른쪽 패널 65% 높이)
-      // 오른쪽 패널 안에서의 왼쪽(빅 카드 영역)으로 들어가는 카드 크기에 맞도록 조율
-      const CARD_H = Math.round(gameH * 0.65);
-      const CARD_W = Math.round(CARD_H / 1.5);
-
-      const [BootScene] = createScenes(Phaser);
-
-      game = new Phaser.Game({
-        type: Phaser.CANVAS,
-        width: W,
-        height: H,
-        transparent: true,
-        parent: el,
-        backgroundColor: '#00000000',
-        banner: false,
-        audio: { noAudio: true },
-        scene: [BootScene],
-        render: { pixelArt: true },
+    if (phase !== 'compiling') return;
+    const interval = setInterval(() => {
+      const count = 2 + Math.floor(Math.random() * 2); // 한 번에 2~3개
+      setSnippets(prev => {
+        const next = [...prev];
+        for (let i = 0; i < count; i++) {
+          next.push({
+            id: snippetIdRef.current++,
+            text: CODE_SNIPPETS[Math.floor(Math.random() * CODE_SNIPPETS.length)],
+            left: `${2 + Math.random() * 93}%`,
+            top: `${3 + Math.random() * 90}%`,
+            duration: `${1.0 + Math.random() * 1.0}s`,
+            fontSize: `${13 + Math.floor(Math.random() * 12)}px`,
+            opacity: `${0.5 + Math.random() * 0.5}`,
+          });
+        }
+        return next.slice(-40);
       });
+    }, 110);
+    return () => clearInterval(interval);
+  }, [phase]);
 
-      // 강제로 BootScene 시작시키며 데이터 패스
-      game.scene.start('BootScene', {
-         cardData: card,
-         isSuccess,
-         onShowResultRef,
-         onCompleteRef,
-         W,
-         H,
-         CARD_W,
-         CARD_H,
-         centerX,
-         centerY,
-         leftTargetX
-      });
+  // 프로그레스 바
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setProgress(prev => Math.min(100, prev + 2));
+    }, 44);
+    return () => clearInterval(interval);
+  }, []);
 
-    })();
-
-    return () => {
-       mounted = false;
-       if (game) {
-         try {
-           game.destroy(true);
-         } catch (e) {
-           console.error("Phaser game destroy error:", e);
-         }
-       }
-    };
-  }, [card, isSuccess]);
+  // 페이즈 전환 타이머
+  useEffect(() => {
+    const t1 = setTimeout(() => {
+      setPhase('result');
+      onShowResult();
+    }, 2300);
+    const t2 = setTimeout(() => {
+      onComplete();
+    }, 3900);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        zIndex: 9999,
-        pointerEvents: "auto",
-        overflow: "hidden",
-      }}
-    />
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(0, 0, 0, 0.82)',
+      zIndex: 99999,
+      overflow: 'hidden',
+    }}>
+      {/* 코드 조각 — 전체 화면에 분포 */}
+      {phase === 'compiling' && snippets.map(s => (
+        <span
+          key={s.id}
+          style={{
+            position: 'absolute',
+            left: s.left,
+            top: s.top,
+            fontSize: s.fontSize,
+            color: '#00ff41',
+            fontFamily: "'Courier New', monospace",
+            fontWeight: Math.random() > 0.5 ? 'bold' : 'normal',
+            opacity: 0,
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap',
+            animation: `code-float ${s.duration} ease-out forwards`,
+            textShadow: '0 0 8px #00ff41, 0 0 16px rgba(0,255,65,0.6)',
+          }}
+        >
+          {s.text}
+        </span>
+      ))}
+
+      {/* 중앙 모달 */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        background: 'linear-gradient(160deg, #1a1a2e 0%, #0f0f1a 100%)',
+        border: '2px solid #3a3a6a',
+        borderRadius: '8px',
+        padding: '32px 36px',
+        width: '300px',
+        textAlign: 'center',
+        fontFamily: "'Courier New', monospace",
+        boxShadow: '0 0 60px rgba(0,0,0,0.8), inset 0 0 30px rgba(0,0,50,0.3)',
+        animation: 'enhance-fadein 0.3s ease-out',
+        zIndex: 1,
+      }}>
+        {/* 상단 라벨 */}
+        <div style={{
+          color: '#7a7aaa',
+          fontSize: '11px',
+          letterSpacing: '3px',
+          marginBottom: '16px',
+          textTransform: 'uppercase',
+        }}>
+          ── ENHANCE SYSTEM ──
+        </div>
+
+        {/* 카드 이미지 */}
+        <div style={{
+          display: 'inline-block',
+          border: phase === 'result' && isSuccess
+            ? '2px solid #00ff41'
+            : phase === 'result'
+            ? '2px solid #ff4444'
+            : '2px solid #3a3a6a',
+          borderRadius: '4px',
+          padding: '3px',
+          marginBottom: '20px',
+          boxShadow: phase === 'result' && isSuccess
+            ? '0 0 20px rgba(0,255,65,0.4)'
+            : phase === 'result'
+            ? '0 0 20px rgba(255,68,68,0.3)'
+            : 'none',
+          transition: 'border-color 0.4s, box-shadow 0.4s',
+        }}>
+          <img
+            src={card.imageUrl}
+            alt=""
+            style={{
+              width: '130px',
+              height: '195px',
+              objectFit: 'cover',
+              imageRendering: 'pixelated',
+              display: 'block',
+              filter: phase === 'result' && !isSuccess ? 'grayscale(70%) brightness(0.55)' : 'none',
+              transition: 'filter 0.4s',
+            }}
+          />
+        </div>
+
+        {phase === 'compiling' ? (
+          <>
+            <div style={{ color: '#00ff41', fontSize: '16px', marginBottom: '14px', letterSpacing: '2px' }}>
+              컴파일 중...
+            </div>
+            <div style={{
+              background: '#0a0a14',
+              border: '1px solid #2a2a5a',
+              height: '12px',
+              borderRadius: '2px',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                background: 'linear-gradient(90deg, #00aa22, #00ff41)',
+                height: '100%',
+                width: `${progress}%`,
+                transition: 'width 44ms linear',
+                boxShadow: '0 0 8px rgba(0,255,65,0.6)',
+              }} />
+            </div>
+            <div style={{ color: '#3a7a3a', fontSize: '11px', marginTop: '6px' }}>
+              {progress}%
+            </div>
+          </>
+        ) : (
+          <div style={{ animation: 'enhance-result-in 0.35s ease-out' }}>
+            <div style={{
+              fontSize: '26px',
+              fontWeight: 'bold',
+              letterSpacing: '2px',
+              marginBottom: '6px',
+              color: isSuccess ? '#00ff41' : '#ff4444',
+              textShadow: isSuccess
+                ? '0 0 16px rgba(0,255,65,0.7)'
+                : '0 0 16px rgba(255,68,68,0.7)',
+            }}>
+              {isSuccess ? 'BUILD SUCCESS' : 'BUILD FAILED'}
+            </div>
+            <div style={{
+              fontSize: '13px',
+              color: isSuccess ? '#5aaa5a' : '#aa5a5a',
+            }}>
+              {isSuccess ? '[ 강화 성공 ]' : '[ ERROR: 강화 실패 ]'}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
+}
+
+export function EnhanceAnimationOverlay(props: Props) {
+  // useState 초기화 함수: 첫 렌더 시 동기적으로 실행 → useEffect/타이밍 이슈 없음
+  // game-wrapper의 transform 영향을 받지 않는 #portal-root (layout.tsx에서 game-wrapper 바깥에 위치)에 렌더링
+  const [target] = useState<Element | null>(() => {
+    if (typeof document === 'undefined') return null;
+    return document.getElementById('portal-root');
+  });
+
+  if (!target) return null;
+  return createPortal(<OverlayContent {...props} />, target);
 }
