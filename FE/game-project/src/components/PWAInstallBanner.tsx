@@ -16,11 +16,27 @@ export default function PWAInstallBanner() {
   const pathname = usePathname();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
+  // Android: beforeinstallprompt는 React 마운트 전에 발생할 수 있으므로
+  // 조건과 무관하게 즉시 등록해서 캡처해둠
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  // 표시 조건 판단: 인증 상태 / 경로 / 모바일 여부
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     // 메인 페이지(/)이고 로그인된 상태에서만 표시
-    if (pathname !== "/" || !isAuthenticated) return;
+    if (pathname !== "/" || !isAuthenticated) {
+      setShowAndroid(false);
+      setShowIOS(false);
+      return;
+    }
 
     // 오늘은 안보기 체크 (1일 유효)
     const hideUntil = localStorage.getItem("pwa-banner-hide-until");
@@ -43,15 +59,11 @@ export default function PWAInstallBanner() {
       return;
     }
 
-    // Android Chrome: beforeinstallprompt 이벤트 대기
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    // Android: 이미 캡처된 deferredPrompt가 있으면 배너 표시
+    if (deferredPrompt) {
       setShowAndroid(true);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, [pathname, isAuthenticated]);
+    }
+  }, [pathname, isAuthenticated, deferredPrompt]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
