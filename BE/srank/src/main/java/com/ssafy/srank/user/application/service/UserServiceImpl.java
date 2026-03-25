@@ -85,6 +85,7 @@ public class UserServiceImpl implements UserService {
         return user.getGold();
     }
 
+    @Transactional
     @Override
     public void levelUp(Long userId) {
         User user = getActiveUser(userId);
