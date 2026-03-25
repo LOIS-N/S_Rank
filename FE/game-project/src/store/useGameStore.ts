@@ -229,7 +229,7 @@ export const useGameStore = create<GameState>()(
   }),
   closeRewardModal: () => set({ activeRewardModal: null }),
   openComingSoonModal: (text) => set({
-    comingSoonModal: { isOpen: true, text: text || "[2차 배포 후 이용 가능한 콘텐츠입니다]" }
+    comingSoonModal: { isOpen: true, text: text || "이후 릴리즈에서 공개될 예정입니다." }
   }),
   closeComingSoonModal: () => set({ comingSoonModal: null }),
   setResources: (gold, coffee) => set({ gold, coffee }),
