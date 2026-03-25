@@ -80,6 +80,8 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         String key = "quest:%d:%d:%s".formatted(userId, mainQuest.getId(), "main");
         redisTemplate.opsForValue().set(key,"1", request.duration(), TimeUnit.SECONDS);
 
+        //로그 생성
+
         return mainQuest.getId();
     }
 
