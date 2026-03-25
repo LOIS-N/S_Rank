@@ -431,6 +431,7 @@ export default function GlobalModals() {
         const deskQuest = quests.find(q => q.id === activeUnlockConfirm.deskId);
         const reqLevel = deskQuest?.requiredLevel ?? 0;
         const reqTitle = CHAPTER_TITLES[reqLevel];
+        const unlockCost = deskQuest?.unlockCostGold ?? 50000;
         return (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#8ea4b8]/80 font-dot pointer-events-auto" onClick={() => { setUnlockConfirm(null); setUnlockError(null); }}>
           <div className="bg-[#b0c4de] border-4 border-[#6b859e] p-10 text-center max-w-lg shadow-[8px_8px_0px_#4a5d73]" onClick={e => e.stopPropagation()}>
@@ -441,7 +442,7 @@ export default function GlobalModals() {
               </p>
             )}
             <p className="text-2xl mb-4 leading-relaxed text-slate-800 font-bold">
-              자리 해금에는 <span className="text-yellow-600">50,000골드</span>가 소비됩니다.<br/>
+              자리 해금에는 <span className="text-yellow-600">{unlockCost.toLocaleString()}골드</span>가 소비됩니다.<br/>
               하시겠습니까?
             </p>
             {unlockError && (
