@@ -134,6 +134,8 @@ export default function CardListPage() {
 
   // --- 선택 / 상세 상태 ---
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
+  const [confirmFire, setConfirmFire] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // --- 필터 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
@@ -198,7 +200,30 @@ export default function CardListPage() {
   // --- 카드 클릭 ---
   const handleCardClick = useCallback((cardId: number) => {
     setSelectedCardId(cardId);
+    setConfirmFire(false);
   }, []);
+
+  // --- 카드 해고 ---
+  const handleFireCard = useCallback(async () => {
+    if (!selectedCardId || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const token = await getAuthToken();
+      await api.delete('/api/v1/cards', {
+        data: { cards: [selectedCardId] },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCards(prev => prev.filter(c => c.cardId !== selectedCardId));
+      setTotalCnt(prev => prev !== null ? prev - 1 : null);
+      setSelectedCardId(null);
+      setConfirmFire(false);
+    } catch (err) {
+      console.error('카드 삭제 실패:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCardId, isDeleting, getAuthToken]);
 
   // --- 선택된 필터 스탯 기준 오름/내림차순 정렬 ---
   const sortedCards = useMemo(() => sortCards(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
@@ -474,7 +499,8 @@ export default function CardListPage() {
           className="cardlist-right-box"
         >
           {selectedListCard ? (
-            <div className="cardlist-detail-split animate-detail" key={selectedListCard.cardId}>
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+            <div className="cardlist-detail-split animate-detail" key={selectedListCard.cardId} style={{ flex: 1, minHeight: 0 }}>
               {/* 큰 카드 이미지 */}
               <div className="cardlist-big-card-col">
                 <div className="cardlist-big-card-wrapper">
@@ -528,6 +554,27 @@ export default function CardListPage() {
                   </div>
                 )}
               </div>
+            </div>
+            {/* 해고하기 버튼 영역 */}
+            <div className="cardlist-fire-area">
+              {confirmFire ? (
+                <div className="cardlist-fire-confirm">
+                  <span className="cardlist-fire-confirm-text">정말 해고하시겠습니까?</span>
+                  <div className="cardlist-fire-confirm-btns">
+                    <button className="cardlist-fire-confirm-yes" onClick={handleFireCard} disabled={isDeleting}>
+                      {isDeleting ? '처리 중...' : '확인'}
+                    </button>
+                    <button className="cardlist-fire-confirm-no" onClick={() => setConfirmFire(false)} disabled={isDeleting}>
+                      취소
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button className="cardlist-fire-btn" onClick={() => setConfirmFire(true)}>
+                  해고하기
+                </button>
+              )}
+            </div>
             </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 18 }}>

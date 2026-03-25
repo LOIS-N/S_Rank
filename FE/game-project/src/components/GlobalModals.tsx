@@ -107,20 +107,29 @@ export default function GlobalModals() {
         return;
       }
 
-      try {
-        const token = useUserStore.getState().accessToken;
-        const res = await client.post('/api/v1/quests/complete',
-          { questId, questType },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.status !== 200) {
+      // Q008(아직 완료 시간 미도달) 자동 재시도 로직
+      let retryCount = 0;
+      while (retryCount <= 5) {
+        try {
+          const token = useUserStore.getState().accessToken;
+          const res = await client.post('/api/v1/quests/complete',
+            { questId, questType },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (res.status === 200) break; // 성공
+          setCompleteError(true);
+          return;
+        } catch (e: any) {
+          const code = e?.response?.data?.errorCode;
+          if (code === 'Q008' && retryCount < 5) {
+            retryCount++;
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
+          }
+          console.error('[CompleteQuest] API error:', e);
           setCompleteError(true);
           return;
         }
-      } catch (e) {
-        console.error('[CompleteQuest] API error:', e);
-        setCompleteError(true);
-        return;
       }
       // 골드는 BE에서 받아서 갱신 (로컬 계산 제거 → 중복 지급 방지)
       try {
