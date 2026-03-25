@@ -153,7 +153,7 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
                         null,
                         request.questId(),
                         null,
-                        "Reward",
+                        "REWARD",
                         LocalDateTime.now()
                 ));
     }
@@ -189,7 +189,7 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
                         null,
                         questId,
                         null,
-                        "Reward",
+                        "COMPLETE",
                         LocalDateTime.now()
                 ));
     }

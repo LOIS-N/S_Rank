@@ -30,10 +30,10 @@ public class UserQuestLog {
     @Column(name = "quest_type")
     private String questType; //SUB, MAIN
 
-    @Column(name = "quest_template_id", nullable = false)
+    @Column(name = "quest_template_id")
     private Long questTemplateId;
 
-    @Column(name = "quest_id", nullable = false)
+    @Column(name = "quest_id")
     private Long questId;
 
     @Column(name = "user_id", nullable = false)

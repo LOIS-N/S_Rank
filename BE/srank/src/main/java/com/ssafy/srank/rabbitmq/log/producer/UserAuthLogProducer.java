@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
   
 @Component
 @RequiredArgsConstructor
-public class UserLogProducer {
+public class UserAuthLogProducer {
   
     private final RabbitTemplate rabbitTemplate;
   

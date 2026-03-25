@@ -13,12 +13,10 @@ import com.ssafy.srank.common.probablyfair.domain.ProbablyFairPurpose;
 import com.ssafy.srank.enhancement.application.dto.request.EnhancementRequest;
 import com.ssafy.srank.enhancement.application.dto.response.EnhanceResultResponse;
 import com.ssafy.srank.enhancement.domain.policy.EnhancePolicy;
-import com.ssafy.srank.log.application.command.EnhancementLogCommand;
-import com.ssafy.srank.log.application.facade.EnhancementLogFacade;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.rabbitmq.log.message.EnhanceLogMessage;
 import com.ssafy.srank.ranking.application.event.UserCardStatChangedEvent;
 import com.ssafy.srank.rabbitmq.log.producer.EnhanceLogProducer;
-import com.ssafy.srank.rabbitmq.log.producer.QuestLogProducer;
 import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -26,8 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +33,6 @@ public class EnhancementServiceImpl implements EnhancementService {
     private final UserService userService;
     private final ProbablyFairService probablyFairService;
     private final EnhanceLogProducer producer;
-    private final EnhancementLogFacade enhancementLogFacade;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -92,22 +87,22 @@ public class EnhancementServiceImpl implements EnhancementService {
             ){
         userCardService.applyEnhanceSuccess(userId, request.getCardId(), statIncrease1, statIncrease2, statIncrease3);
 
-        enhancementLogFacade.record(new EnhancementLogCommand(
-                userId,
-                request.getCardId(),
-                userCardDetail.enhanceTryCount() + 1,
-                true,
-                userCardDetail.enhanceSuccessCount(),
-                userCardDetail.enhanceSuccessCount() + 1,
-                userCardDetail.skill1().skillType(),
-                statIncrease1,
-                userCardDetail.skill2().skillType(),
-                statIncrease2,
-                userCardDetail.skill3().skillType(),
-                statIncrease3,
-                gold,
-                LocalDateTime.now()
-        ));
+        producer.sendEnhanceLogMessage(
+                new EnhanceLogMessage(userId,
+                        request.getCardId(),
+                        userCardDetail.enhanceTryCount() + 1,
+                        true,
+                        userCardDetail.enhanceSuccessCount(),
+                        userCardDetail.enhanceSuccessCount() + 1,
+                        userCardDetail.skill1().skillType(),
+                        statIncrease1,
+                        userCardDetail.skill2().skillType(),
+                        statIncrease2,
+                        userCardDetail.skill3().skillType(),
+                        statIncrease3,
+                        gold,
+                        LocalDateTime.now())
+                );
         eventPublisher.publishEvent(new UserCardStatChangedEvent(userId, request.getCardId()));
 
         return EnhanceResultResponse.builder()
@@ -123,21 +118,22 @@ public class EnhancementServiceImpl implements EnhancementService {
 
     private EnhanceResultResponse fail(Long userId, EnhancementRequest request, UserCardResponse userCardDetail, EnhancePolicy.Grade policy){
         userCardService.applyEnhanceFail(userId, request.getCardId());
-        enhancementLogFacade.record(new EnhancementLogCommand(
-                userId,
-                request.getCardId(),
-                userCardDetail.enhanceTryCount() + 1,
-                false,
-                userCardDetail.enhanceSuccessCount(),
-                userCardDetail.enhanceSuccessCount(),
-                userCardDetail.skill1().skillType(),
-                0,
-                userCardDetail.skill2().skillType(),
-                0,
-                userCardDetail.skill3().skillType(),
-                0,
-                policy.costGold,
-                LocalDateTime.now()
+        producer.sendEnhanceLogMessage(
+                new EnhanceLogMessage(
+                        userId,
+                        request.getCardId(),
+                        userCardDetail.enhanceTryCount() + 1,
+                        false,
+                        userCardDetail.enhanceSuccessCount(),
+                        userCardDetail.enhanceSuccessCount(),
+                        userCardDetail.skill1().skillType(),
+                        0,
+                        userCardDetail.skill2().skillType(),
+                        0,
+                        userCardDetail.skill3().skillType(),
+                        0,
+                        policy.costGold,
+                        LocalDateTime.now()
         ));
         return EnhanceResultResponse.builder()
                 .cardId(request.getCardId())

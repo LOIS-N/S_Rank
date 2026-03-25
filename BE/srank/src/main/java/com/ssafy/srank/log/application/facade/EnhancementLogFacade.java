@@ -1,6 +1,6 @@
 package com.ssafy.srank.log.application.facade;
 
-import com.ssafy.srank.log.application.command.EnhancementLogCommand;
+import com.ssafy.srank.rabbitmq.log.message.EnhanceLogMessage;
 
 /**
  * 강화 로그 기록 Facade 인터페이스.
@@ -14,5 +14,5 @@ public interface EnhancementLogFacade {
      *
      * @param command 강화 결과 데이터
      */
-    void record(EnhancementLogCommand command);
+    void record(EnhanceLogMessage command);
 }
