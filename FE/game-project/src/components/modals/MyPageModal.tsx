@@ -121,8 +121,8 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold">
-      <div className="bg-[#b0c4de] p-8 border-4 border-[#6b859e] w-[420px] max-w-[90%] shadow-[8px_8px_0px_#4a5d73] text-center relative pointer-events-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold pointer-events-auto pb-[calc(6cqw+10px)]">
+      <div className="bg-[#b0c4de] p-6 sm:p-8 border-4 border-[#6b859e] w-[420px] max-w-[90%] shadow-[8px_8px_0px_#4a5d73] text-center relative pointer-events-auto">
 
         <button
           onClick={onClose}
@@ -131,10 +131,10 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
           &times;
         </button>
 
-        <h2 className="text-slate-900 font-bold text-3xl mb-8">마이페이지</h2>
+        <h2 className="text-slate-900 font-bold text-3xl mb-6">마이페이지</h2>
 
-        <div className="mb-8">
-          <div className="flex gap-4">
+        <div className="mb-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
             <input
               className={`flex-1 p-3 text-lg bg-white text-black border-2 ${isError ? 'border-red-500' : 'border-slate-400'} outline-none focus:border-blue-500`}
               value={inputValue}
@@ -147,7 +147,7 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
             <button
               onClick={handleUpdateNickname}
               disabled={loading}
-              className={`px-7 text-lg font-bold border-b-4 border-r-4 active:border-0 active:translate-y-1 transition-all ${
+              className={`py-3 px-6 text-lg font-bold border-b-4 border-r-4 active:border-0 active:translate-y-1 transition-all ${
                 loading ? 'bg-slate-400 border-slate-500' : 'bg-[#6b859e] text-white border-[#3e5368]'
               }`}
             >
@@ -161,16 +161,16 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
           )}
         </div>
 
-        <div className="flex justify-between gap-5 mt-4">
+        <div className="flex justify-between gap-3 mt-4">
           <button
             onClick={() => setShowLogoutConfirm(true)}
-            className="flex-1 py-4 text-xl font-bold bg-slate-500 text-white border-b-4 border-r-4 border-slate-600 active:border-0 active:translate-y-1 transition-all"
+            className="flex-1 py-3 text-lg font-bold bg-slate-500 text-white border-b-4 border-r-4 border-slate-600 active:border-0 active:translate-y-1 transition-all"
           >
             로그아웃
           </button>
           <button
             onClick={() => setShowWithdrawConfirm(true)}
-            className="flex-1 py-4 text-xl font-bold bg-red-600 text-white border-b-4 border-r-4 border-red-800 active:border-0 active:translate-y-1 transition-all"
+            className="flex-1 py-3 text-lg font-bold bg-red-600 text-white border-b-4 border-r-4 border-red-800 active:border-0 active:translate-y-1 transition-all"
           >
             회원 탈퇴
           </button>
