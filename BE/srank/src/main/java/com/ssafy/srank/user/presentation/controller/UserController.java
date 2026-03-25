@@ -43,4 +43,10 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(userService.rewardGold(SecurityUtil.getCurrentUserId(),gold, GoldLogReason.CATCH_BUG )));
     }
 
+    @PutMapping("/levelup")
+    public ResponseEntity<ApiResponse<Void>> tutorialLevelUp(){
+        userService.levelUp(SecurityUtil.getCurrentUserId());
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
 }
