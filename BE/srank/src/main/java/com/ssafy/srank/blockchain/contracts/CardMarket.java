@@ -23,7 +23,7 @@ import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.BaseEventResponse;
 import org.web3j.protocol.core.methods.response.Log;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.tuples.generated.Tuple4;
+import org.web3j.tuples.generated.Tuple5;
 import org.web3j.tx.Contract;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.ContractGasProvider;
@@ -53,12 +53,18 @@ public class CardMarket extends Contract {
 
     public static final String FUNC_PAYMENTTOKEN = "paymentToken";
 
+    public static final String FUNC_RECLAIMEXPIREDCARD = "reclaimExpiredCard";
+
     public static final String FUNC_RENOUNCEOWNERSHIP = "renounceOwnership";
 
     public static final String FUNC_TRANSFEROWNERSHIP = "transferOwnership";
 
     public static final Event CARDLISTED_EVENT = new Event("CardListed", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Uint256>(true) {}, new TypeReference<Uint256>() {}));
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Uint256>(true) {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
+    ;
+
+    public static final Event CARDRECLAIMED_EVENT = new Event("CardReclaimed", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Uint256>(true) {}));
     ;
 
     public static final Event CARDSOLD_EVENT = new Event("CardSold", 
@@ -96,6 +102,7 @@ public class CardMarket extends Contract {
             typedResponse.seller = (String) eventValues.getIndexedValues().get(0).getValue();
             typedResponse.tokenId = (BigInteger) eventValues.getIndexedValues().get(1).getValue();
             typedResponse.price = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
+            typedResponse.expiresAt = (BigInteger) eventValues.getNonIndexedValues().get(1).getValue();
             responses.add(typedResponse);
         }
         return responses;
@@ -111,6 +118,7 @@ public class CardMarket extends Contract {
                 typedResponse.seller = (String) eventValues.getIndexedValues().get(0).getValue();
                 typedResponse.tokenId = (BigInteger) eventValues.getIndexedValues().get(1).getValue();
                 typedResponse.price = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
+                typedResponse.expiresAt = (BigInteger) eventValues.getNonIndexedValues().get(1).getValue();
                 return typedResponse;
             }
         });
@@ -120,6 +128,39 @@ public class CardMarket extends Contract {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(CARDLISTED_EVENT));
         return cardListedEventFlowable(filter);
+    }
+
+    public List<CardReclaimedEventResponse> getCardReclaimedEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(CARDRECLAIMED_EVENT, transactionReceipt);
+        ArrayList<CardReclaimedEventResponse> responses = new ArrayList<CardReclaimedEventResponse>(valueList.size());
+        for (Contract.EventValuesWithLog eventValues : valueList) {
+            CardReclaimedEventResponse typedResponse = new CardReclaimedEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.seller = (String) eventValues.getIndexedValues().get(0).getValue();
+            typedResponse.tokenId = (BigInteger) eventValues.getIndexedValues().get(1).getValue();
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Flowable<CardReclaimedEventResponse> cardReclaimedEventFlowable(EthFilter filter) {
+        return web3j.ethLogFlowable(filter).map(new Function<Log, CardReclaimedEventResponse>() {
+            @Override
+            public CardReclaimedEventResponse apply(Log log) {
+                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(CARDRECLAIMED_EVENT, log);
+                CardReclaimedEventResponse typedResponse = new CardReclaimedEventResponse();
+                typedResponse.log = log;
+                typedResponse.seller = (String) eventValues.getIndexedValues().get(0).getValue();
+                typedResponse.tokenId = (BigInteger) eventValues.getIndexedValues().get(1).getValue();
+                return typedResponse;
+            }
+        });
+    }
+
+    public Flowable<CardReclaimedEventResponse> cardReclaimedEventFlowable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(EventEncoder.encode(CARDRECLAIMED_EVENT));
+        return cardReclaimedEventFlowable(filter);
     }
 
     public List<CardSoldEventResponse> getCardSoldEvents(TransactionReceipt transactionReceipt) {
@@ -209,20 +250,21 @@ public class CardMarket extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<Tuple4<String, BigInteger, BigInteger, Boolean>> listings(BigInteger param0) {
+    public RemoteFunctionCall<Tuple5<String, BigInteger, BigInteger, BigInteger, Boolean>> listings(BigInteger param0) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_LISTINGS, 
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Bool>() {}));
-        return new RemoteFunctionCall<Tuple4<String, BigInteger, BigInteger, Boolean>>(function,
-                new Callable<Tuple4<String, BigInteger, BigInteger, Boolean>>() {
+                Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}, new TypeReference<Bool>() {}));
+        return new RemoteFunctionCall<Tuple5<String, BigInteger, BigInteger, BigInteger, Boolean>>(function,
+                new Callable<Tuple5<String, BigInteger, BigInteger, BigInteger, Boolean>>() {
                     @Override
-                    public Tuple4<String, BigInteger, BigInteger, Boolean> call() throws Exception {
+                    public Tuple5<String, BigInteger, BigInteger, BigInteger, Boolean> call() throws Exception {
                         List<Type> results = executeCallMultipleValueReturn(function);
-                        return new Tuple4<String, BigInteger, BigInteger, Boolean>(
+                        return new Tuple5<String, BigInteger, BigInteger, BigInteger, Boolean>(
                                 (String) results.get(0).getValue(), 
                                 (BigInteger) results.get(1).getValue(), 
                                 (BigInteger) results.get(2).getValue(), 
-                                (Boolean) results.get(3).getValue());
+                                (BigInteger) results.get(3).getValue(), 
+                                (Boolean) results.get(4).getValue());
                     }
                 });
     }
@@ -246,6 +288,14 @@ public class CardMarket extends Contract {
                 Arrays.<Type>asList(), 
                 Arrays.<TypeReference<?>>asList(new TypeReference<Address>() {}));
         return executeRemoteCallSingleValueReturn(function, String.class);
+    }
+
+    public RemoteFunctionCall<TransactionReceipt> reclaimExpiredCard(BigInteger tokenId) {
+        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
+                FUNC_RECLAIMEXPIREDCARD, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
+                Collections.<TypeReference<?>>emptyList());
+        return executeRemoteCallTransaction(function);
     }
 
     public RemoteFunctionCall<TransactionReceipt> renounceOwnership() {
@@ -288,6 +338,14 @@ public class CardMarket extends Contract {
         public BigInteger tokenId;
 
         public BigInteger price;
+
+        public BigInteger expiresAt;
+    }
+
+    public static class CardReclaimedEventResponse extends BaseEventResponse {
+        public String seller;
+
+        public BigInteger tokenId;
     }
 
     public static class CardSoldEventResponse extends BaseEventResponse {
