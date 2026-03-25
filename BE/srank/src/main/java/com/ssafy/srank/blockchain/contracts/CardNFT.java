@@ -15,7 +15,6 @@ import org.web3j.abi.datatypes.Event;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.abi.datatypes.Utf8String;
 import org.web3j.abi.datatypes.generated.Uint256;
-import org.web3j.abi.datatypes.generated.Uint8;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
@@ -43,11 +42,13 @@ public class CardNFT extends Contract {
 
     public static final String FUNC_APPROVE = "approve";
 
+    public static final String FUNC_APPROVEDMINTS = "approvedMints";
+
+    public static final String FUNC_AUTHORIZEDSERVERS = "authorizedServers";
+
     public static final String FUNC_BALANCEOF = "balanceOf";
 
-    public static final String FUNC_BURN = "burn";
-
-    public static final String FUNC_CARDGRADES = "cardGrades";
+    public static final String FUNC_BURNRETURNTOGAME = "burnReturnToGame";
 
     public static final String FUNC_DBCARDIDS = "dbCardIds";
 
@@ -57,11 +58,7 @@ public class CardNFT extends Contract {
 
     public static final String FUNC_ISAPPROVEDFORALL = "isApprovedForAll";
 
-    public static final String FUNC_ISAUTHORIZEDCONTROLLER = "isAuthorizedController";
-
-    public static final String FUNC_MINTRIGHTS = "mintRights";
-
-    public static final String FUNC_MINTWITHRIGHT = "mintWithRight";
+    public static final String FUNC_MINT = "mint";
 
     public static final String FUNC_NAME = "name";
 
@@ -75,7 +72,7 @@ public class CardNFT extends Contract {
 
     public static final String FUNC_SETAPPROVALFORALL = "setApprovalForAll";
 
-    public static final String FUNC_SETCONTROLLER = "setController";
+    public static final String FUNC_SETSERVER = "setServer";
 
     public static final String FUNC_SUPPORTSINTERFACE = "supportsInterface";
 
@@ -100,15 +97,15 @@ public class CardNFT extends Contract {
     ;
 
     public static final Event CARDMINTED_EVENT = new Event("CardMinted", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Uint256>() {}, new TypeReference<Utf8String>() {}, new TypeReference<Uint8>() {}));
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Uint256>() {}, new TypeReference<Utf8String>() {}, new TypeReference<Utf8String>() {}));
+    ;
+
+    public static final Event CARDRETURNEDTOGAME_EVENT = new Event("CardReturnedToGame", 
+            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Uint256>() {}, new TypeReference<Utf8String>() {}));
     ;
 
     public static final Event METADATAUPDATE_EVENT = new Event("MetadataUpdate", 
             Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {}));
-    ;
-
-    public static final Event MINTRIGHTGRANTED_EVENT = new Event("MintRightGranted", 
-            Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Utf8String>() {}, new TypeReference<Uint8>() {}));
     ;
 
     public static final Event OWNERSHIPTRANSFERRED_EVENT = new Event("OwnershipTransferred", 
@@ -249,7 +246,7 @@ public class CardNFT extends Contract {
             typedResponse.user = (String) eventValues.getIndexedValues().get(0).getValue();
             typedResponse.tokenId = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
             typedResponse.dbCardId = (String) eventValues.getNonIndexedValues().get(1).getValue();
-            typedResponse.grade = (BigInteger) eventValues.getNonIndexedValues().get(2).getValue();
+            typedResponse.tokenURI = (String) eventValues.getNonIndexedValues().get(2).getValue();
             responses.add(typedResponse);
         }
         return responses;
@@ -265,7 +262,7 @@ public class CardNFT extends Contract {
                 typedResponse.user = (String) eventValues.getIndexedValues().get(0).getValue();
                 typedResponse.tokenId = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
                 typedResponse.dbCardId = (String) eventValues.getNonIndexedValues().get(1).getValue();
-                typedResponse.grade = (BigInteger) eventValues.getNonIndexedValues().get(2).getValue();
+                typedResponse.tokenURI = (String) eventValues.getNonIndexedValues().get(2).getValue();
                 return typedResponse;
             }
         });
@@ -275,6 +272,41 @@ public class CardNFT extends Contract {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(CARDMINTED_EVENT));
         return cardMintedEventFlowable(filter);
+    }
+
+    public List<CardReturnedToGameEventResponse> getCardReturnedToGameEvents(TransactionReceipt transactionReceipt) {
+        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(CARDRETURNEDTOGAME_EVENT, transactionReceipt);
+        ArrayList<CardReturnedToGameEventResponse> responses = new ArrayList<CardReturnedToGameEventResponse>(valueList.size());
+        for (Contract.EventValuesWithLog eventValues : valueList) {
+            CardReturnedToGameEventResponse typedResponse = new CardReturnedToGameEventResponse();
+            typedResponse.log = eventValues.getLog();
+            typedResponse.user = (String) eventValues.getIndexedValues().get(0).getValue();
+            typedResponse.tokenId = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
+            typedResponse.dbCardId = (String) eventValues.getNonIndexedValues().get(1).getValue();
+            responses.add(typedResponse);
+        }
+        return responses;
+    }
+
+    public Flowable<CardReturnedToGameEventResponse> cardReturnedToGameEventFlowable(EthFilter filter) {
+        return web3j.ethLogFlowable(filter).map(new Function<Log, CardReturnedToGameEventResponse>() {
+            @Override
+            public CardReturnedToGameEventResponse apply(Log log) {
+                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(CARDRETURNEDTOGAME_EVENT, log);
+                CardReturnedToGameEventResponse typedResponse = new CardReturnedToGameEventResponse();
+                typedResponse.log = log;
+                typedResponse.user = (String) eventValues.getIndexedValues().get(0).getValue();
+                typedResponse.tokenId = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();
+                typedResponse.dbCardId = (String) eventValues.getNonIndexedValues().get(1).getValue();
+                return typedResponse;
+            }
+        });
+    }
+
+    public Flowable<CardReturnedToGameEventResponse> cardReturnedToGameEventFlowable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+        EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
+        filter.addSingleTopic(EventEncoder.encode(CARDRETURNEDTOGAME_EVENT));
+        return cardReturnedToGameEventFlowable(filter);
     }
 
     public List<MetadataUpdateEventResponse> getMetadataUpdateEvents(TransactionReceipt transactionReceipt) {
@@ -306,41 +338,6 @@ public class CardNFT extends Contract {
         EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
         filter.addSingleTopic(EventEncoder.encode(METADATAUPDATE_EVENT));
         return metadataUpdateEventFlowable(filter);
-    }
-
-    public List<MintRightGrantedEventResponse> getMintRightGrantedEvents(TransactionReceipt transactionReceipt) {
-        List<Contract.EventValuesWithLog> valueList = extractEventParametersWithLog(MINTRIGHTGRANTED_EVENT, transactionReceipt);
-        ArrayList<MintRightGrantedEventResponse> responses = new ArrayList<MintRightGrantedEventResponse>(valueList.size());
-        for (Contract.EventValuesWithLog eventValues : valueList) {
-            MintRightGrantedEventResponse typedResponse = new MintRightGrantedEventResponse();
-            typedResponse.log = eventValues.getLog();
-            typedResponse.user = (String) eventValues.getIndexedValues().get(0).getValue();
-            typedResponse.dbCardId = (String) eventValues.getNonIndexedValues().get(0).getValue();
-            typedResponse.grade = (BigInteger) eventValues.getNonIndexedValues().get(1).getValue();
-            responses.add(typedResponse);
-        }
-        return responses;
-    }
-
-    public Flowable<MintRightGrantedEventResponse> mintRightGrantedEventFlowable(EthFilter filter) {
-        return web3j.ethLogFlowable(filter).map(new Function<Log, MintRightGrantedEventResponse>() {
-            @Override
-            public MintRightGrantedEventResponse apply(Log log) {
-                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(MINTRIGHTGRANTED_EVENT, log);
-                MintRightGrantedEventResponse typedResponse = new MintRightGrantedEventResponse();
-                typedResponse.log = log;
-                typedResponse.user = (String) eventValues.getIndexedValues().get(0).getValue();
-                typedResponse.dbCardId = (String) eventValues.getNonIndexedValues().get(0).getValue();
-                typedResponse.grade = (BigInteger) eventValues.getNonIndexedValues().get(1).getValue();
-                return typedResponse;
-            }
-        });
-    }
-
-    public Flowable<MintRightGrantedEventResponse> mintRightGrantedEventFlowable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
-        EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());
-        filter.addSingleTopic(EventEncoder.encode(MINTRIGHTGRANTED_EVENT));
-        return mintRightGrantedEventFlowable(filter);
     }
 
     public List<OwnershipTransferredEventResponse> getOwnershipTransferredEvents(TransactionReceipt transactionReceipt) {
@@ -420,6 +417,21 @@ public class CardNFT extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
+    public RemoteFunctionCall<String> approvedMints(String param0, String param1) {
+        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_APPROVEDMINTS, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, param0), 
+                new org.web3j.abi.datatypes.Utf8String(param1)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}));
+        return executeRemoteCallSingleValueReturn(function, String.class);
+    }
+
+    public RemoteFunctionCall<Boolean> authorizedServers(String param0) {
+        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_AUTHORIZEDSERVERS, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, param0)), 
+                Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {}));
+        return executeRemoteCallSingleValueReturn(function, Boolean.class);
+    }
+
     public RemoteFunctionCall<BigInteger> balanceOf(String owner) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_BALANCEOF, 
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, owner)), 
@@ -427,19 +439,12 @@ public class CardNFT extends Contract {
         return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> burn(BigInteger tokenId) {
+    public RemoteFunctionCall<TransactionReceipt> burnReturnToGame(BigInteger tokenId) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-                FUNC_BURN, 
+                FUNC_BURNRETURNTOGAME, 
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
-    }
-
-    public RemoteFunctionCall<BigInteger> cardGrades(BigInteger param0) {
-        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_CARDGRADES, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(param0)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint8>() {}));
-        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
     }
 
     public RemoteFunctionCall<String> dbCardIds(BigInteger param0) {
@@ -456,12 +461,12 @@ public class CardNFT extends Contract {
         return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> grantMintRight(String user, String dbCardId, BigInteger grade) {
+    public RemoteFunctionCall<TransactionReceipt> grantMintRight(String user, String dbCardId, String _tokenURI) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
                 FUNC_GRANTMINTRIGHT, 
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, user), 
                 new org.web3j.abi.datatypes.Utf8String(dbCardId), 
-                new org.web3j.abi.datatypes.generated.Uint8(grade)), 
+                new org.web3j.abi.datatypes.Utf8String(_tokenURI)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
@@ -474,26 +479,10 @@ public class CardNFT extends Contract {
         return executeRemoteCallSingleValueReturn(function, Boolean.class);
     }
 
-    public RemoteFunctionCall<Boolean> isAuthorizedController(String param0) {
-        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_ISAUTHORIZEDCONTROLLER, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, param0)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Bool>() {}));
-        return executeRemoteCallSingleValueReturn(function, Boolean.class);
-    }
-
-    public RemoteFunctionCall<BigInteger> mintRights(String param0, String param1) {
-        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(FUNC_MINTRIGHTS, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, param0), 
-                new org.web3j.abi.datatypes.Utf8String(param1)), 
-                Arrays.<TypeReference<?>>asList(new TypeReference<Uint8>() {}));
-        return executeRemoteCallSingleValueReturn(function, BigInteger.class);
-    }
-
-    public RemoteFunctionCall<TransactionReceipt> mintWithRight(String dbCardId, String _tokenURI) {
+    public RemoteFunctionCall<TransactionReceipt> mint(String dbCardId) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-                FUNC_MINTWITHRIGHT, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Utf8String(dbCardId), 
-                new org.web3j.abi.datatypes.Utf8String(_tokenURI)), 
+                FUNC_MINT, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Utf8String(dbCardId)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }
@@ -557,10 +546,10 @@ public class CardNFT extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteFunctionCall<TransactionReceipt> setController(String controller, Boolean status) {
+    public RemoteFunctionCall<TransactionReceipt> setServer(String server, Boolean status) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-                FUNC_SETCONTROLLER, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, controller), 
+                FUNC_SETSERVER, 
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, server), 
                 new org.web3j.abi.datatypes.Bool(status)), 
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
@@ -652,19 +641,19 @@ public class CardNFT extends Contract {
 
         public String dbCardId;
 
-        public BigInteger grade;
+        public String tokenURI;
+    }
+
+    public static class CardReturnedToGameEventResponse extends BaseEventResponse {
+        public String user;
+
+        public BigInteger tokenId;
+
+        public String dbCardId;
     }
 
     public static class MetadataUpdateEventResponse extends BaseEventResponse {
         public BigInteger _tokenId;
-    }
-
-    public static class MintRightGrantedEventResponse extends BaseEventResponse {
-        public String user;
-
-        public String dbCardId;
-
-        public BigInteger grade;
     }
 
     public static class OwnershipTransferredEventResponse extends BaseEventResponse {

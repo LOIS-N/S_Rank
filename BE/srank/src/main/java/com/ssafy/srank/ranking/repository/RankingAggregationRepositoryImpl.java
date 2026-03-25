@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -42,7 +43,45 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
 
     @Override
     public List<CardGradeCountRankingAggregate> findCardGradeCountRankings() {
-        String sql = """
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(cardGradeRankingSql(false))
+                .getResultList();
+
+        return rows.stream().map(this::toCardGradeAggregate).toList();
+    }
+
+    @Override
+    public Optional<CardGradeCountRankingAggregate> findCardGradeCountRanking(Long userId) {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(cardGradeRankingSql(true))
+                .setParameter("userId", userId)
+                .getResultList();
+
+        return rows.stream().findFirst().map(this::toCardGradeAggregate);
+    }
+
+    @Override
+    public List<CardStatTotalRankingAggregate> findCardStatTotalRankings() {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(cardStatRankingSql(false))
+                .getResultList();
+
+        return rows.stream().map(this::toCardStatAggregate).toList();
+    }
+
+    @Override
+    public Optional<CardStatTotalRankingAggregate> findCardStatTotalRanking(Long userId) {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(cardStatRankingSql(true))
+                .setParameter("userId", userId)
+                .getResultList();
+
+        return rows.stream().findFirst().map(this::toCardStatAggregate);
+    }
+
+    private String cardGradeRankingSql(boolean singleUser) {
+        String filter = singleUser ? "\n    AND u.user_id = :userId\n" : "\n";
+        return """
                 SELECT
                     u.user_id,
                     u.nickname,
@@ -58,26 +97,15 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
                     AND ct.is_active = true
                     AND ct.is_deleted = false
                 WHERE u.deleted_at IS NULL
+                """ + filter + """
                 GROUP BY u.user_id, u.nickname
                 ORDER BY s_count DESC, a_count DESC, u.user_id ASC
                 """;
-
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery(sql).getResultList();
-
-        return rows.stream()
-                .map(row -> new CardGradeCountRankingAggregate(
-                        toLong(row[0]),
-                        (String) row[1],
-                        toLong(row[2]),
-                        toLong(row[3])
-                ))
-                .toList();
     }
 
-    @Override
-    public List<CardStatTotalRankingAggregate> findCardStatTotalRankings() {
-        String sql = """
+    private String cardStatRankingSql(boolean singleUser) {
+        String filter = singleUser ? "\n    AND u.user_id = :userId\n" : "\n";
+        return """
                 WITH valid_cards AS (
                     SELECT
                         u.user_id,
@@ -116,6 +144,7 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
                     SELECT
                         vc.user_id,
                         vc.nickname,
+                        vc.user_card_id,
                         vc.stat_total,
                         vc.achieved_at,
                         ROW_NUMBER() OVER (
@@ -128,27 +157,35 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
                     u.user_id,
                     u.nickname,
                     COALESCE(rc.stat_total, 0) AS stat_total,
-                    COALESCE(rc.achieved_at, u.created_at) AS achieved_at
+                    COALESCE(rc.achieved_at, u.created_at) AS achieved_at,
+                    rc.user_card_id AS representative_card_id
                 FROM users u
                 LEFT JOIN representative_cards rc
                     ON rc.user_id = u.user_id
                     AND rc.representative_rank = 1
                 WHERE u.deleted_at IS NULL
+                """ + filter + """
                 ORDER BY COALESCE(rc.stat_total, 0) DESC, COALESCE(rc.achieved_at, u.created_at) ASC, u.user_id ASC
                 """;
+    }
 
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery(sql)
-                .getResultList();
+    private CardGradeCountRankingAggregate toCardGradeAggregate(Object[] row) {
+        return new CardGradeCountRankingAggregate(
+                toLong(row[0]),
+                (String) row[1],
+                toLong(row[2]),
+                toLong(row[3])
+        );
+    }
 
-        return rows.stream()
-                .map(row -> new CardStatTotalRankingAggregate(
-                        toLong(row[0]),
-                        (String) row[1],
-                        toInt(row[2]),
-                        toLocalDateTime(row[3])
-                ))
-                .toList();
+    private CardStatTotalRankingAggregate toCardStatAggregate(Object[] row) {
+        return new CardStatTotalRankingAggregate(
+                toLong(row[0]),
+                (String) row[1],
+                toInt(row[2]),
+                toLocalDateTime(row[3]),
+                toNullableLong(row[4])
+        );
     }
 
     private long toLong(Object value) {
@@ -157,6 +194,13 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
 
     private int toInt(Object value) {
         return ((Number) value).intValue();
+    }
+
+    private Long toNullableLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return ((Number) value).longValue();
     }
 
     private LocalDateTime toLocalDateTime(Object value) {

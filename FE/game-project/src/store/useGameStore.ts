@@ -22,6 +22,7 @@ export interface DeskQuest {
   questId: number | null;
   questType: 'main' | 'sub' | null;
   requiredLevel: number;
+  unlockCostGold: number;
 }
 
 interface GameState {
@@ -75,7 +76,7 @@ interface GameState {
   unlockQuestSlot: (id: number) => void;
   setUnlockConfirm: (id: number | null) => void;
   closeRewardModal: () => void;
-  setDesksFromApi: (desks: Array<{ deskTemplateId: number; unlocked: boolean; requiredLevel?: number }>) => void;
+  setDesksFromApi: (desks: Array<{ deskTemplateId: number; unlocked: boolean; requiredLevel?: number; unlockCostGold?: number }>) => void;
   openComingSoonModal: (text?: string) => void;
   closeComingSoonModal: () => void;
   setResources: (gold: number, coffee: number) => void;
@@ -116,11 +117,11 @@ export const useGameStore = create<GameState>()(
   accessToken: null,
   unreadNotifications: 1,
   quests: [
-    { id: 0, status: 'IDLE', isLocked: false, endTime: null, endAt: null, reward: 100, title: '', questId: null, questType: null, requiredLevel: 0 },
-    { id: 1, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 200, title: '', questId: null, questType: null, requiredLevel: 2 },
-    { id: 2, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 300, title: '', questId: null, questType: null, requiredLevel: 3 },
-    { id: 3, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 400, title: '', questId: null, questType: null, requiredLevel: 4 },
-    { id: 4, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 500, title: '', questId: null, questType: null, requiredLevel: 5 },
+    { id: 0, status: 'IDLE', isLocked: false, endTime: null, endAt: null, reward: 100, title: '', questId: null, questType: null, requiredLevel: 0, unlockCostGold: 50000 },
+    { id: 1, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 200, title: '', questId: null, questType: null, requiredLevel: 2, unlockCostGold: 50000 },
+    { id: 2, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 300, title: '', questId: null, questType: null, requiredLevel: 3, unlockCostGold: 50000 },
+    { id: 3, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 400, title: '', questId: null, questType: null, requiredLevel: 4, unlockCostGold: 50000 },
+    { id: 4, status: 'IDLE', isLocked: true,  endTime: null, endAt: null, reward: 500, title: '', questId: null, questType: null, requiredLevel: 5, unlockCostGold: 50000 },
   ],
   selectingDeskId: null,
   activeRewardModal: null,
@@ -215,11 +216,13 @@ export const useGameStore = create<GameState>()(
     };
   }),
   unlockQuestSlot: (id) => set((state) => {
-    if (state.gold < 50000) return state;
+    const quest = state.quests.find(q => q.id === id);
+    const cost = quest?.unlockCostGold ?? 50000;
+    if (state.gold < cost) return state;
     const updated = state.quests.map(q =>
       q.id === id ? { ...q, isLocked: false } : q
     );
-    return { gold: state.gold - 50000, quests: updated, activeUnlockConfirm: null };
+    return { gold: state.gold - cost, quests: updated, activeUnlockConfirm: null };
   }),
   setUnlockConfirm: (id) => set({
     activeUnlockConfirm: id !== null ? { isOpen: true, deskId: id } : null
@@ -297,7 +300,12 @@ export const useGameStore = create<GameState>()(
   setDesksFromApi: (desks) => set((state) => {
     const updated = state.quests.map(q => {
       const desk = desks.find(d => d.deskTemplateId === q.id + 1);
-      if (desk) return { ...q, isLocked: !desk.unlocked, requiredLevel: desk.requiredLevel ?? q.requiredLevel };
+      if (desk) return {
+        ...q,
+        isLocked: !desk.unlocked,
+        requiredLevel: desk.requiredLevel ?? q.requiredLevel,
+        unlockCostGold: desk.unlockCostGold ?? q.unlockCostGold,
+      };
       return q;
     });
     return { quests: updated };

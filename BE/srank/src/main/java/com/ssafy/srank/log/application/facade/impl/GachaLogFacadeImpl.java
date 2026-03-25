@@ -3,9 +3,13 @@ package com.ssafy.srank.log.application.facade.impl;
 import com.ssafy.srank.log.application.command.GachaDrawLogCommand;
 import com.ssafy.srank.log.application.facade.GachaLogFacade;
 import com.ssafy.srank.log.domain.entity.GachaLog;
+import com.ssafy.srank.log.domain.enums.BlockchainStatus;
 import com.ssafy.srank.log.repository.GachaLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -14,9 +18,10 @@ public class GachaLogFacadeImpl implements GachaLogFacade {
     private final GachaLogRepository gachaLogRepository;
 
     @Override
-    public void recordDraw(GachaDrawLogCommand command) {
+    @Transactional
+    public List<Long> recordDraw(GachaDrawLogCommand command) {
         // One gacha request expands into one row per created card snapshot.
-        gachaLogRepository.saveAll(command.drawnCards().stream()
+        return gachaLogRepository.saveAllAndFlush(command.drawnCards().stream()
                 .map(card -> GachaLog.builder()
                         .userId(command.userId())
                         .gachaType(command.gachaType())
@@ -45,6 +50,15 @@ public class GachaLogFacadeImpl implements GachaLogFacade {
                         .blockchainTxHash(command.blockchainTxHash())
                         .createdAt(command.createdAt())
                         .build())
-                .toList());
+                .toList()).stream()
+                .map(GachaLog::getGachaDrawId)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void updateBlockchainResult(List<Long> logIds, BlockchainStatus status, String txHash) {
+        gachaLogRepository.findAllById(logIds)
+                .forEach(log -> log.updateBlockchainResult(status, txHash));
     }
 }

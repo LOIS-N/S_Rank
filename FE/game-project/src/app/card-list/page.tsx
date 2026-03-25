@@ -130,9 +130,13 @@ export default function CardListPage() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [totalCnt, setTotalCnt] = useState<number | null>(null);
 
   // --- 선택 / 상세 상태 ---
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
+  const [confirmFire, setConfirmFire] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [usedCardIds, setUsedCardIds] = useState<number[]>([]);
 
   // --- 필터 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
@@ -144,6 +148,25 @@ export default function CardListPage() {
     return useUserStore.getState().accessToken || await getAccessToken();
   }, [getAccessToken]);
 
+  // --- 퀘스트 사용 중인 카드 조회 ---
+  useEffect(() => {
+    const fetchUsedCards = async () => {
+      try {
+        const token = await getAuthToken();
+        const { data: json } = await api.get('/api/v1/cards/used', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (json.success && Array.isArray(json.data)) {
+          setUsedCardIds(json.data);
+        }
+      } catch (err) {
+        console.error('사용 중인 카드 조회 실패:', err);
+      }
+    };
+    fetchUsedCards();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // --- 카드 목록 조회 (cursor pagination) ---
   const fetchCards = useCallback(async (cursor?: string | null, filterOverride?: string) => {
     if (isLoading) return;
@@ -151,7 +174,7 @@ export default function CardListPage() {
     try {
       const token = await getAuthToken();
       const currentFilter = filterOverride ?? capacitySort;
-      const params: Record<string, string> = { limit: '30' };
+      const params: Record<string, string> = { limit: '200' };
       if (cursor) params.cursor = cursor;
       if (currentFilter && currentFilter !== 'ALL') {
         params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
@@ -166,6 +189,7 @@ export default function CardListPage() {
         setCards(prev => cursor ? [...prev, ...newCards] : newCards);
         setNextCursor(json.data.nextCursor || null);
         setHasMore(json.data.hasMore);
+        if (json.data.totalCnt !== undefined) setTotalCnt(json.data.totalCnt);
 
         // 첫 로드 시 첫 번째 카드 자동 선택
         if (!cursor && newCards.length > 0) {
@@ -196,7 +220,30 @@ export default function CardListPage() {
   // --- 카드 클릭 ---
   const handleCardClick = useCallback((cardId: number) => {
     setSelectedCardId(cardId);
+    setConfirmFire(false);
   }, []);
+
+  // --- 카드 해고 ---
+  const handleFireCard = useCallback(async () => {
+    if (!selectedCardId || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const token = await getAuthToken();
+      await api.delete('/api/v1/cards', {
+        data: { cards: [selectedCardId] },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCards(prev => prev.filter(c => c.cardId !== selectedCardId));
+      setTotalCnt(prev => prev !== null ? prev - 1 : null);
+      setSelectedCardId(null);
+      setConfirmFire(false);
+    } catch (err) {
+      console.error('카드 삭제 실패:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCardId, isDeleting, getAuthToken]);
 
   // --- 선택된 필터 스탯 기준 오름/내림차순 정렬 ---
   const sortedCards = useMemo(() => sortCards(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
@@ -224,6 +271,7 @@ export default function CardListPage() {
   const swipeVelocityRef = useRef(0);
   const swipeLastTimeRef = useRef(0);
   const momentumAnimRef = useRef<number | null>(null);
+  const pendingScrollPxRef = useRef<number | null>(null);
 
   // 실제 DOM 높이 기반으로 계산 (하드코딩 제거)
   const maxScroll = Math.max(0, gridHeight - wrapperHeight);
@@ -232,6 +280,7 @@ export default function CardListPage() {
   // --- 스크롤 하단 도달 시 다음 페이지 로드 ---
   useEffect(() => {
     if (scrollRatio > 0.9 && hasMore && !isLoading && nextCursor) {
+      pendingScrollPxRef.current = scrollRatio * maxScroll;
       fetchCards(nextCursor);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -255,8 +304,17 @@ export default function CardListPage() {
   useEffect(() => {
     const measure = () => {
       if (trackRef.current) setTrackHeight(trackRef.current.clientHeight);
-      if (wrapperRef.current) setWrapperHeight(wrapperRef.current.clientHeight);
-      if (gridRef.current) setGridHeight(gridRef.current.scrollHeight);
+      const newWrapperH = wrapperRef.current?.clientHeight ?? 0;
+      if (wrapperRef.current) setWrapperHeight(newWrapperH);
+      const newGridH = gridRef.current?.scrollHeight ?? 0;
+      if (gridRef.current) {
+        setGridHeight(newGridH);
+        if (pendingScrollPxRef.current !== null) {
+          const newMaxScroll = Math.max(0, newGridH - newWrapperH);
+          if (newMaxScroll > 0) setScrollRatio(Math.min(1, pendingScrollPxRef.current / newMaxScroll));
+          pendingScrollPxRef.current = null;
+        }
+      }
     };
     measure();
     window.addEventListener('resize', measure);
@@ -354,6 +412,9 @@ export default function CardListPage() {
               onClick={() => setSortOrder('asc')}
               title="능력치 오름차순"
             >▲ 오름차순</button>
+            {totalCnt !== null && (
+              <span className="cardlist-total-cnt">{totalCnt} / 200</span>
+            )}
           </div>
 
           {/* 카드 리스트 박스 */}
@@ -425,6 +486,11 @@ export default function CardListPage() {
                         onClick={() => handleCardClick(card.cardId)}
                       >
                         <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
+                        {card.enhanceSuccessCount > 0 && (
+                          <span className="card-enhance-badge" data-level={String(card.enhanceSuccessCount)} data-grade={card.grade}>
+                            <span className="badge-plus">+</span><span className="badge-num">{card.enhanceSuccessCount}</span>
+                          </span>
+                        )}
                         <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                         <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                         <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
@@ -458,7 +524,8 @@ export default function CardListPage() {
           className="cardlist-right-box"
         >
           {selectedListCard ? (
-            <div className="cardlist-detail-split animate-detail" key={selectedListCard.cardId}>
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+            <div className="cardlist-detail-split animate-detail" key={selectedListCard.cardId} style={{ flex: 1, minHeight: 0 }}>
               {/* 큰 카드 이미지 */}
               <div className="cardlist-big-card-col">
                 <div className="cardlist-big-card-wrapper">
@@ -512,6 +579,31 @@ export default function CardListPage() {
                   </div>
                 )}
               </div>
+            </div>
+            {/* 해고하기 버튼 영역 */}
+            <div className="cardlist-fire-area">
+              {selectedCardId && usedCardIds.includes(selectedCardId) ? (
+                <button className="cardlist-fire-btn" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                  퀘스트 진행 중
+                </button>
+              ) : confirmFire ? (
+                <div className="cardlist-fire-confirm">
+                  <span className="cardlist-fire-confirm-text">정말 해고하시겠습니까?</span>
+                  <div className="cardlist-fire-confirm-btns">
+                    <button className="cardlist-fire-confirm-yes" onClick={handleFireCard} disabled={isDeleting}>
+                      {isDeleting ? '처리 중...' : '확인'}
+                    </button>
+                    <button className="cardlist-fire-confirm-no" onClick={() => setConfirmFire(false)} disabled={isDeleting}>
+                      취소
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button className="cardlist-fire-btn" onClick={() => setConfirmFire(true)}>
+                  해고하기
+                </button>
+              )}
+            </div>
             </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a8ab0', fontFamily: "'StardustS', 'Stardust', sans-serif", fontSize: 18 }}>

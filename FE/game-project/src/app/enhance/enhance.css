@@ -338,6 +338,7 @@
   transition: transform 0.15s ease, filter 0.15s ease;
   transform-origin: center center;
   aspect-ratio: 104 / 144;
+  overflow: hidden;
 }
 
 .cardlist-card-item img {
@@ -390,10 +391,10 @@
 .cardlist-card-item.selected::before {
   content: "";
   position: absolute;
-  top: -3px;
+  top: 0;
   left: 7px;
   right: 7px;
-  bottom: -3px;
+  bottom: 0;
   border-radius: 8px;
   z-index: -1;
   animation: borderRotate 2.5s linear infinite;
@@ -926,4 +927,172 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ============================
+   강화 횟수 배지 (카드 오른쪽 상단 모서리 대각 리본)
+   픽셀아트 스텝 셰이딩 + 미세 밝기 오버레이
+   색상: 카드 등급(data-grade) 기준
+   S=아이스 블루  A=앰버  B=실버  C=브론즈  D=스틸
+   ============================ */
+
+@keyframes badge-pulse {
+  0%, 100% { scale: 1; }
+  50%       { scale: 1.07; }
+}
+
+/* ── 공통 베이스: 45° 대각 리본 (슬림, overflow:hidden으로 양끝 클린컷) ── */
+.card-enhance-badge {
+  position: absolute;
+  top: 10px;
+  right: 4px;
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  line-height: 1;
+
+  rotate: 45deg;
+  animation: badge-pulse 3s ease-in-out infinite;
+
+  width: 48px;
+  height: 14px;
+  border-radius: 1px;
+
+  /* 기본(D급): 스틸
+     레이어1: 상단 1px 하이라이트 → 미세 밝기 오버레이
+     레이어2: 좌(밝음)→중→우(어두움) 3단 스텝 셰이딩 */
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #BDD0E0 0%, #BDD0E0 25%, #7090A8 25%, #7090A8 75%, #3A5068 75%);
+  border: 1px solid #1A2A38;
+  /* 아래 2px 진한 그림자 → 카드 위로 1~2px 떠 있는 입체감 */
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* ── 등급별 색상 ── */
+
+/* S급: 밝은 스카이 블루 / 다이아몬드 실버 톤 */
+.card-enhance-badge[data-grade="S"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.70) 0px, rgba(255,255,255,0.70) 1px,
+      rgba(255,255,255,0.15) 1px, rgba(0,0,0,0.06) 100%),
+    linear-gradient(to right, #EAF6FF 0%, #EAF6FF 25%, #4FB8F0 25%, #4FB8F0 75%, #1870C0 75%);
+  border: 1px solid #0A3870;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* A급: 앰버 오렌지 — 테두리 진한 갈색 */
+.card-enhance-badge[data-grade="A"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.60) 0px, rgba(255,255,255,0.60) 1px,
+      rgba(255,255,255,0.12) 1px, rgba(0,0,0,0.07) 100%),
+    linear-gradient(to right, #FFE098 0%, #FFE098 25%, #E89020 25%, #E89020 75%, #8A4800 75%);
+  border: 1px solid #3A1200;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* B급: 실버 */
+.card-enhance-badge[data-grade="B"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.65) 0px, rgba(255,255,255,0.65) 1px,
+      rgba(255,255,255,0.12) 1px, rgba(0,0,0,0.07) 100%),
+    linear-gradient(to right, #EEF2F6 0%, #EEF2F6 25%, #A0B4C0 25%, #A0B4C0 75%, #506070 75%);
+  border: 1px solid #283840;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* C급: 브론즈 */
+.card-enhance-badge[data-grade="C"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #F0CC88 0%, #F0CC88 25%, #B07830 25%, #B07830 75%, #683808 75%);
+  border: 1px solid #381800;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* D급: 스틸 (기본값 명시) */
+.card-enhance-badge[data-grade="D"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #BDD0E0 0%, #BDD0E0 25%, #7090A8 25%, #7090A8 75%, #3A5068 75%);
+  border: 1px solid #1A2A38;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* ── 텍스트: + 기호 ── */
+.badge-plus {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 7px;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.95);
+  line-height: 1;
+  margin-right: 1px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── 텍스트: 숫자 ── */
+.badge-num {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.95);
+  line-height: 1;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.synthesis-toast {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a0000;
+  border: 2px solid #ff4444;
+  border-radius: 6px;
+  padding: 18px 32px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff8888;
+  white-space: nowrap;
+  z-index: 20;
+  pointer-events: none;
+  animation: toast-in 0.2s ease-out;
+  text-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
+}
+
+.cardlist-total-cnt {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #555;
+  letter-spacing: 1px;
+  padding: 6px 12px;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  white-space: nowrap;
+  margin-left: auto;
 }

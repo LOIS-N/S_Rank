@@ -1,8 +1,8 @@
 package com.ssafy.srank.gacha.application.service;
 
+import com.ssafy.srank.blockchain.application.service.BlockchainRequestDispatchService;
 import com.ssafy.srank.card.application.service.UserCardService;
 import com.ssafy.srank.card.domain.entity.UserCard;
-import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.common.probablyfair.application.service.ProbablyFairService;
@@ -18,15 +18,14 @@ import com.ssafy.srank.gacha.application.service.model.GachaProofMaterial;
 import com.ssafy.srank.gacha.application.service.model.PreparedDraw;
 import com.ssafy.srank.gacha.domain.enums.GachaType;
 import com.ssafy.srank.gacha.domain.policy.GachaPolicyRegistry;
-import com.ssafy.srank.log.application.command.GoldLogCommand;
-import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.application.facade.GachaLogFacade;
+import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import com.ssafy.srank.user.application.dto.response.MyGachaInfo;
 import com.ssafy.srank.user.application.service.UserService;
-import com.ssafy.srank.user.domain.entity.User;
-import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,17 +39,16 @@ public class GachaServiceImpl implements GachaService {
 
     private static final int MAX_CARD_INVENTORY = 200;
 
-    // TODO: user/card 도메인 service가 준비되면 다른 패키지 repository 직접 접근을 해당 service 호출로 교체한다.
     private final UserService userService;
     private final UserCardService userCardService;
-//    private final UserCardRepository userCardRepository;
     private final GachaPolicyRegistry gachaPolicyRegistry;
     private final ProbablyFairService probablyFairService;
     private final GachaDrawPreparationService gachaDrawPreparationService;
     private final GachaDigestBuilder gachaDigestBuilder;
     private final GachaDrawLogCommandFactory gachaDrawLogCommandFactory;
-    private final EconomyLogFacade economyLogFacade;
     private final GachaLogFacade gachaLogFacade;
+    private final BlockchainRequestDispatchService blockchainRequestDispatchService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -67,6 +65,7 @@ public class GachaServiceImpl implements GachaService {
                 context.count()
         );
         List<UserCard> savedCards = saveCards(preparedDraws);
+        eventPublisher.publishEvent(new UserCardsChangedEvent(userId));
         GachaProofMaterial proofMaterial = gachaDigestBuilder.build(
                 context.type(),
                 context.count(),
@@ -134,8 +133,11 @@ public class GachaServiceImpl implements GachaService {
             throw new BusinessException(ErrorCode.GACHA_GOLD_INSUFFICIENT);
         }
 
+        String walletAddress = userService.getWalletAddress(userId);
+
         return new DrawContext(
                 userId,
+                walletAddress,
                 type,
                 count,
                 clientSeed,
@@ -166,7 +168,7 @@ public class GachaServiceImpl implements GachaService {
             GachaProofMaterial proofMaterial
     ) {
         // 저장 결과와 준비 과정의 proof를 합쳐 가챠 이력 로그 payload를 남긴다.
-        gachaLogFacade.recordDraw(gachaDrawLogCommandFactory.create(
+        List<Long> logIds = gachaLogFacade.recordDraw(gachaDrawLogCommandFactory.create(
                 context.userId(),
                 context.type(),
                 context.count(),
@@ -177,6 +179,15 @@ public class GachaServiceImpl implements GachaService {
                 savedCards,
                 preparedDraws,
                 context.requestedAt()
+        ));
+
+        blockchainRequestDispatchService.dispatchAfterCommit(BlockchainRequestMessage.forGacha(
+                logIds,
+                context.walletAddress(),
+                context.clientSeed(),
+                context.pfContext().serverSeed(),
+                context.count(),
+                context.type()
         ));
     }
 

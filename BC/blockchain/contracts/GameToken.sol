@@ -10,8 +10,8 @@ contract GameToken is ERC20, Ownable (msg.sender) {
         _mint(msg.sender, 100000000 * 10 ** decimals());
     }
 
-    // 테스트를 위해 누구나 토큰을 받아갈 수 있는 수도꼭지 함수 (배포 시 삭제 권장)
-    function faucet(address to, uint256 amount) external {
+    // 업적 달성 시 백엔드(서버)가 유저에게 코인을 무에서 유로 찍어내서 줄 수 있는 함수!
+    function mintReward(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
     }
 }

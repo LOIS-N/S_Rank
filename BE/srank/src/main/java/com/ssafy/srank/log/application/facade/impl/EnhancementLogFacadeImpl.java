@@ -1,9 +1,9 @@
 package com.ssafy.srank.log.application.facade.impl;
 
-import com.ssafy.srank.log.application.command.EnhancementLogCommand;
 import com.ssafy.srank.log.application.facade.EnhancementLogFacade;
 import com.ssafy.srank.log.domain.entity.EnhancementLog;
 import com.ssafy.srank.log.repository.EnhancementLogRepository;
+import com.ssafy.srank.rabbitmq.log.message.EnhanceLogMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -25,7 +25,7 @@ public class EnhancementLogFacadeImpl implements EnhancementLogFacade {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void record(EnhancementLogCommand command) {
+    public void record(EnhanceLogMessage command) {
         enhancementLogRepository.save(
                 EnhancementLog.builder()
                         .userId(command.userId())

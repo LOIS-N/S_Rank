@@ -17,12 +17,18 @@ module.exports = {
     localhost: {
       url: "http://127.0.0.1:8545",
     },
-    "base-sepolia": {
-      url: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org",
+    ssafy: {
+      url: "https://rpc.ssafy-blockchain.com",
+      chainId: 31221,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 84532, // 네트워크 ID를 통한 지갑 연결 오류 방지
-      gasPrice: 1000000000, // 1 gwei (네트워크 혼잡도 따라 조절)
     },
+
+    // "base-sepolia": {
+    //   url: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org",
+    //   accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    //   chainId: 84532, // 네트워크 ID를 통한 지갑 연결 오류 방지
+    //   gasPrice: 1000000000, // 1 gwei (네트워크 혼잡도 따라 조절)
+    // },
 
     // sepolia: {
     //   url: process.env.SEPOLIA_RPC_URL,

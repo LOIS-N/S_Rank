@@ -91,6 +91,7 @@ interface CardListItem {
   skill2: CardSkill;
   skill3: CardSkill;
   specialAbility: { name: string; description: string; effects: string } | null;
+  enhanceSuccessCount: number;
 }
 
 // --- 스킬 필터 옵션 ---
@@ -129,6 +130,8 @@ export default function SynthesisPage() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [totalCnt, setTotalCnt] = useState<number | null>(null);
+  const [usedCardIds, setUsedCardIds] = useState<number[]>([]);
 
   // --- 선택된 카드 ID 목록 (합성 슬롯) ---
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -172,6 +175,25 @@ export default function SynthesisPage() {
     return accessToken || await getAccessToken();
   }, [accessToken, getAccessToken]);
 
+  // --- 퀘스트 사용 중인 카드 조회 ---
+  useEffect(() => {
+    const fetchUsedCards = async () => {
+      try {
+        const token = await getAuthToken();
+        const { data: json } = await api.get('/api/v1/cards/used', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (json.success && Array.isArray(json.data)) {
+          setUsedCardIds(json.data);
+        }
+      } catch (err) {
+        console.error('사용 중인 카드 조회 실패:', err);
+      }
+    };
+    fetchUsedCards();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // --- 카드 목록 조회 (cursor pagination) ---
   const fetchCards = useCallback(async (cursor?: string | null, filterOverride?: string) => {
     // 튜토리얼 step41: API 대신 store의 tutorialCards 사용
@@ -186,7 +208,7 @@ export default function SynthesisPage() {
     try {
       const token = await getAuthToken();
       const currentFilter = filterOverride ?? capacitySort;
-      const params: Record<string, string> = { limit: '30' };
+      const params: Record<string, string> = { limit: '200' };
       if (cursor) params.cursor = cursor;
       if (currentFilter && currentFilter !== 'ALL') {
         params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
@@ -201,6 +223,7 @@ export default function SynthesisPage() {
         setCards(prev => cursor ? [...prev, ...newCards] : newCards);
         setNextCursor(json.data.nextCursor || null);
         setHasMore(json.data.hasMore);
+        if (json.data.totalCnt !== undefined) setTotalCnt(json.data.totalCnt);
       }
     } catch (err) {
       console.error("카드 목록 조회 실패:", err);
@@ -243,6 +266,10 @@ export default function SynthesisPage() {
 
   // --- 카드 클릭 (합성 슬롯 토글 + 등급 검증) ---
   const handleCardClick = useCallback((cardId: number) => {
+    if (usedCardIds.includes(cardId)) {
+      showToast('현재 퀘스트를 진행 중입니다');
+      return;
+    }
     setSynthesisResult(null);
     setSelectedCards(prev => {
       if (prev.includes(cardId)) return prev.filter(c => c !== cardId);
@@ -539,6 +566,9 @@ export default function SynthesisPage() {
               onClick={() => setSortOrder('asc')}
               title="능력치 오름차순"
             >▲ 오름차순</button>
+            {totalCnt !== null && (
+              <span className="cardlist-total-cnt">{totalCnt} / 200</span>
+            )}
           </div>
 
           {/* 카드 리스트 박스 */}
@@ -556,6 +586,9 @@ export default function SynthesisPage() {
             </div>
           )}
           <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
+            {toastMsg && (
+              <div className="synthesis-toast">{toastMsg}</div>
+            )}
             <div
               className="cardlist-grid-wrapper"
               ref={wrapperRef}
@@ -616,14 +649,22 @@ export default function SynthesisPage() {
                   sortedCards.map(card => {
                     const isSelected = selectedCards.includes(card.cardId);
                     const isDisabled = selectedGrade !== null && card.grade !== selectedGrade && !isSelected;
+                    const isUsed = usedCardIds.includes(card.cardId);
                     return (
                       <div
                         key={card.cardId}
                         className={`cardlist-card-item ${isSelected ? 'selected' : ''} ${isDisabled ? 'synthesis-disabled' : ''}`}
                         data-grade={card.grade}
                         onClick={() => !isDisabled && handleCardClick(card.cardId)}
+                        style={isUsed ? { filter: 'brightness(0.5)', cursor: 'not-allowed' } : undefined}
+                        title={isUsed ? '퀘스트 진행 중인 카드입니다' : undefined}
                       >
                         <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
+                        {card.enhanceSuccessCount > 0 && (
+                          <span className="card-enhance-badge" data-level={String(card.enhanceSuccessCount)} data-grade={card.grade}>
+                            <span className="badge-plus">+</span><span className="badge-num">{card.enhanceSuccessCount}</span>
+                          </span>
+                        )}
                         <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                         <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                         <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
@@ -656,11 +697,6 @@ export default function SynthesisPage() {
           borderScale={0.5}
           className="synthesis-right-box"
         >
-          {/* 골드 부족 토스트 */}
-          {toastMsg && (
-            <div className="synthesis-toast">{toastMsg}</div>
-          )}
-
           {/* 재화 정보 표시 */}
           <div className="enhance-currency-info-wrapper">
             <div className="currency-info-container">

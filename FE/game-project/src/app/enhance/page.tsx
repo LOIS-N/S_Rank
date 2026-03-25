@@ -157,6 +157,15 @@ export default function EnhancePage() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [totalCnt, setTotalCnt] = useState<number | null>(null);
+  const [usedCardIds, setUsedCardIds] = useState<number[]>([]);
+  const [usedWarning, setUsedWarning] = useState(false);
+  const usedWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showUsedWarning = useCallback(() => {
+    if (usedWarningTimerRef.current) clearTimeout(usedWarningTimerRef.current);
+    setUsedWarning(true);
+    usedWarningTimerRef.current = setTimeout(() => setUsedWarning(false), 2500);
+  }, []);
 
   // --- 선택 / 상세 상태 ---
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
@@ -171,6 +180,25 @@ export default function EnhancePage() {
   const getAuthToken = useCallback(async () => {
     return accessToken || await getAccessToken();
   }, [accessToken, getAccessToken]);
+
+  // --- 퀘스트 사용 중인 카드 조회 ---
+  useEffect(() => {
+    const fetchUsedCards = async () => {
+      try {
+        const token = await getAuthToken();
+        const { data: json } = await api.get('/api/v1/cards/used', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (json.success && Array.isArray(json.data)) {
+          setUsedCardIds(json.data);
+        }
+      } catch (err) {
+        console.error('사용 중인 카드 조회 실패:', err);
+      }
+    };
+    fetchUsedCards();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- 카드 목록 조회 (cursor pagination) ---
   const fetchCards = useCallback(async (cursor?: string | null, filterOverride?: string) => {
@@ -189,7 +217,7 @@ export default function EnhancePage() {
     try {
       const token = await getAuthToken();
       const currentFilter = filterOverride ?? capacitySort;
-      const params: Record<string, string> = { limit: '30' };
+      const params: Record<string, string> = { limit: '200' };
       if (cursor) params.cursor = cursor;
       if (currentFilter && currentFilter !== 'ALL') {
         params.statType = currentFilter === 'DEV' ? 'DEVOPS' : currentFilter;
@@ -204,6 +232,7 @@ export default function EnhancePage() {
         setCards(prev => cursor ? [...prev, ...newCards] : newCards);
         setNextCursor(json.data.nextCursor || null);
         setHasMore(json.data.hasMore);
+        if (json.data.totalCnt !== undefined) setTotalCnt(json.data.totalCnt);
 
         // 첫 로드 시 첫 번째 카드 자동 선택
         if (!cursor && newCards.length > 0) {
@@ -254,10 +283,14 @@ export default function EnhancePage() {
 
   // --- 카드 클릭 ---
   const handleCardClick = useCallback((cardId: number) => {
+    if (usedCardIds.includes(cardId)) {
+      showUsedWarning();
+      return;
+    }
     setSelectedCardId(cardId);
     fetchCardDetail(cardId);
     setEnhanceResult(null);
-  }, [fetchCardDetail]);
+  }, [fetchCardDetail, usedCardIds, showUsedWarning]);
 
   // --- 클라이언트 사이드 정렬 ---
   const sortedCards = useMemo(() => sortCards(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
@@ -384,6 +417,7 @@ export default function EnhancePage() {
   // --- 강화 API 호출 ---
   const handleEnhance = useCallback(async () => {
     if (!selectedListCard || isEnhancing) return;
+    if (usedCardIds.includes(selectedListCard.cardId)) return;
 
     // 튜토리얼 step31: API 대신 store 강화 (애니메이션 포함)
     if (tutorialQuestStep === 31) {
@@ -485,6 +519,9 @@ export default function EnhancePage() {
               onClick={() => setSortOrder('asc')}
               title="능력치 오름차순"
             >▲ 오름차순</button>
+            {totalCnt !== null && (
+              <span className="cardlist-total-cnt">{totalCnt} / 200</span>
+            )}
           </div>
 
           {/* 카드 리스트 박스 */}
@@ -501,6 +538,9 @@ export default function EnhancePage() {
             />
           )}
           <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
+            {usedWarning && (
+              <div className="synthesis-toast">현재 퀘스트를 진행 중입니다</div>
+            )}
             <div
               className="cardlist-grid-wrapper"
               ref={wrapperRef}
@@ -560,6 +600,7 @@ export default function EnhancePage() {
                 ) : (
                   sortedCards.map(card => {
                     const isSelected = card.cardId === selectedCardId;
+                    const isUsed = usedCardIds.includes(card.cardId);
                     return (
                       <div
                         key={card.cardId}
@@ -582,8 +623,15 @@ export default function EnhancePage() {
                           className={`cardlist-card-item ${isSelected ? 'selected' : ''}`}
                           data-grade={card.grade}
                           onClick={() => handleCardClick(card.cardId)}
+                          style={isUsed ? { filter: 'brightness(0.5)', cursor: 'not-allowed' } : undefined}
+                          title={isUsed ? '퀘스트 진행 중인 카드입니다' : undefined}
                         >
                           <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
+                          {card.enhanceSuccessCount > 0 && (
+                            <span className="card-enhance-badge" data-level={String(card.enhanceSuccessCount)} data-grade={card.grade}>
+                              <span className="badge-plus">+</span><span className="badge-num">{card.enhanceSuccessCount}</span>
+                            </span>
+                          )}
                           <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                           <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                           <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
@@ -685,13 +733,19 @@ export default function EnhancePage() {
                           }}
                         />
                       )}
-                      <button
-                        className="enhance-action-btn"
-                        disabled={displayEnhanceTries >= 7 || isEnhancing}
-                        onClick={() => { setEnhanceArrowDismissed(true); handleEnhance(); }}
-                      >
-                        {isEnhancing ? '강화 중...' : '강화하기'}
-                      </button>
+                      {selectedListCard && usedCardIds.includes(selectedListCard.cardId) ? (
+                        <button className="enhance-action-btn" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                          퀘스트 진행 중
+                        </button>
+                      ) : (
+                        <button
+                          className="enhance-action-btn"
+                          disabled={displayEnhanceTries >= 7 || isEnhancing}
+                          onClick={() => { setEnhanceArrowDismissed(true); handleEnhance(); }}
+                        >
+                          {isEnhancing ? '강화 중...' : '강화하기'}
+                        </button>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -821,6 +875,7 @@ export default function EnhancePage() {
                   skill1: { ...card.skill1, value: card.skill1.value + pendingResult.statsAdded!.skill1 },
                   skill2: { ...card.skill2, value: card.skill2.value + pendingResult.statsAdded!.skill2 },
                   skill3: { ...card.skill3, value: card.skill3.value + pendingResult.statsAdded!.skill3 },
+                  enhanceSuccessCount: card.enhanceSuccessCount + 1,
                 };
               }));
             }

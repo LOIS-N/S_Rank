@@ -1,5 +1,6 @@
 package com.ssafy.srank.synthesis.application.service;
 
+import com.ssafy.srank.blockchain.application.service.BlockchainRequestDispatchService;
 import com.ssafy.srank.card.application.dto.response.UserCardResponse;
 import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.domain.enums.CardGrade;
@@ -14,11 +15,14 @@ import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.common.probablyfair.application.service.ProbablyFairService;
 import com.ssafy.srank.common.probablyfair.domain.ProbablyFairContext;
 import com.ssafy.srank.common.probablyfair.domain.ProbablyFairPurpose;
-import com.ssafy.srank.log.application.command.GoldLogCommand;
 import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.application.facade.SynthesisLogFacade;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.quest.application.service.UserQuestCardService;
+import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
+import com.ssafy.srank.rabbitmq.log.message.GoldLogMessage;
+import com.ssafy.srank.rabbitmq.log.producer.GoldLogProducer;
+import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import com.ssafy.srank.synthesis.application.dto.request.SynthesisAttemptRequest;
 import com.ssafy.srank.synthesis.application.dto.request.SynthesisVerificationRequest;
 import com.ssafy.srank.synthesis.application.dto.response.SynthesisAttemptResponse;
@@ -35,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.dao.QueryTimeoutException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +69,9 @@ public class SynthesisServiceImpl implements SynthesisService {
     private final EconomyLogFacade economyLogFacade;
     private final SynthesisLogFacade synthesisLogFacade;
     private final SynthesisLogCommandFactory synthesisLogCommandFactory;
+    private final BlockchainRequestDispatchService blockchainRequestDispatchService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final GoldLogProducer goldProducer;
 
     @Override
     @Transactional
@@ -87,7 +95,8 @@ public class SynthesisServiceImpl implements SynthesisService {
 
             LocalDateTime now = LocalDateTime.now();
             user.decreaseGold((long) costGold);
-            economyLogFacade.recordGoldChange(new GoldLogCommand(
+
+            goldProducer.sendGoldLogMessage(new GoldLogMessage(
                     userId,
                     -costGold,
                     user.getGold(),
@@ -104,6 +113,7 @@ public class SynthesisServiceImpl implements SynthesisService {
 
             CreatedCardDraft createdCard = createResultCard(userId, resultGrade, clientSeed, context);
             UserCard savedResultCard = userCardRepository.save(createdCard.userCard());
+            eventPublisher.publishEvent(new UserCardsChangedEvent(userId));
             String resultDigest = synthesisProofHelper.buildResultDigest(
                     sourceGrade,
                     cardIds.size(),
@@ -111,7 +121,7 @@ public class SynthesisServiceImpl implements SynthesisService {
                     savedResultCard
             );
 
-            synthesisLogFacade.record(synthesisLogCommandFactory.create(
+            Long synthesisLogId = synthesisLogFacade.record(synthesisLogCommandFactory.create(
                     userId,
                     cardIds,
                     savedResultCard,
@@ -125,6 +135,12 @@ public class SynthesisServiceImpl implements SynthesisService {
                     resultRoll,
                     resultDigest,
                     now
+            ));
+
+            blockchainRequestDispatchService.dispatchAfterCommit(BlockchainRequestMessage.forSynthesis(
+                    synthesisLogId,
+                    user.getWalletAddress(),
+                    cardIds
             ));
 
             log.info("synthesis completed userId={} sourceGrade={} cardCount={} success={}", userId, sourceGrade, cardIds.size(), success);

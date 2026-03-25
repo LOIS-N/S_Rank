@@ -118,20 +118,29 @@ export default function GlobalModals() {
         return;
       }
 
-      try {
-        const token = useUserStore.getState().accessToken;
-        const res = await client.post('/api/v1/quests/complete',
-          { questId, questType },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.status !== 200) {
+      // Q008(아직 완료 시간 미도달) 자동 재시도 로직
+      let retryCount = 0;
+      while (retryCount <= 5) {
+        try {
+          const token = useUserStore.getState().accessToken;
+          const res = await client.post('/api/v1/quests/complete',
+            { questId, questType },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (res.status === 200) break; // 성공
+          setCompleteError(true);
+          return;
+        } catch (e: any) {
+          const code = e?.response?.data?.error?.code || e?.response?.data?.errorCode;
+          if (code === 'Q008' && retryCount < 5) {
+            retryCount++;
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
+          }
+          console.error('[CompleteQuest] API error:', e);
           setCompleteError(true);
           return;
         }
-      } catch (e) {
-        console.error('[CompleteQuest] API error:', e);
-        setCompleteError(true);
-        return;
       }
       // 골드는 BE에서 받아서 갱신 (로컬 계산 제거 → 중복 지급 방지)
       try {
@@ -486,6 +495,7 @@ export default function GlobalModals() {
         const deskQuest = quests.find(q => q.id === activeUnlockConfirm.deskId);
         const reqLevel = deskQuest?.requiredLevel ?? 0;
         const reqTitle = CHAPTER_TITLES[reqLevel];
+        const unlockCost = deskQuest?.unlockCostGold ?? 50000;
         return (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#8ea4b8]/80 font-dot pointer-events-auto" onClick={() => { setUnlockConfirm(null); setUnlockError(null); }}>
           <div className="bg-[#b0c4de] border-4 border-[#6b859e] p-10 text-center max-w-lg shadow-[8px_8px_0px_#4a5d73]" onClick={e => e.stopPropagation()}>
@@ -496,7 +506,7 @@ export default function GlobalModals() {
               </p>
             )}
             <p className="text-2xl mb-4 leading-relaxed text-slate-800 font-bold">
-              자리 해금에는 <span className="text-yellow-600">50,000골드</span>가 소비됩니다.<br/>
+              자리 해금에는 <span className="text-yellow-600">{unlockCost.toLocaleString()}골드</span>가 소비됩니다.<br/>
               하시겠습니까?
             </p>
             {unlockError && (

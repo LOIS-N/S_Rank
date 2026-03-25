@@ -4,6 +4,7 @@ import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.domain.enums.CardGrade;
 import com.ssafy.srank.common.probablyfair.domain.ProofAlgorithmVersion;
 import com.ssafy.srank.log.application.command.SynthesisLogCommand;
+import com.ssafy.srank.log.domain.enums.BlockchainStatus;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -40,6 +41,8 @@ public class SynthesisLogCommandFactory {
                 policyVersion,
                 resultRoll,
                 resultDigest,
+                BlockchainStatus.PENDING,
+                null,
                 createdAt
         );
     }

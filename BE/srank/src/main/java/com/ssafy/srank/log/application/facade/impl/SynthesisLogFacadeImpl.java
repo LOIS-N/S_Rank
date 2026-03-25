@@ -3,9 +3,11 @@ package com.ssafy.srank.log.application.facade.impl;
 import com.ssafy.srank.log.application.command.SynthesisLogCommand;
 import com.ssafy.srank.log.application.facade.SynthesisLogFacade;
 import com.ssafy.srank.log.domain.entity.SynthesisLog;
+import com.ssafy.srank.log.domain.enums.BlockchainStatus;
 import com.ssafy.srank.log.repository.SynthesisLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,10 +18,11 @@ public class SynthesisLogFacadeImpl implements SynthesisLogFacade {
     private final SynthesisLogRepository synthesisLogRepository;
 
     @Override
-    public void record(SynthesisLogCommand command) {
+    @Transactional
+    public Long record(SynthesisLogCommand command) {
         List<Long> sourceIds = command.sourceUserCardIds();
 
-        synthesisLogRepository.save(SynthesisLog.builder()
+        return synthesisLogRepository.saveAndFlush(SynthesisLog.builder()
                 .userId(command.userId())
                 .resultUserCardId(command.resultUserCardId())
                 .success(command.success())
@@ -36,8 +39,17 @@ public class SynthesisLogFacadeImpl implements SynthesisLogFacade {
                 .policyVersion(command.policyVersion())
                 .resultRoll(command.resultRoll())
                 .resultDigest(command.resultDigest())
+                .blockchainStatus(command.blockchainStatus())
+                .blockchainTxHash(command.blockchainTxHash())
                 .createdAt(command.createdAt())
-                .build());
+                .build()).getSynthesisLogId();
+    }
+
+    @Override
+    @Transactional
+    public void updateBlockchainResult(Long logId, BlockchainStatus status, String txHash) {
+        synthesisLogRepository.findById(logId)
+                .ifPresent(log -> log.updateBlockchainResult(status, txHash));
     }
 
     private Long sourceIdAt(List<Long> sourceIds, int index) {
