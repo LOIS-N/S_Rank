@@ -12,6 +12,8 @@ import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.domain.enums.AuthLogEventType;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
+import com.ssafy.srank.rabbitmq.log.message.UserAuthMessage;
+import com.ssafy.srank.rabbitmq.log.producer.UserAuthProducer;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthLogFacade authLogFacade;
     private final EconomyLogFacade economyLogFacade;
     private final ApplicationEventPublisher eventPublisher;
+    private final UserAuthProducer producer;
 
     private static final long SIGNUP_BONUS_GOLD = 300_000L;
 
@@ -50,11 +53,25 @@ public class AuthServiceImpl implements AuthService {
         if (existingUser.isPresent()) {
             User user = existingUser.get();
             ensureActive(user);
+
+
+            /* RabbitMQ 예시 다른것도 이런식으로 변경하기 */
+            UserAuthMessage message = new UserAuthMessage(
+                    user.getUserId(),
+                    AuthLogEventType.LOGIN,
+                    LocalDateTime.now());
+
+            producer.sendUserMessage(message);
+
+            /*
+            이전 로그
             authLogFacade.recordLogin(new AuthLogCommand(
                     user.getUserId(),
                     AuthLogEventType.LOGIN,
                     LocalDateTime.now()
             ));
+            */
+
             return new LoginResponse(false);
         }
 
