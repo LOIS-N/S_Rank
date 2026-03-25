@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
-import { simulateSynthesis, getSynthesisProb, getSynthesisCost, getNextGrade, getRequiredCardCount } from "@/lib/synthesisLogic";
+import { getSynthesisProb, getSynthesisCost, getNextGrade, getRequiredCardCount } from "@/lib/synthesisLogic";
 import "./synthesis.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -95,52 +95,6 @@ interface CardListItem {
 // --- 스킬 필터 옵션 ---
 const SKILL_FILTERS = ["ALL", "BE", "FE", "AI", "DBA", "DEV", "DESIGN"] as const;
 
-function getCardStatForType(card: CardListItem, type: string): number {
-  const norm = type.toUpperCase() === 'DEV' ? 'DEVOPS' : type.toUpperCase();
-  let total = 0;
-  if (card.skill1.skillType.toUpperCase() === norm) total += card.skill1.value;
-  if (card.skill2.skillType.toUpperCase() === norm) total += card.skill2.value;
-  if (card.skill3.skillType.toUpperCase() === norm) total += card.skill3.value;
-  return total;
-}
-
-function sortCards(cards: CardListItem[], filter: string, order: 'desc' | 'asc'): CardListItem[] {
-  return [...cards].sort((a, b) => {
-    const valA = filter === 'ALL'
-      ? a.skill1.value + a.skill2.value + a.skill3.value
-      : getCardStatForType(a, filter);
-    const valB = filter === 'ALL'
-      ? b.skill1.value + b.skill2.value + b.skill3.value
-      : getCardStatForType(b, filter);
-    return order === 'desc' ? valB - valA : valA - valB;
-  });
-}
-
-// --- Mock 이미지 (합성 결과 카드용) ---
-const MOCK_IMAGES = Array.from({ length: 10 }, (_, i) => `/assets/008/SCardImage_00${i}.webp`);
-const MOCK_NAMES = ["싸피생1", "싸피생2", "싸피생3", "싸피생4", "싸피생5", "싸피생6", "싸피생7", "싸피생8", "싸피생9", "싸피생10"];
-const SKILL_TYPES = ["BE", "FE", "DEVOPS"];
-
-// 등급별 스탯 범위
-const GRADE_STAT_RANGE: Record<string, [number, number]> = {
-  D: [1, 20], C: [20, 40], B: [40, 60], A: [60, 80], S: [80, 100],
-};
-
-function generateResultCard(grade: string): CardListItem {
-  const range = GRADE_STAT_RANGE[grade] || [1, 20];
-  const randStat = () => Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
-  const idx = Math.floor(Math.random() * MOCK_NAMES.length);
-  return {
-    cardId: -(Date.now() + Math.floor(Math.random() * 10000)),
-    grade,
-    name: MOCK_NAMES[idx],
-    imageUrl: MOCK_IMAGES[idx],
-    skill1: { skillType: SKILL_TYPES[0], value: randStat() },
-    skill2: { skillType: SKILL_TYPES[1], value: randStat() },
-    skill3: { skillType: SKILL_TYPES[2], value: randStat() },
-    specialAbility: grade === 'S' ? { name: '특수 능력', description: '합성으로 획득', effects: '공격력 +10%' } : null,
-  };
-}
 
 export default function SynthesisPage() {
   const { getAccessToken } = usePrivy();
@@ -158,6 +112,7 @@ export default function SynthesisPage() {
 
   // --- 합성 결과 상태 ---
   const [synthesisResult, setSynthesisResult] = useState<{ success: boolean; resultCard?: CardListItem; cost: number } | null>(null);
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
 
   // --- 필터 / 정렬 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
@@ -268,34 +223,40 @@ export default function SynthesisPage() {
   }, [selectedGrade]);
 
   // --- 합성 실행 ---
-  const handleSynthesize = useCallback(() => {
-    if (!selectedGrade || selectedCards.length < minSlots) return;
+  const handleSynthesize = useCallback(async () => {
+    if (!selectedGrade || selectedCards.length < minSlots || isSynthesizing) return;
+    setIsSynthesizing(true);
+    try {
+      const token = await getAuthToken();
+      const cost = getSynthesisCost(selectedGrade);
+      const { data: json } = await api.post(
+        '/api/v1/synthesis/attempt',
+        { cardIds: selectedCards, clientSeed: crypto.randomUUID() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const resData = json.data;
+      const isSuccess: boolean = resData.success;
+      // BE는 성공/실패 모두 resultCard 반환 (실패 시 같은 등급의 새 카드)
+      const resultCard: CardListItem = resData.resultCard;
 
-    const result = simulateSynthesis(selectedGrade, selectedCards.length, gold);
-    if (result.error) {
-      const errMsg = result.error === 'GRADE_MISMATCH' ? '같은 등급 카드만 합성 가능합니다.'
-        : result.error === 'INSUFFICIENT_CARDS' ? '카드가 부족합니다.'
-        : result.error === 'INSUFFICIENT_GOLD' ? '골드가 부족합니다.'
-        : '합성할 수 없습니다.';
-      useGameStore.getState().openComingSoonModal(errMsg);
-      return;
-    }
+      increaseGold(-cost);
 
-    increaseGold(-result.cost);
-
-    if (result.success) {
-      const newCard = generateResultCard(result.resultGrade);
-      // 재료 카드 제거 + 결과 카드 추가
-      setCards(prev => [...prev.filter(c => !selectedCards.includes(c.cardId)), newCard]);
+      // 재료 카드 제거 + 결과 카드 추가 (성공/실패 공통)
+      setCards(prev => [...prev.filter(c => !selectedCards.includes(c.cardId)), resultCard]);
       setSelectedCards([]);
-      setSynthesisResult({ success: true, resultCard: newCard, cost: result.cost });
-    } else {
-      // 실패: 재료 카드 소멸
-      setCards(prev => prev.filter(c => !selectedCards.includes(c.cardId)));
-      setSelectedCards([]);
-      setSynthesisResult({ success: false, cost: result.cost });
+      setSynthesisResult({ success: isSuccess, resultCard, cost });
+    } catch (err: any) {
+      const errCode = err?.response?.data?.error?.code;
+      if (errCode === 'SY002') alert('같은 등급 카드만 합성 가능합니다.');
+      else if (errCode === 'SY006') alert('골드가 부족합니다.');
+      else if (errCode === 'SY001') alert('카드 수가 올바르지 않습니다. (3~5장)');
+      else if (errCode === 'SY005') alert('중복된 카드를 선택할 수 없습니다.');
+      else if (errCode === 'SY003') alert('이미 최고 등급 카드입니다.');
+      else alert('합성에 실패했습니다.');
+    } finally {
+      setIsSynthesizing(false);
     }
-  }, [selectedGrade, selectedCards, minSlots, gold, increaseGold]);
+  }, [selectedGrade, selectedCards, minSlots, isSynthesizing, getAuthToken, increaseGold]);
 
   // --- 스크롤 관련 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0);
@@ -639,7 +600,7 @@ export default function SynthesisPage() {
                   slice={[200, 208, 200, 208]}
                   framePadding={14}
                   borderScale={0.4}
-                  className={`synthesis-btn-accept ${selectedCards.length < minSlots ? 'disabled' : ''}`}
+                  className={`synthesis-btn-accept ${selectedCards.length < minSlots || isSynthesizing ? 'disabled' : ''}`}
                   onClick={handleSynthesize}
                 >
                   <span style={{ position: 'relative', zIndex: 2 }}>합성하기</span>
@@ -653,7 +614,7 @@ export default function SynthesisPage() {
                 합성 {synthesisResult.success ? '성공!' : '실패'}
               </div>
 
-              {synthesisResult.success && synthesisResult.resultCard && (
+              {synthesisResult.resultCard && (
                 <div className="synthesis-result-card-area">
                   <div className="synthesis-result-card-wrapper">
                     <img src={synthesisResult.resultCard.imageUrl} alt={synthesisResult.resultCard.name} draggable={false} />
@@ -664,12 +625,6 @@ export default function SynthesisPage() {
                   <div className="synthesis-result-card-name">
                     {synthesisResult.resultCard.name} ({synthesisResult.resultCard.grade}등급)
                   </div>
-                </div>
-              )}
-
-              {!synthesisResult.success && (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div className="synthesis-result-fail-text">재료 카드가 소멸되었습니다</div>
                 </div>
               )}
 
