@@ -241,9 +241,13 @@ export default function GachaPage() {
         setPhase('animating');
       }
     } catch (err: unknown) {
-      const e = err as { response?: { data?: unknown }; message?: string };
-      const errData = e.response?.data as Record<string, unknown> | undefined;
-      alert((errData?.message as string) || e.message || '뽑기에 실패했습니다.');
+      const e = err as { response?: { data?: { error?: { code?: string; message?: string }; message?: string } }; message?: string };
+      const errBody = e.response?.data;
+      const errCode = errBody?.error?.code;
+      const errMsg = errCode === 'GA003'
+        ? '레벨이 부족합니다.'
+        : (errBody?.error?.message ?? errBody?.message ?? e.message ?? '뽑기에 실패했습니다.');
+      useGameStore.getState().openComingSoonModal(errMsg);
     } finally {
       setIsPulling(false);
     }

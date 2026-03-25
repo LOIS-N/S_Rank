@@ -378,13 +378,11 @@ export default function EnhancePage() {
       setIsAnimating(true);
     } catch (err: any) {
       const errCode = err?.response?.data?.code;
-      if (errCode === 'C008' || errCode === 'EN001') {
-        alert('강화 횟수를 초과했습니다.');
-      } else if (errCode === 'U003' || errCode === 'GD002') {
-        alert('골드가 부족합니다.');
-      } else {
-        alert('강화에 실패했습니다.');
-      }
+      const errMsg = err?.response?.data?.message
+        ?? (errCode === 'C008' || errCode === 'EN001' ? '강화 횟수를 초과했습니다.'
+          : errCode === 'U003' || errCode === 'GD002' ? '골드가 부족합니다.'
+          : '강화에 실패했습니다.');
+      useGameStore.getState().openComingSoonModal(errMsg);
     } finally {
       setIsEnhancing(false);
     }
