@@ -129,6 +129,7 @@ export default function SynthesisPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [totalCnt, setTotalCnt] = useState<number | null>(null);
+  const [usedCardIds, setUsedCardIds] = useState<number[]>([]);
 
   // --- 선택된 카드 ID 목록 (합성 슬롯) ---
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -171,6 +172,25 @@ export default function SynthesisPage() {
   const getAuthToken = useCallback(async () => {
     return accessToken || await getAccessToken();
   }, [accessToken, getAccessToken]);
+
+  // --- 퀘스트 사용 중인 카드 조회 ---
+  useEffect(() => {
+    const fetchUsedCards = async () => {
+      try {
+        const token = await getAuthToken();
+        const { data: json } = await api.get('/api/v1/cards/used', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (json.success && Array.isArray(json.data)) {
+          setUsedCardIds(json.data);
+        }
+      } catch (err) {
+        console.error('사용 중인 카드 조회 실패:', err);
+      }
+    };
+    fetchUsedCards();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- 카드 목록 조회 (cursor pagination) ---
   const fetchCards = useCallback(async (cursor?: string | null, filterOverride?: string) => {
@@ -244,6 +264,10 @@ export default function SynthesisPage() {
 
   // --- 카드 클릭 (합성 슬롯 토글 + 등급 검증) ---
   const handleCardClick = useCallback((cardId: number) => {
+    if (usedCardIds.includes(cardId)) {
+      showToast('현재 퀘스트를 진행 중입니다');
+      return;
+    }
     setSynthesisResult(null);
     setSelectedCards(prev => {
       if (prev.includes(cardId)) return prev.filter(c => c !== cardId);
@@ -559,6 +583,9 @@ export default function SynthesisPage() {
             />
           )}
           <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
+            {toastMsg && (
+              <div className="synthesis-toast">{toastMsg}</div>
+            )}
             <div
               className="cardlist-grid-wrapper"
               ref={wrapperRef}
@@ -619,12 +646,15 @@ export default function SynthesisPage() {
                   sortedCards.map(card => {
                     const isSelected = selectedCards.includes(card.cardId);
                     const isDisabled = selectedGrade !== null && card.grade !== selectedGrade && !isSelected;
+                    const isUsed = usedCardIds.includes(card.cardId);
                     return (
                       <div
                         key={card.cardId}
                         className={`cardlist-card-item ${isSelected ? 'selected' : ''} ${isDisabled ? 'synthesis-disabled' : ''}`}
                         data-grade={card.grade}
                         onClick={() => !isDisabled && handleCardClick(card.cardId)}
+                        style={isUsed ? { filter: 'brightness(0.5)', cursor: 'not-allowed' } : undefined}
+                        title={isUsed ? '퀘스트 진행 중인 카드입니다' : undefined}
                       >
                         <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
                         {card.enhanceSuccessCount > 0 && (
@@ -664,11 +694,6 @@ export default function SynthesisPage() {
           borderScale={0.5}
           className="synthesis-right-box"
         >
-          {/* 골드 부족 토스트 */}
-          {toastMsg && (
-            <div className="synthesis-toast">{toastMsg}</div>
-          )}
-
           {/* 재화 정보 표시 */}
           <div className="enhance-currency-info-wrapper">
             <div className="currency-info-container">

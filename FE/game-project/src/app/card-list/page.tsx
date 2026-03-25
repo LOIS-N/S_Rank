@@ -136,6 +136,7 @@ export default function CardListPage() {
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
   const [confirmFire, setConfirmFire] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [usedCardIds, setUsedCardIds] = useState<number[]>([]);
 
   // --- 필터 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
@@ -146,6 +147,25 @@ export default function CardListPage() {
     // useUserStore.accessToken이 로그인 시 설정되는 실제 토큰
     return useUserStore.getState().accessToken || await getAccessToken();
   }, [getAccessToken]);
+
+  // --- 퀘스트 사용 중인 카드 조회 ---
+  useEffect(() => {
+    const fetchUsedCards = async () => {
+      try {
+        const token = await getAuthToken();
+        const { data: json } = await api.get('/api/v1/cards/used', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (json.success && Array.isArray(json.data)) {
+          setUsedCardIds(json.data);
+        }
+      } catch (err) {
+        console.error('사용 중인 카드 조회 실패:', err);
+      }
+    };
+    fetchUsedCards();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- 카드 목록 조회 (cursor pagination) ---
   const fetchCards = useCallback(async (cursor?: string | null, filterOverride?: string) => {
@@ -562,7 +582,11 @@ export default function CardListPage() {
             </div>
             {/* 해고하기 버튼 영역 */}
             <div className="cardlist-fire-area">
-              {confirmFire ? (
+              {selectedCardId && usedCardIds.includes(selectedCardId) ? (
+                <button className="cardlist-fire-btn" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                  퀘스트 진행 중
+                </button>
+              ) : confirmFire ? (
                 <div className="cardlist-fire-confirm">
                   <span className="cardlist-fire-confirm-text">정말 해고하시겠습니까?</span>
                   <div className="cardlist-fire-confirm-btns">
