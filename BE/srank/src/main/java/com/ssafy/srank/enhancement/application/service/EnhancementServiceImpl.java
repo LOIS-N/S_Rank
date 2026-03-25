@@ -36,10 +36,7 @@ public class EnhancementServiceImpl implements EnhancementService {
 
     @Override
     public CursorPageResponse<UserCardResponse> getEnhancementCardList(Long userId, PositionType statType, SortType sortType, String cursorToken, int limit) {
-        CursorPageResponse<UserCardResponse> result = userCardService.getUserCards(userId, statType, sortType, cursorToken, limit);
-        List<UserCardResponse> cards = new ArrayList<>(result.cards());
-        cards.removeIf((card)->card.enhanceTryCount() == 7);
-        return new CursorPageResponse<>(cards, result.nextCursor(), result.hasMore(), cards.size() );
+        return userCardService.getUserCards(userId, statType, sortType, cursorToken, limit, true);
     }
 
     @Transactional

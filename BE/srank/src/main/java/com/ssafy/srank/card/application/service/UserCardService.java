@@ -15,7 +15,8 @@ public interface UserCardService {
             PositionType statType,
             SortType sortType,
             String cursorToken,
-            int limit
+            int limit,
+            boolean isEnhance
     );
 
     UserCardResponse getUserCardDetail(Long userId, Long cardId);

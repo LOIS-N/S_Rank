@@ -41,7 +41,7 @@ public class UserCardController {
             @RequestParam(defaultValue = "30") int limit
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                userCardService.getUserCards(SecurityUtil.getCurrentUserId(), statType, sortType, cursor, limit)
+                userCardService.getUserCards(SecurityUtil.getCurrentUserId(), statType, sortType, cursor, limit, false)
         ));
     }
 
