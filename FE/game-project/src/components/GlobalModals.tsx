@@ -6,6 +6,10 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import client from "@/lib/axios";
+import { stopTutorialBgm } from "./BgmPlayer";
+import TutorialQuestScript from "./TutorialQuestScript";
+import TutorialQuestTimer from "./TutorialQuestTimer";
+import TutorialCompleteOverlay from "./TutorialCompleteOverlay";
 
 const CHAPTER_TITLES: Record<number, string> = {
   0: "예비 창업가",
@@ -33,6 +37,14 @@ export default function GlobalModals() {
     sessionExpiredModal, setSessionExpiredModal,
     logout: gameLogout,
     quests,
+    tutorialActive, setTutorialActive,
+    tutorialQuestStep, setTutorialQuestStep,
+    setTutorialQuestScriptVisible, setTutorialGachaCount,
+    tutorialQuestScriptVisible, tutorialScriptId, setTutorialScriptId,
+    setTutorialAccessPage,
+    tutorialQuestTimerActive, startTutorialQuestTimer, stopTutorialQuestTimer,
+    tutorialQuestTimerReward, increaseGold,
+    resetTutorialState,
   } = useGameStore();
   const { clearUser, accessToken } = useUserStore();
 
@@ -79,6 +91,22 @@ export default function GlobalModals() {
     setCompleteQuestTrigger(null);
 
     const doComplete = async () => {
+      // 튜토리얼 퀘스트: questId < 0 → API 없이 처리
+      if (questId < 0) {
+        const { tutorialQuestStep: tStep, quests } = useGameStore.getState();
+        const storeQ = quests.find(q => q.id === deskId);
+        const reward = storeQ?.reward ?? 0;
+        if (reward > 0) {
+          useGameStore.getState().completeQuest(deskId); // 골드 지급 + 보상 모달
+        } else {
+          useGameStore.getState().completeQuestSilent(deskId);
+        }
+        if (tStep === 2) setTutorialScriptId('step2_done');
+        else if (tStep === 32) setTutorialScriptId('step32_done');
+        else if (tStep === 42) setTutorialQuestStep(99);
+        return;
+      }
+
       try {
         const token = useUserStore.getState().accessToken;
         const res = await client.post('/api/v1/quests/complete',
@@ -154,8 +182,138 @@ export default function GlobalModals() {
     }
   };
 
+  const isTutorialActive = tutorialActive || tutorialQuestStep !== null;
+
+  const handleTutorialQuit = () => {
+    stopTutorialBgm();
+    resetTutorialState();
+    setTutorialGachaCount(0);
+    router.push('/');
+  };
+
+  const handleScriptDone = () => {
+    const scriptId = useGameStore.getState().tutorialScriptId;
+    setTutorialScriptId(null);
+
+    switch (scriptId) {
+      case 'step0_init':
+        setTimeout(() => setTutorialScriptId('step1_intro'), 300);
+        break;
+      case 'gacha_done':
+        setTutorialGachaCount(0);
+        setTutorialQuestStep(2);
+        setTimeout(() => setTutorialScriptId('step2_intro'), 500);
+        break;
+      case 'step1_intro':
+        setTutorialAccessPage('gacha');
+        break;
+      case 'step2_intro':
+        setTutorialAccessPage('quest');
+        break;
+      case 'step2_done':
+        setTutorialQuestStep(3);
+        setTutorialAccessPage(null);
+        setTimeout(() => {
+          setTutorialScriptId('step3_intro');
+        }, 500);
+        break;
+      case 'step3_intro':
+        setTutorialAccessPage('quest');
+        break;
+      case 'step3_hard':
+        setTutorialQuestStep(31);
+        setTutorialAccessPage('enhance');
+        break;
+      case 'step31_done':
+        setTutorialQuestStep(32);
+        setTutorialAccessPage('quest');
+        break;
+      case 'step32_done':
+        setTutorialQuestStep(4);
+        setTutorialAccessPage(null);
+        setTimeout(() => {
+          setTutorialScriptId('step4_intro');
+        }, 500);
+        break;
+      case 'step4_intro':
+        setTutorialAccessPage('quest');
+        break;
+      case 'step4_missing':
+        setTutorialQuestStep(41);
+        setTutorialAccessPage('synthesis');
+        break;
+      case 'step41_done':
+        setTutorialQuestStep(42);
+        setTutorialAccessPage('quest');
+        break;
+      case 'step42_done':
+        setTutorialQuestStep(99);
+        break;
+    }
+  };
+
+  const handleTimerComplete = () => {
+    const step = useGameStore.getState().tutorialQuestStep;
+    const reward = useGameStore.getState().tutorialQuestTimerReward;
+    stopTutorialQuestTimer();
+    if (reward > 0) increaseGold(reward);
+    if (step === 2) {
+      setTutorialScriptId('step2_done');
+    } else if (step === 32) {
+      setTutorialScriptId('step32_done');
+    } else if (step === 42) {
+      setTutorialQuestStep(99);
+    }
+  };
+
   return (
     <>
+      {/* --- [DEV] 튜토리얼 quit 버튼 --- */}
+      {isTutorialActive && (
+        <div className="fixed z-[999] pointer-events-auto font-dot" style={{ top: "calc(var(--game-clip-y, 0px) + 1cqw)", right: "calc(1cqw)" }}>
+          <button
+            onClick={handleTutorialQuit}
+            style={{
+              background: "rgba(180,30,30,0.9)",
+              border: "2px solid #ff6666",
+              color: "#fff",
+              fontWeight: "bold",
+              fontSize: "1.0cqw",
+              padding: "0.4cqw 1.0cqw",
+              cursor: "pointer",
+              letterSpacing: "0.05em",
+            }}
+          >
+            [DEV] quit
+          </button>
+        </div>
+      )}
+
+      {/* Tutorial Quest Script Overlay (shows on all pages) */}
+      {tutorialQuestScriptVisible && tutorialScriptId && (
+        <div className="fixed inset-0 z-[300] pointer-events-none">
+          <div className="absolute inset-0 pointer-events-auto">
+            <TutorialQuestScript scriptId={tutorialScriptId} onDone={handleScriptDone} />
+          </div>
+        </div>
+      )}
+
+      {/* Tutorial Quest Timer — 게임 화면이 보이도록 pointer-events-none 유지 */}
+      {tutorialQuestTimerActive && (
+        <div className="fixed inset-0 z-[350] pointer-events-none">
+          <TutorialQuestTimer onComplete={handleTimerComplete} />
+        </div>
+      )}
+
+      {/* Tutorial Complete Overlay */}
+      {tutorialQuestStep === 99 && (
+        <div className="fixed inset-0 z-[500] pointer-events-none">
+          <div className="absolute inset-0 pointer-events-auto">
+            <TutorialCompleteOverlay onComplete={() => { stopTutorialBgm(); resetTutorialState(); }} />
+          </div>
+        </div>
+      )}
+
       {/* --- Complete Quest Error Modal --- */}
       {completeError && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 font-dot pointer-events-auto" onClick={() => setCompleteError(false)}>

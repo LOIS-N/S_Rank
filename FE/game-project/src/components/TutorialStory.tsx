@@ -1,6 +1,6 @@
 "use client";
 import { useState, useCallback, useEffect } from 'react';
-import { pauseGameBgm, playTutorialBgm, stopTutorialBgm } from './BgmPlayer';
+import { pauseGameBgm, playTutorialBgm } from './BgmPlayer';
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -68,6 +68,7 @@ export default function TutorialStory({ onComplete }: Props) {
   const [sceneIdx, setSceneIdx]       = useState(0);
   const [lineIdx, setLineIdx]         = useState(0);
   const [fading, setFading]           = useState(false);
+  const [fadingOut, setFadingOut]     = useState(false);
   const [textVisible, setTextVisible] = useState(true);
   // 이미지 씬 진입 시 천천히 fade-in
   const [imgVisible, setImgVisible]   = useState(true);
@@ -104,7 +105,11 @@ export default function TutorialStory({ onComplete }: Props) {
 
   const advance = useCallback(() => {
     if (fading) return;
-    if (isLastStep) { onComplete(); return; }
+    if (isLastStep) {
+      setFadingOut(true);
+      setTimeout(() => onComplete(), 900);
+      return;
+    }
     if (lineIdx < currentScene.lines.length - 1) {
       showNextLine(lineIdx + 1);
     } else {
@@ -117,11 +122,11 @@ export default function TutorialStory({ onComplete }: Props) {
     onComplete();
   }, [onComplete]);
 
-  // 튜토리얼 BGM: 마운트 시 재생, 언마운트 시 중지
+  // 스토리 BGM: 마운트 시 awake.mp3 재생, 언마운트 시 퀘스트 BGM(tutorial.mp3)으로 전환
   useEffect(() => {
     pauseGameBgm();
     const timer = setTimeout(() => playTutorialBgm(), 2000);
-    return () => { clearTimeout(timer); stopTutorialBgm(); };
+    return () => { clearTimeout(timer); };
   }, []);
 
 
@@ -230,11 +235,13 @@ export default function TutorialStory({ onComplete }: Props) {
           <img
             src={bgImage}
             alt=""
-            className="ts-img-fadein w-full h-full object-cover"
+            className="w-full h-full object-cover"
             draggable={false}
             style={{
               imageRendering: 'pixelated',
               opacity: imgVisible ? 1 : 0,
+              // fade-in만 transition 적용 (false→true). false일 때는 즉시 숨겨 이전 이미지 플래시 방지
+              transition: imgVisible ? 'opacity 0.32s ease-in' : 'none',
             }}
           />
         )}
@@ -315,8 +322,10 @@ export default function TutorialStory({ onComplete }: Props) {
       <div
         className="absolute inset-0 bg-black pointer-events-none"
         style={{
-          opacity: fading ? 1 : 0,
-          transition: fading ? 'opacity 0.16s ease-in' : 'opacity 0.32s ease-out',
+          opacity: fading || fadingOut ? 1 : 0,
+          transition: fadingOut
+            ? 'opacity 0.8s ease-in'
+            : fading ? 'opacity 0.16s ease-in' : 'opacity 0.32s ease-out',
           zIndex: 10,
         }}
       />

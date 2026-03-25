@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import api from "@/lib/axios";
@@ -9,7 +9,7 @@ import RankingModal from "./modals/RankingModal";
 import DiscordModal from "./modals/DiscordModal";
 import NotificationModal from "./modals/NotificationModal";
 import AchievementModal from "./modals/AchievementModal";
-import { toggleBgm, isBgmMuted } from "./BgmPlayer";
+import { toggleBgm, isBgmMuted, playQuestTutorialBgm } from "./BgmPlayer";
 import TutorialStory from "./TutorialStory";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -44,12 +44,20 @@ interface MainQuestItem {
 }
 
 export default function MainHUD() {
-  const { gold, coffee, nickname, openComingSoonModal, setHUDModalOpen, bugsEnabled, toggleBugs, tutorialActive, setTutorialActive } = useGameStore();
+  const {
+    gold, coffee, nickname, openComingSoonModal, setHUDModalOpen, bugsEnabled, toggleBugs,
+    tutorialActive, setTutorialActive,
+    tutorialQuestStep, setTutorialQuestStep,
+    setTutorialGachaCount, setTutorialScriptId,
+  } = useGameStore();
   const { accessToken } = useUserStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [bgmMuted, setBgmMuted] = useState(() => isBgmMuted());
   const [chapterNo, setChapterNo] = useState<number | null>(null);
   const [stepNo, setStepNo] = useState<number | null>(null);
+  // 스토리 → 게임 페이드인 오버레이
+  const [revealPhase, setRevealPhase] = useState<'hidden' | 'black' | 'fadein'>('hidden');
+  const revealRafRef = useRef<number | null>(null);
 
   // 메인 퀘스트 API 호출 → 현재 챕터/스텝 계산
   useEffect(() => {
@@ -89,6 +97,22 @@ export default function MainHUD() {
     };
     fetch();
   }, [accessToken]);
+
+  // 튜토리얼 스토리 완료 → 페이드인 오버레이 후 step1 시작
+  const handleTutorialStoryComplete = () => {
+    setRevealPhase('black');  // 즉시 검정 오버레이 (TutorialStory 제거와 동시에 빈틈 없이 가림)
+    playQuestTutorialBgm();   // 스토리 BGM 종료 후 튜토리얼 퀘스트 BGM 시작
+    setTutorialActive(false);
+    setTutorialGachaCount(0);
+    setTutorialQuestStep(1);
+    setTutorialScriptId('step0_init');
+    // 2프레임 후 fade-out 시작
+    revealRafRef.current = requestAnimationFrame(() => {
+      revealRafRef.current = requestAnimationFrame(() => {
+        setRevealPhase('fadein');
+      });
+    });
+  };
 
   const openModal = (id: string) => {
     setActiveModal(id);
@@ -194,26 +218,34 @@ export default function MainHUD() {
               { id: "discord",      icon: `${ASSET_BASE}/assets/002/discord_002.webp`,  label: "디스코드",   comingSoon: false },
               { id: "notification", icon: `${ASSET_BASE}/assets/002/message_002.webp`,  label: "알림",       comingSoon: false },
               { id: "achievement",  icon: `${ASSET_BASE}/assets/002/awards_002.webp`,   label: "업적",       comingSoon: true },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => item.comingSoon ? openComingSoonModal() : openModal(item.id)}
-                className="relative flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110"
-                style={{
-                  width: "4cqw",
-                  height: "4cqw",
-                  backgroundImage: `url('${ASSET_BASE}/assets/002/upperButton_002.webp')`,
-                  backgroundSize: "100% 100%",
-                  filter: item.comingSoon ? "brightness(0.6)" : undefined,
-                }}
-                title={item.label}
-              >
-                <img
-                  src={item.icon} alt={item.label}
-                  style={{ width: "2.48cqw", height: "2.48cqw", imageRendering: "pixelated" }}
-                />
-              </button>
-            ))}
+            ].map((item) => {
+              const isTutorialDisabled = tutorialQuestStep !== null;
+              const isDisabled = item.comingSoon || isTutorialDisabled;
+              return (
+                <button
+                  key={item.id}
+                  onClick={isTutorialDisabled
+                    ? () => openComingSoonModal("튜토리얼 진행 후 이용 가능합니다.")
+                    : item.comingSoon ? () => openComingSoonModal() : () => openModal(item.id)
+                  }
+                  className="relative flex items-center justify-center transition-all"
+                  style={{
+                    width: "4cqw",
+                    height: "4cqw",
+                    backgroundImage: `url('${ASSET_BASE}/assets/002/upperButton_002.webp')`,
+                    backgroundSize: "100% 100%",
+                    filter: isDisabled ? "brightness(0.5)" : undefined,
+                    cursor: isDisabled ? "default" : "pointer",
+                  }}
+                  title={item.label}
+                >
+                  <img
+                    src={item.icon} alt={item.label}
+                    style={{ width: "2.48cqw", height: "2.48cqw", imageRendering: "pixelated" }}
+                  />
+                </button>
+              );
+            })}
 
           </div>
         </div>
@@ -240,16 +272,31 @@ export default function MainHUD() {
             style={{ width: "4.43cqw", height: "4.43cqw", imageRendering: "pixelated" }}
           />
         </button>
+        {/* [DEV] 튜토리얼 버튼 */}
+        <button
+          onClick={() => setTutorialActive(true)}
+          className="flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110 text-white font-bold border border-white/30"
+          style={{
+            height: "4cqw",
+            padding: "0 1.0cqw",
+            fontSize: "1.0cqw",
+            background: "rgba(30,30,60,0.85)",
+          }}
+          title="튜토리얼 스토리 보기"
+        >
+          튜토리얼
+        </button>
         {/* Debug 토글 버튼 */}
         <button
-          onClick={toggleBugs}
-          className="relative flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110"
+          onClick={tutorialQuestStep !== null ? undefined : toggleBugs}
+          className="relative flex items-center justify-center transition-all"
           style={{
             width: "4cqw",
             height: "4cqw",
             backgroundImage: `url('${ASSET_BASE}/assets/002/upperButton_002.webp')`,
             backgroundSize: "100% 100%",
-            filter: !bugsEnabled ? "brightness(0.5)" : undefined,
+            filter: (!bugsEnabled || tutorialQuestStep !== null) ? "brightness(0.5)" : undefined,
+            cursor: tutorialQuestStep !== null ? "default" : "pointer",
           }}
           title={bugsEnabled ? "버그 비활성화" : "버그 활성화"}
         >
@@ -274,10 +321,26 @@ export default function MainHUD() {
 
       <div className="flex-1" />
 
-      {/* ── [DEV] 튜토리얼 스토리 오버레이 ── */}
+      {/* ── 튜토리얼 스토리 오버레이 ── */}
       {tutorialActive && (
-        <TutorialStory onComplete={() => setTutorialActive(false)} />
+        <TutorialStory onComplete={handleTutorialStoryComplete} />
       )}
+
+      {/* ── 스토리→게임 전환 페이드인 오버레이 ── */}
+      {revealPhase !== 'hidden' && (
+        <div
+          onTransitionEnd={() => setRevealPhase('hidden')}
+          style={{
+            position: 'absolute', inset: 0,
+            background: 'black',
+            opacity: revealPhase === 'black' ? 1 : 0,
+            transition: revealPhase === 'fadein' ? 'opacity 0.85s ease-out' : 'none',
+            zIndex: 199,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
     </div>
   );
 }

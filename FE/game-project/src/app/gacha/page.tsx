@@ -8,10 +8,7 @@ import { GachaAnimationOverlay } from "./GachaAnimationOverlay";
 import { sendGAEvent } from "@/lib/gtag";
 import "./gacha.css";
 import api from "@/lib/axios";
-
-const sendGAEvent = typeof window !== 'undefined' && typeof (window as any).sendGAEvent === 'function'
-  ? (window as any).sendGAEvent as (event: string, params?: Record<string, unknown>) => void
-  : () => {};
+import { generateTutorialCard } from "@/lib/tutorialData";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -166,7 +163,11 @@ function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () 
 export default function GachaPage() {
   const [currentTab, setCurrentTab] = useState<TabType>('flyer');
   const [phase, setPhase] = useState<PhaseType>('select');
-  const { gold, coffee, setResources, increaseGold, accessToken } = useGameStore();
+  const {
+    gold, coffee, setResources, increaseGold, accessToken,
+    tutorialQuestStep, tutorialGachaCount, setTutorialGachaCount,
+    setTutorialQuestStep, setTutorialScriptId, setTutorialAccessPage,
+  } = useGameStore();
   const { getAccessToken } = usePrivy();
   const [drawnCards, setDrawnCards] = useState<GachaCardResult[]>([]);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
@@ -188,6 +189,25 @@ export default function GachaPage() {
     const cost = count === 1 ? GACHA_COSTS[currentTab].single : GACHA_COSTS[currentTab].ten;
     // TODO: 테스트 모드 — 골드 부족해도 뽑기 가능 (BE 연동 시 아래 주석 해제)
     // if (gold < cost) return;
+
+    // 튜토리얼 step1: 가짜 뽑기 처리
+    if (tutorialQuestStep === 1) {
+      const cardIdx = tutorialGachaCount; // 0, 1, 2
+      const mockCard = generateTutorialCard(cardIdx);
+      useGameStore.getState().addTutorialCard(mockCard);
+      setDrawnCards([mockCard as unknown as GachaCardResult]);
+      setSelectedCardIndex(null);
+      setLastPullCount(1);
+      setPhase('animating');
+      const newCount = tutorialGachaCount + 1;
+      setTutorialGachaCount(newCount);
+      if (newCount >= 3) {
+        setTimeout(() => {
+          setTutorialScriptId('gacha_done');
+        }, 2000);
+      }
+      return;
+    }
 
     setIsPulling(true);
 
@@ -239,6 +259,7 @@ export default function GachaPage() {
         setSelectedCardIndex(null);
         setLastPullCount(count);
         setPhase('animating');
+
       }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: { code?: string; message?: string }; message?: string } }; message?: string };
@@ -268,9 +289,26 @@ export default function GachaPage() {
     setPhase('select');
   };
 
+  // 튜토리얼 step1: 전단지 탭으로 고정, 1회 뽑기만 표시
+  const isTutorialStep1 = tutorialQuestStep === 1;
+
   // 뽑기 버튼 (1회 / 10회)
   const PullButtons = () => (
     <>
+      <div style={{ position: 'relative' }}>
+        {isTutorialStep1 && (
+          <img
+            src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+            alt=""
+            className="tutorial-arrow-y"
+            style={{
+              position: 'absolute', bottom: '100%', left: '50%',
+              transform: 'translateX(-50%)',
+              height: '4.7cqw', width: 'auto',
+              imageRendering: 'pixelated', pointerEvents: 'none', zIndex: 100,
+            }}
+          />
+        )}
       <div
         className={`gacha-action-btn${!canPull1 || isPulling ? ' btn-disabled' : ''}`}
         style={{ backgroundImage: `url('${ASSET_BASE}/assets/006/gachaButton_000.webp')` }}
@@ -278,15 +316,21 @@ export default function GachaPage() {
       >
         <span>1회 뽑기</span>
         <span className="btn-subtitle">({GACHA_COSTS[currentTab].single.toLocaleString()}G)</span>
+        {isTutorialStep1 && (
+          <span className="btn-subtitle" style={{ color: '#ffdd88' }}> ({tutorialGachaCount}/3)</span>
+        )}
       </div>
-      <div
-        className={`gacha-action-btn btn-10pull${!canPull10 || isPulling ? ' btn-disabled' : ''}`}
-        style={{ backgroundImage: `url('${ASSET_BASE}/assets/006/gachaButton_000.webp')` }}
-        onClick={canPull10 && !isPulling ? () => handlePull(10) : undefined}
-      >
-        <span>10회 뽑기</span>
-        <span className="btn-subtitle">({GACHA_COSTS[currentTab].ten.toLocaleString()}G)</span>
       </div>
+      {!isTutorialStep1 && (
+        <div
+          className={`gacha-action-btn btn-10pull${!canPull10 || isPulling ? ' btn-disabled' : ''}`}
+          style={{ backgroundImage: `url('${ASSET_BASE}/assets/006/gachaButton_000.webp')` }}
+          onClick={canPull10 && !isPulling ? () => handlePull(10) : undefined}
+        >
+          <span>10회 뽑기</span>
+          <span className="btn-subtitle">({GACHA_COSTS[currentTab].ten.toLocaleString()}G)</span>
+        </div>
+      )}
     </>
   );
 
@@ -358,8 +402,9 @@ export default function GachaPage() {
           </div>
           <div className="gacha-tab-wrapper">
             <div
-              className={`gacha-tab ${currentTab === 'fair' ? 'active' : ''}`}
-              onClick={() => { setCurrentTab('fair'); handleReturn(); }}
+              className={`gacha-tab ${currentTab === 'fair' ? 'active' : ''}${isTutorialStep1 ? ' btn-disabled' : ''}`}
+              onClick={isTutorialStep1 ? undefined : () => { setCurrentTab('fair'); handleReturn(); }}
+              style={isTutorialStep1 ? { opacity: 0.4, cursor: 'default', pointerEvents: 'none' } : undefined}
             >
               <div className="gacha-tab-inner" />
               <span>박람회 뽑기</span>
@@ -367,8 +412,9 @@ export default function GachaPage() {
           </div>
           <div className="gacha-tab-wrapper">
             <div
-              className={`gacha-tab ${currentTab === 'public' ? 'active' : ''}`}
-              onClick={() => { setCurrentTab('public'); handleReturn(); }}
+              className={`gacha-tab ${currentTab === 'public' ? 'active' : ''}${isTutorialStep1 ? ' btn-disabled' : ''}`}
+              onClick={isTutorialStep1 ? undefined : () => { setCurrentTab('public'); handleReturn(); }}
+              style={isTutorialStep1 ? { opacity: 0.4, cursor: 'default', pointerEvents: 'none' } : undefined}
             >
               <div className="gacha-tab-inner" />
               <span>공채 뽑기</span>

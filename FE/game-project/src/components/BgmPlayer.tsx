@@ -89,9 +89,10 @@ export function pauseGameBgm() {
 }
 
 // ── 튜토리얼 전용 BGM ──
-let _tutorialAudio: HTMLAudioElement | null = null;
+let _tutorialAudio: HTMLAudioElement | null = null;       // 스토리: awake.mp3
+let _questTutorialAudio: HTMLAudioElement | null = null;  // 퀘스트: tutorial.mp3
 
-/** 튜토리얼 BGM(awake.mp3) 재생 — 기존 BGM을 일시정지하고 시작 */
+/** 스토리 BGM(awake.mp3) 재생 — 게임 BGM 차단 후 시작 */
 export function playTutorialBgm() {
   // 기존 게임 BGM 일시정지
   if (_audio && !_audio.paused) _audio.pause();
@@ -106,12 +107,36 @@ export function playTutorialBgm() {
   _tutorialAudio.play().catch(() => {});
 }
 
-/** 튜토리얼 BGM 중지 — 기존 BGM 재개 */
+/** 퀘스트 튜토리얼 BGM(tutorial.mp3) 재생 — 스토리 BGM 정지 후 이어서 재생 */
+export function playQuestTutorialBgm() {
+  // awake.mp3 정지
+  if (_tutorialAudio) {
+    _tutorialAudio.pause();
+    _tutorialAudio.currentTime = 0;
+  }
+  // 게임 BGM 차단 유지
+  _tutorialMode = true;
+
+  const src = `${ASSET_BASE}/assets/tutorial.mp3`;
+  if (!_questTutorialAudio) {
+    _questTutorialAudio = new Audio(src);
+    _questTutorialAudio.loop = true;
+    _questTutorialAudio.volume = 0.5;
+  }
+  _questTutorialAudio.currentTime = 0;
+  _questTutorialAudio.play().catch(() => {});
+}
+
+/** 튜토리얼 BGM 전체 중지 — 게임 BGM 재개 */
 export function stopTutorialBgm() {
   _tutorialMode = false;
   if (_tutorialAudio) {
     _tutorialAudio.pause();
     _tutorialAudio.currentTime = 0;
+  }
+  if (_questTutorialAudio) {
+    _questTutorialAudio.pause();
+    _questTutorialAudio.currentTime = 0;
   }
   // 뮤트 상태가 아니면 게임 BGM 재개
   if (!_muted) {

@@ -227,6 +227,24 @@ body {
   }
 }
 
+/* 튜토리얼 화살표 통통 애니메이션 (nav bar용: translateX(-50%) 포함) */
+@keyframes tutorial-arrow-bounce {
+  0%   { transform: translateX(-50%) translateY(0); }
+  50%  { transform: translateX(-50%) translateY(-6px); }
+  100% { transform: translateX(-50%) translateY(0); }
+}
+.tutorial-arrow-bounce {
+  animation: tutorial-arrow-bounce 0.55s ease-in-out infinite;
+}
+/* 인페이지 화살표용: Y축만 */
+@keyframes tutorial-arrow-bounce-y {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+.tutorial-arrow-y {
+  animation: tutorial-arrow-bounce-y 0.55s ease-in-out infinite;
+}
+
 /* GameCanvas 내부 캔버스 화면 중앙 정렬 및 비율 유지 (가로/세로 넘치는 부분은 부모의 검은 레터박스로 채워짐) */
 #game-container > canvas {
   max-width: 100%;

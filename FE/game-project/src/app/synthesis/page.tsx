@@ -123,7 +123,7 @@ function generateResultCard(grade: string): CardListItem {
 
 export default function SynthesisPage() {
   const { getAccessToken } = usePrivy();
-  const { accessToken, gold, increaseGold } = useGameStore();
+  const { accessToken, gold, increaseGold, tutorialQuestStep } = useGameStore();
 
   // --- 카드 목록 상태 ---
   const [cards, setCards] = useState<CardListItem[]>([]);
@@ -148,6 +148,13 @@ export default function SynthesisPage() {
 
   // --- 카드 목록 조회 (cursor pagination) ---
   const fetchCards = useCallback(async (cursor?: string | null, filterOverride?: string) => {
+    // 튜토리얼 step41: API 대신 store의 tutorialCards 사용
+    const tutState = useGameStore.getState();
+    if (tutState.tutorialQuestStep !== null) {
+      setCards(tutState.tutorialCards as unknown as CardListItem[]);
+      setIsInitialLoad(false);
+      return;
+    }
     if (isLoading) return;
     setIsLoading(true);
     try {
@@ -246,8 +253,21 @@ export default function SynthesisPage() {
   }, [selectedGrade]);
 
   // --- 합성 실행 ---
-  const handleSynthesize = useCallback(() => {
+  const handleSynthesize = useCallback(async () => {
     if (!selectedGrade || selectedCards.length < minSlots) return;
+
+    // 튜토리얼 step41: API 대신 C_9 카드 합성 결과 반환
+    if (tutorialQuestStep === 41) {
+      const { generateSynthesisCard } = await import('@/lib/tutorialData');
+      const resultCard = generateSynthesisCard();
+      useGameStore.getState().removeTutorialCards(selectedCards);
+      useGameStore.getState().addSynthesisCard(resultCard);
+      setCards(prev => [...prev.filter(c => !selectedCards.includes(c.cardId)), resultCard as unknown as CardListItem]);
+      setSelectedCards([]);
+      setSynthesisResult({ success: true, resultCard: resultCard as unknown as CardListItem, cost: 0 });
+      useGameStore.getState().setTutorialScriptId('step41_done');
+      return;
+    }
 
     const result = simulateSynthesis(selectedGrade, selectedCards.length, gold);
     if (result.error) {
@@ -416,6 +436,18 @@ export default function SynthesisPage() {
           </div>
 
           {/* 카드 리스트 박스 */}
+          {tutorialQuestStep === 41 && selectedCards.length < minSlots && (
+            <img
+              src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+              alt=""
+              className="tutorial-arrow-y"
+              style={{
+                display: 'block', margin: '0 auto 0.5cqw',
+                height: '4.7cqw', width: 'auto',
+                imageRendering: 'pixelated', pointerEvents: 'none',
+              }}
+            />
+          )}
           <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={24} borderScale={0.5} className="cardlist-left-box">
             <div
               className="cardlist-grid-wrapper"
@@ -602,16 +634,31 @@ export default function SynthesisPage() {
                 >
                   <span style={{ position: 'relative', zIndex: 2 }}>초기화</span>
                 </NineSliceBox>
-                <NineSliceBox
-                  src={`${ASSET_BASE}/assets/008/questCard_000.webp`}
-                  slice={[200, 208, 200, 208]}
-                  framePadding={14}
-                  borderScale={0.4}
-                  className={`synthesis-btn-accept ${selectedCards.length < minSlots ? 'disabled' : ''}`}
-                  onClick={handleSynthesize}
-                >
-                  <span style={{ position: 'relative', zIndex: 2 }}>합성하기</span>
-                </NineSliceBox>
+                <div style={{ position: 'relative' }}>
+                  {tutorialQuestStep === 41 && selectedCards.length >= minSlots && (
+                    <img
+                      src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+                      alt=""
+                      className="tutorial-arrow-y"
+                      style={{
+                        position: 'absolute', bottom: '100%', left: '50%',
+                        transform: 'translateX(-50%)',
+                        height: '4.7cqw', width: 'auto',
+                        imageRendering: 'pixelated', pointerEvents: 'none', zIndex: 100,
+                      }}
+                    />
+                  )}
+                  <NineSliceBox
+                    src={`${ASSET_BASE}/assets/008/questCard_000.webp`}
+                    slice={[200, 208, 200, 208]}
+                    framePadding={14}
+                    borderScale={0.4}
+                    className={`synthesis-btn-accept ${selectedCards.length < minSlots ? 'disabled' : ''}`}
+                    onClick={handleSynthesize}
+                  >
+                    <span style={{ position: 'relative', zIndex: 2 }}>합성하기</span>
+                  </NineSliceBox>
+                </div>
               </div>
             </>
           ) : (
