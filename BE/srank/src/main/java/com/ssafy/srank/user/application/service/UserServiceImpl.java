@@ -8,12 +8,14 @@ import com.ssafy.srank.log.application.facade.AuthLogFacade;
 import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.domain.enums.AuthLogEventType;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.ranking.application.event.UserWithdrawnEvent;
 import com.ssafy.srank.user.application.dto.request.UpdateNicknameRequest;
 import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
 import com.ssafy.srank.user.application.dto.response.MyGachaInfo;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final AuthLogFacade authLogFacade;
     private final EconomyLogFacade economyLogFacade;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public MyInfoResponse getMyInfo(Long userId) {
@@ -61,6 +64,7 @@ public class UserServiceImpl implements UserService {
     public void withdraw(Long userId) {
         User user = getActiveUser(userId);
         user.withdraw();
+        eventPublisher.publishEvent(new UserWithdrawnEvent(userId));
         authLogFacade.recordWithdraw(new AuthLogCommand(
                 userId,
                 AuthLogEventType.WITHDRAW,

@@ -4,14 +4,17 @@ import com.ssafy.srank.log.application.command.GoldLogCommand;
 import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.domain.entity.UserGoldLog;
 import com.ssafy.srank.log.repository.UserGoldLogRepository;
+import com.ssafy.srank.ranking.application.event.GoldEarnedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 
 @Service
 @RequiredArgsConstructor
 public class EconomyLogFacadeImpl implements EconomyLogFacade {
 
     private final UserGoldLogRepository userGoldLogRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public void recordGoldChange(GoldLogCommand command) {
@@ -22,5 +25,9 @@ public class EconomyLogFacadeImpl implements EconomyLogFacade {
                 .reason(command.reason())
                 .createdAt(command.createdAt())
                 .build());
+
+        if (command.amount() > 0) {
+            eventPublisher.publishEvent(new GoldEarnedEvent(command.userId(), command.amount()));
+        }
     }
 }

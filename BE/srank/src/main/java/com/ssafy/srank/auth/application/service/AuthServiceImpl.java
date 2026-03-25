@@ -11,12 +11,14 @@ import com.ssafy.srank.log.application.facade.AuthLogFacade;
 import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.domain.enums.AuthLogEventType;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import com.ssafy.srank.rabbitmq.log.message.UserAuthMessage;
 import com.ssafy.srank.rabbitmq.log.producer.UserAuthProducer;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,7 @@ public class AuthServiceImpl implements AuthService {
     private final DeskService deskService;
     private final AuthLogFacade authLogFacade;
     private final EconomyLogFacade economyLogFacade;
+    private final ApplicationEventPublisher eventPublisher;
     private final UserAuthProducer producer;
 
     private static final long SIGNUP_BONUS_GOLD = 300_000L;
@@ -97,6 +100,7 @@ public class AuthServiceImpl implements AuthService {
                     GoldLogReason.SIGNUP_BONUS,
                     now
             ));
+            eventPublisher.publishEvent(new UserCardsChangedEvent(savedUser.getUserId()));
 
             return new LoginResponse(true);
         } catch (DataIntegrityViolationException e) {
