@@ -9,9 +9,17 @@ interface EnhanceAnimationCard {
   imageUrl: string;
 }
 
+interface StatChange {
+  skillType: string;
+  before: number;
+  after: number;
+  delta: number;
+}
+
 interface Props {
   card: EnhanceAnimationCard;
   isSuccess: boolean;
+  statChanges?: StatChange[];
   onShowResult: () => void;
   onComplete: () => void;
 }
@@ -34,7 +42,7 @@ interface FloatingSnippet {
   opacity: string;
 }
 
-function OverlayContent({ card, isSuccess, onShowResult, onComplete }: Props) {
+function OverlayContent({ card, isSuccess, statChanges, onShowResult, onComplete }: Props) {
   const [phase, setPhase] = useState<'compiling' | 'result'>('compiling');
   const [progress, setProgress] = useState(0);
   const [snippets, setSnippets] = useState<FloatingSnippet[]>([]);
@@ -146,6 +154,7 @@ function OverlayContent({ card, isSuccess, onShowResult, onComplete }: Props) {
 
         {/* 카드 이미지 */}
         <div style={{
+          position: 'relative',
           display: 'inline-block',
           border: phase === 'result' && isSuccess
             ? '2px solid #00ff41'
@@ -175,6 +184,43 @@ function OverlayContent({ card, isSuccess, onShowResult, onComplete }: Props) {
               transition: 'filter 0.4s',
             }}
           />
+          {/* 스탯 — 항상 카드 이미지 위에 오버레이 (compiling: before값, result: 변화 표시) */}
+          {statChanges && statChanges.map((s, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: i === 0 ? '26%' : i === 1 ? '16%' : '5%',
+                textAlign: 'center',
+                fontSize: '11px',
+                fontFamily: "'Courier New', monospace",
+                fontWeight: 'bold',
+                color: '#ffffff',
+                textShadow: '0 0 4px #000, 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000',
+                pointerEvents: 'none',
+                whiteSpace: 'nowrap',
+                animation: phase === 'result' ? 'enhance-result-in 0.35s ease-out' : undefined,
+              }}
+            >
+              <span style={{ color: '#aaddff' }}>
+                {s.skillType === 'DEVOPS' ? 'DEV' : s.skillType}
+              </span>
+              {' '}
+              {phase === 'compiling' ? (
+                <span style={{ color: '#cccccc' }}>{s.before}</span>
+              ) : (
+                <>
+                  <span style={{ color: '#cccccc' }}>{s.before}→{s.after}</span>
+                  {' '}
+                  <span style={{ color: s.delta > 0 ? '#00ff41' : '#888888' }}>
+                    {s.delta > 0 ? `+${s.delta}` : '±0'}
+                  </span>
+                </>
+              )}
+            </div>
+          ))}
         </div>
 
         {phase === 'compiling' ? (
