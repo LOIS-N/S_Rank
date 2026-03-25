@@ -114,8 +114,9 @@ export default function SynthesisPage() {
   const [synthesisResult, setSynthesisResult] = useState<{ success: boolean; resultCard?: CardListItem; cost: number } | null>(null);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
 
-  // --- 필터 상태 ---
+  // --- 필터 / 정렬 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // --- 인증 토큰 ---
   const getAuthToken = useCallback(async () => {
@@ -202,8 +203,8 @@ export default function SynthesisPage() {
     });
   }, [cards]);
 
-  // --- 카드 목록은 항상 전체 표시 (등급 필터링 제거) ---
-  const sortedCards = cards;
+  // --- 클라이언트 사이드 정렬 ---
+  const sortedCards = useMemo(() => sortCards(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
 
   // --- 합성 확률/비용 계산 ---
   const synthesisProb = useMemo(() => {
@@ -382,7 +383,7 @@ export default function SynthesisPage() {
 
         {/* ──── 좌측: 필터 + 카드 그리드 ──── */}
         <div className="cardlist-left-col">
-          {/* 스킬 필터 드롭다운 */}
+          {/* 스킬 필터 드롭다운 + 정렬 버튼 */}
           <div className="cardlist-filters">
             <div className="cardlist-select-wrapper">
               <select
@@ -395,6 +396,16 @@ export default function SynthesisPage() {
                 ))}
               </select>
             </div>
+            <button
+              className={`cardlist-filter-btn${sortOrder === 'desc' ? ' active' : ''}`}
+              onClick={() => setSortOrder('desc')}
+              title="능력치 내림차순"
+            >▼ 내림차순</button>
+            <button
+              className={`cardlist-filter-btn${sortOrder === 'asc' ? ' active' : ''}`}
+              onClick={() => setSortOrder('asc')}
+              title="능력치 오름차순"
+            >▲ 오름차순</button>
           </div>
 
           {/* 카드 리스트 박스 */}
