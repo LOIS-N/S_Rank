@@ -285,10 +285,9 @@ function QuestCard({
 // --- 퀘스트 상세 정보 컴포넌트 ---
 function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = false, onAccept }: { quest: Quest | null; isAccepting: boolean; isInProgress?: boolean; isAllBusy?: boolean; onAccept: () => void }) {
   const { tutorialQuestStep: tqStep, tutorialAccessPage } = useGameStore();
-  // step 3: 강화 후 복귀 시만 표시 / step 4: 합성 전이므로 절대 표시 안 함 (스크립트가 유도)
+  // step 3: 강화 안내 중이므로 절대 표시 안 함 / step 4, 41: 합성 전이므로 절대 표시 안 함
   const showTutorialArrow = tqStep !== null && quest !== null && !isInProgress && !isAllBusy
-    && tqStep !== 4 && tqStep !== 41
-    && (tqStep !== 3 || tutorialAccessPage === 'quest');
+    && tqStep !== 3 && tqStep !== 4 && tqStep !== 41;
   // step 3: 강화 전이므로, step 4: 합성 전이므로 수락하기 비활성화 (스크립트 대기)
   const isTutorialAcceptDisabled = tqStep === 3 || tqStep === 4;
   if (!quest) {
