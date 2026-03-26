@@ -123,6 +123,7 @@ export default function SynthesisPage() {
   const { accessToken, gold, increaseGold, tutorialQuestStep } = useGameStore();
   const [synthArrowDismissed, setSynthArrowDismissed] = useState(false);
   useEffect(() => { setSynthArrowDismissed(false); }, [tutorialQuestStep]);
+  const [showTutorialIntro, setShowTutorialIntro] = useState(() => tutorialQuestStep === 41);
 
   // --- 카드 목록 상태 ---
   const [cards, setCards] = useState<CardListItem[]>([]);
@@ -515,6 +516,31 @@ export default function SynthesisPage() {
 
   return (
     <div className="cardlist-page-container">
+
+      {/* 튜토리얼 합성 안내 오버레이 */}
+      {showTutorialIntro && (
+        <div
+          className="fixed inset-0 z-[400] flex items-center justify-center pointer-events-auto font-dot"
+          style={{ background: 'rgba(0,0,8,0.85)' }}
+          onClick={() => setShowTutorialIntro(false)}
+        >
+          <div style={{
+            background: 'rgba(8,18,58,0.97)',
+            border: '2px solid #3a6fad',
+            borderRadius: '4px',
+            padding: '2rem 3rem',
+            maxWidth: '500px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}>
+            <div style={{ fontSize: '0.85rem', color: '#7ab8ff', marginBottom: '0.8rem', letterSpacing: '0.1em' }}>[ System ]</div>
+            <div style={{ fontSize: '1.3rem', color: '#c8e8ff', lineHeight: 1.8 }}>3장의 카드를 모두 사용해 합성해보자</div>
+            <div style={{ fontSize: '0.85rem', color: '#6688bb', marginTop: '0.8rem' }}>▶ 클릭하여 계속</div>
+          </div>
+        </div>
+      )}
+
       {isAnimating && pendingResult && (
         <SynthesisAnimationOverlay
           resultCard={pendingResult.resultCard}

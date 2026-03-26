@@ -141,6 +141,7 @@ export default function EnhancePage() {
   const { accessToken, gold, increaseGold, tutorialQuestStep, tutorialEnhanceCount } = useGameStore();
   const [enhanceArrowDismissed, setEnhanceArrowDismissed] = useState(false);
   useEffect(() => { setEnhanceArrowDismissed(false); }, [tutorialQuestStep]);
+  const [showTutorialIntro, setShowTutorialIntro] = useState(() => tutorialQuestStep === 31);
 
   // --- 로컬 강화 상태 ---
   const [localEnhancements, setLocalEnhancements] = useState<Record<number, LocalEnhanceState>>({});
@@ -477,6 +478,30 @@ export default function EnhancePage() {
 
   return (
     <div className="cardlist-page-container enhance-page">
+
+      {/* 튜토리얼 강화 안내 오버레이 */}
+      {showTutorialIntro && (
+        <div
+          className="fixed inset-0 z-[400] flex items-center justify-center pointer-events-auto font-dot"
+          style={{ background: 'rgba(0,0,8,0.85)' }}
+          onClick={() => setShowTutorialIntro(false)}
+        >
+          <div style={{
+            background: 'rgba(8,18,58,0.97)',
+            border: '2px solid #3a6fad',
+            borderRadius: '4px',
+            padding: '2rem 3rem',
+            maxWidth: '500px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}>
+            <div style={{ fontSize: '0.85rem', color: '#7ab8ff', marginBottom: '0.8rem', letterSpacing: '0.1em' }}>[ System ]</div>
+            <div style={{ fontSize: '1.3rem', color: '#c8e8ff', lineHeight: 1.8 }}>카드를 3회 강화해보자</div>
+            <div style={{ fontSize: '0.85rem', color: '#6688bb', marginTop: '0.8rem' }}>▶ 클릭하여 계속</div>
+          </div>
+        </div>
+      )}
 
       {/* 상단 타이틀 */}
       <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>

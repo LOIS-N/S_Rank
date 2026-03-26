@@ -247,10 +247,10 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
   const { tutorialQuestStep: tqStep, tutorialAccessPage } = useGameStore();
   // step 3: 강화 후 복귀 시만 표시 / step 4: 합성 전이므로 절대 표시 안 함 (스크립트가 유도)
   const showTutorialArrow = tqStep !== null && quest !== null && !isInProgress && !isAllBusy
-    && tqStep !== 4
+    && tqStep !== 4 && tqStep !== 41
     && (tqStep !== 3 || tutorialAccessPage === 'quest');
-  // step 4: 합성 전이므로 수락하기 비활성화 (스크립트 대기)
-  const isTutorialAcceptDisabled = tqStep === 4;
+  // step 3: 강화 전이므로, step 4: 합성 전이므로 수락하기 비활성화 (스크립트 대기)
+  const isTutorialAcceptDisabled = tqStep === 3 || tqStep === 4;
   if (!quest) {
     return (
       <div className="quest-detail-panel">
@@ -1233,12 +1233,14 @@ export default function QuestPage() {
 
   // --- 초기 데이터 로드 ---
   useEffect(() => {
-    if (isTutorialMode && tutorialQuestDef) {
-      // 튜토리얼 모드: API 대신 mock 퀘스트 사용
-      const q: Quest = { ...tutorialQuestDef };
-      setSubQuests([q]);
-      setMainQuest(null);
-      setSelectedQuest(q);
+    if (tutorialQuestStep !== null) {
+      // 튜토리얼 활성 중: API 호출 금지, mock 퀘스트만 사용
+      if (tutorialQuestDef) {
+        const q: Quest = { ...tutorialQuestDef };
+        setSubQuests([q]);
+        setMainQuest(null);
+        setSelectedQuest(q);
+      }
       setIsLoading(false);
       return;
     }

@@ -121,8 +121,8 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold pointer-events-auto pb-[calc(6cqw+10px)]">
-      <div className="bg-[#b0c4de] p-6 sm:p-8 border-4 border-[#6b859e] w-[420px] max-w-[90%] shadow-[8px_8px_0px_#4a5d73] text-center relative pointer-events-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold pointer-events-auto pb-[calc(6cqw+10px)]" onClick={onClose} onPointerDown={e => e.stopPropagation()}>
+      <div className="bg-[#b0c4de] p-6 sm:p-8 border-4 border-[#6b859e] w-[420px] max-w-[90%] shadow-[8px_8px_0px_#4a5d73] text-center relative pointer-events-auto" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
 
         <button
           onClick={onClose}

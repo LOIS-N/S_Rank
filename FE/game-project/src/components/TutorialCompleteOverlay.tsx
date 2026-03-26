@@ -25,6 +25,7 @@ export default function TutorialCompleteOverlay({ onComplete }: Props) {
       className="absolute inset-0 z-[500] flex items-center justify-center pointer-events-auto font-dot"
       style={{ background: "rgba(0,0,8,0.85)" }}
       onClick={advance}
+      onPointerDown={e => e.stopPropagation()}
     >
       <div style={{
         background: "rgba(8,18,58,0.97)",

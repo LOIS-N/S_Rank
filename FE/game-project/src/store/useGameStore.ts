@@ -101,6 +101,8 @@ interface GameState {
   startTutorialQuestTimer: (sec: number, reward: number) => void;
   stopTutorialQuestTimer: () => void;
   resetTutorialState: () => void;
+  showTutorialGoldModal: boolean;
+  setShowTutorialGoldModal: (v: boolean) => void;
   pushNotification: (title: string, body: string) => void;
   markNotificationRead: (id: number) => void;
 }
@@ -268,6 +270,8 @@ export const useGameStore = create<GameState>()(
   })),
   startTutorialQuestTimer: (sec, reward) => set({ tutorialQuestTimerActive: true, tutorialQuestTimerSec: sec, tutorialQuestTimerReward: reward }),
   stopTutorialQuestTimer: () => set({ tutorialQuestTimerActive: false, tutorialQuestTimerSec: 0, tutorialQuestTimerReward: 0 }),
+  showTutorialGoldModal: false,
+  setShowTutorialGoldModal: (v) => set({ showTutorialGoldModal: v }),
   resetTutorialState: () => set({
     tutorialActive: false,
     tutorialQuestStep: null,

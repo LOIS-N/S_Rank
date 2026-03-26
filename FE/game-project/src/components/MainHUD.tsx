@@ -51,7 +51,7 @@ export default function MainHUD() {
     setTutorialGachaCount, setTutorialScriptId,
     quests,
   } = useGameStore();
-  const { accessToken } = useUserStore();
+  const { accessToken, level: userLevel } = useUserStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [bgmMuted, setBgmMuted] = useState(() => isBgmMuted());
   const [chapterNo, setChapterNo] = useState<number | null>(null);
@@ -152,7 +152,7 @@ export default function MainHUD() {
                   style={{ paddingLeft: "0.5cqw", paddingRight: "0.6cqw", paddingTop: "0.15cqw", paddingBottom: "0.15cqw", fontSize: "1.1cqw" }}
                 >
                   <span style={{ fontSize: "1.2cqw" }}>{chapterIcon}</span>
-                  <span className="text-yellow-300 font-bold">{chapterNo}-{stepNo}</span>
+                  <span className="text-yellow-300 font-bold">{userLevel}-{stepNo}</span>
                   <span className="text-white/80">:</span>
                   <span>{chapterTitle}</span>
                 </span>
@@ -176,7 +176,7 @@ export default function MainHUD() {
                   backgroundSize: "100% 100%",
                 }}
               >
-                <span className="tabular-nums">{gold.toLocaleString()}</span>
+                <span className="tabular-nums">{(tutorialQuestStep !== null ? 0 : gold).toLocaleString()}</span>
                 <span style={{ marginLeft: "0.32cqw", fontSize: "1.12cqw" }}>G</span>
               </div>
               <img
@@ -252,8 +252,25 @@ export default function MainHUD() {
         </div>
       </div>
 
-      {/* --- 상단 바 아래 BGM + debug 버튼 --- */}
-      <div className="w-full flex justify-end pointer-events-auto" style={{ paddingRight: "1.0cqw", paddingTop: "0.5cqw", gap: "0.5cqw" }}>
+      {/* --- 상단 바 아래 가이드 + BGM + debug 버튼 --- */}
+      <div className="w-full flex items-center pointer-events-auto" style={{ paddingLeft: "1.0cqw", paddingRight: "1.0cqw", paddingTop: "0.5cqw", gap: "0.5cqw" }}>
+        {/* 가이드 버튼 */}
+        <button
+          onClick={() => openModal('guide')}
+          className="relative flex items-center justify-center active:translate-y-0.5 transition-all hover:brightness-110"
+          style={{
+            width: "4cqw",
+            height: "4cqw",
+            backgroundImage: `url('${ASSET_BASE}/assets/002/upperButton_002.webp')`,
+            backgroundSize: "100% 100%",
+          }}
+          title="게임 가이드"
+        >
+          <span style={{ fontSize: "2.0cqw", fontWeight: "bold", color: "#ffffff", textShadow: "1px 1px 0 #000, -1px -1px 0 #000" }}>?</span>
+        </button>
+
+        <div style={{ flex: 1 }} />
+
         {/* BGM 토글 버튼 */}
         <button
           onClick={() => setBgmMuted(toggleBgm())}
@@ -297,12 +314,64 @@ export default function MainHUD() {
 
       {/* --- 모달 영역 --- */}
       {activeModal && (
-        <div className="absolute inset-0 z-[90] pointer-events-auto">
+        <div className="absolute inset-0 z-[90] pointer-events-auto" onPointerDown={e => e.stopPropagation()}>
           {activeModal === "mypage"        && <MyPageModal        onClose={closeModal} />}
           {activeModal === "ranking"       && <RankingModal       onClose={closeModal} />}
           {activeModal === "discord"       && <DiscordModal       onClose={closeModal} />}
           {activeModal === "notification"  && <NotificationModal  onClose={closeModal} />}
           {activeModal === "achievement"   && <AchievementModal   onClose={closeModal} />}
+          {activeModal === "guide"         && (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center font-dot pointer-events-auto pb-[calc(6cqw+10px)]"
+              style={{ background: 'rgba(0,0,0,0.6)' }}
+              onClick={closeModal}
+              onPointerDown={e => e.stopPropagation()}
+            >
+              <div
+                className="relative flex flex-col"
+                style={{
+                  background: '#b0c4de',
+                  border: '4px solid #6b859e',
+                  width: '600px',
+                  maxWidth: '90%',
+                  height: '550px',
+                  maxHeight: '85%',
+                  boxShadow: '8px 8px 0px #4a5d73',
+                }}
+                onClick={e => e.stopPropagation()}
+                onPointerDown={e => e.stopPropagation()}
+              >
+                {/* 헤더 */}
+                <div style={{ padding: '1.2cqw 2cqw 0.8cqw', borderBottom: '2px solid #6b859e', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                  <span style={{ fontSize: '2.0cqw', fontWeight: 'bold', color: '#0a1520' }}>게임 가이드</span>
+                  <button onClick={closeModal} style={{ fontSize: '2.2cqw', color: '#fff', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }} title="닫기">&times;</button>
+                </div>
+                {/* 스크롤 본문 */}
+                <div style={{ overflowY: 'auto', padding: '1.2cqw 2cqw 1.5cqw', fontSize: '1.4cqw', color: '#0a1520', lineHeight: 1.8 }}>
+                  {[
+                    { title: '게임 소개', body: '<S급 개발자들이 나를 따르는 이유>는 어느날 개발 능력치가 보이게 된 사용자가 직원들을 고용해, 자신만의 스타트업을 꾸려가는 스토리의 게임입니다. 뽑기, 강화, 성장 등의 확률성 컨텐츠들을 통해 보다 강한 직원들을 모아 퀘스트를 진행해보세요.' },
+                    { title: '레벨', body: '레벨 1. 스타트업\n레벨 2. 씨드\n레벨 3. 시리즈A\n레벨 4. 시리즈B\n레벨 5. 유니콘\n레벨 6. 테크 자이언트\n\n해당 레벨에 배치된 메인 퀘스트를 모두 수행 시 다음 레벨로 넘어갈 수 있습니다. 레벨에 따라 해금할 수 있는 책상의 갯수와 뽑기 단계가 달라집니다.' },
+                    { title: '골드', body: '골드는 퀘스트 수행과 버그 잡기를 통해 얻을 수 있는 재화입니다. 골드를 통해 뽑기, 강화, 합성 등의 컨텐츠를 즐길 수 있습니다.' },
+                    { title: '카드', body: '카드 한 장은 개발자 한 명을 의미합니다. 스탯은 FE, BE, AI, DBA, Devops, Design 총 여섯가지가 있습니다. 카드는 랜덤하게 다음 6가지 스탯 중 3가지를 가지게 됩니다. S등급 카드의 경우 랜덤하게 특별한 스킬을 가지기도 합니다. [해고하기] 버튼을 통해 사용하지 않는 카드를 판매할 수 있습니다.' },
+                    { title: '퀘스트', body: '퀘스트는 하나의 프로젝트입니다. 퀘스트별로 요구하는 스테이터스가 다릅니다. 기술스택 필터링 버튼, 정렬, 자동선택 버튼을 통해 보다 간편하게 프로젝트를 수행할 수 있습니다.' },
+                    { title: '뽑기', body: '전단지, 박람회, 공채 총 세 단계의 뽑기가 있습니다. 단계별로 뽑을 수 있는 카드의 등급과 비율이 달라집니다.' },
+                    { title: '강화', body: '기존의 카드 성능을 강화할 수 있습니다. 카드 한 장 당 총 7번의 강화가 가능합니다. 강화 성공 확률은 35%입니다. 강화 성공 횟수가 많아질수록 강화되는 능력치의 총합도 늘어납니다.' },
+                    { title: '합성', body: '기존 카드를 2장에서 5장까지 모아 합성할 수 있습니다. 합성은 같은 등급의 카드들로만 가능하며, 성공 시 바로 윗단계의 카드를 랜덤하게 뽑을 수 있습니다. S등급 카드의 경우 2장만 합성 가능하며, 100% 확률로 S등급의 카드를 얻을 수 있습니다.' },
+                    { title: '버그', body: '유저의 회사 내부에는 끊임없이 버그들이 출몰합니다. 일반 버그는 마리당 50골드, 특별한 버그는 마리당 100골드를 지급합니다. 우측 상단의 버튼을 통해 비활성화가 가능합니다.' },
+                  ].map(({ title, body }) => (
+                    <div key={title} style={{ marginBottom: '1.2cqw' }}>
+                      <div style={{ fontWeight: 900, fontSize: '1.5cqw', color: '#071830', marginBottom: '0.3cqw', borderBottom: '2px solid #6b859e', paddingBottom: '0.2cqw' }}>{title}</div>
+                      <div style={{ whiteSpace: 'pre-line' }}>{body}</div>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: '1.2cqw', paddingTop: '0.8cqw', borderTop: '1px solid #8ea4b8', fontSize: '1.3cqw', color: '#0a1e38' }}>
+                    문의사항, 에러가 있을 경우 아래 디스코드 채널의 문의사항 게시판을 이용해주세요.<br />
+                    <a href="https://discord.com/invite/vVtweyat" target="_blank" rel="noopener noreferrer" style={{ color: '#2a5ab8', textDecoration: 'underline', wordBreak: 'break-all' }}>https://discord.com/invite/vVtweyat</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
