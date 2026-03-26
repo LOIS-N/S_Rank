@@ -373,6 +373,14 @@ export const useGameStore = create<GameState>()(
         questType: q.questType,
         requiredLevel: q.requiredLevel,
       })),
+      tutorialActive: state.tutorialActive,
+      tutorialQuestStep: state.tutorialQuestStep,
+      tutorialGachaCount: state.tutorialGachaCount,
+      tutorialCards: state.tutorialCards,
+      tutorialEnhanceCount: state.tutorialEnhanceCount,
+      tutorialScriptId: state.tutorialScriptId,
+      tutorialAccessPage: state.tutorialAccessPage,
+      tutorialQuestScriptVisible: state.tutorialQuestScriptVisible,
     }),
   }
 ));
