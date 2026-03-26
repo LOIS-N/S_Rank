@@ -5,6 +5,7 @@ import com.ssafy.srank.log.application.facade.GachaLogFacade;
 import com.ssafy.srank.log.domain.entity.GachaLog;
 import com.ssafy.srank.log.domain.enums.BlockchainStatus;
 import com.ssafy.srank.log.repository.GachaLogRepository;
+import com.ssafy.srank.rabbitmq.log.message.GachaLogMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,6 +54,39 @@ public class GachaLogFacadeImpl implements GachaLogFacade {
                 .toList()).stream()
                 .map(GachaLog::getGachaDrawId)
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public void record(GachaLogMessage message) {
+        gachaLogRepository.save(GachaLog.builder()
+                .userId(message.userId())
+                .gachaType(message.gachaType())
+                .drawCount(message.drawCount())
+                .drawIndex(message.drawIndex())
+                .userCardId(message.userCardId())
+                .cardTemplateId(message.cardTemplateId())
+                .grade(message.grade())
+                .gradeRoll(message.gradeRoll())
+                .templateRoll(message.templateRoll())
+                .skillRoll(message.skillRoll())
+                .costGold(message.costGold())
+                .tutorial(message.tutorial())
+                .skillType1(message.skillType1())
+                .skillValue1(message.skillValue1())
+                .skillType2(message.skillType2())
+                .skillValue2(message.skillValue2())
+                .skillType3(message.skillType3())
+                .skillValue3(message.skillValue3())
+                .specialSkillCode(message.specialSkillCode())
+                .clientSeed(message.clientSeed())
+                .serverSeed(message.serverSeed())
+                .algorithmVersion(message.algorithmVersion())
+                .anchorPayload(message.anchorPayload())
+                .blockchainStatus(message.blockchainStatus())
+                .blockchainTxHash(message.blockchainTxHash())
+                .createdAt(message.createdAt())
+                .build());
     }
 
     @Override

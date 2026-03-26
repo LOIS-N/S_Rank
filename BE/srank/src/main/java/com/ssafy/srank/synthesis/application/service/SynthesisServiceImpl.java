@@ -19,12 +19,13 @@ import com.ssafy.srank.common.probablyfair.application.service.ProbablyFairServi
 import com.ssafy.srank.common.probablyfair.domain.ProbablyFairContext;
 import com.ssafy.srank.common.probablyfair.domain.ProbablyFairPurpose;
 import com.ssafy.srank.log.application.facade.EconomyLogFacade;
-import com.ssafy.srank.log.application.facade.SynthesisLogFacade;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.quest.application.service.UserQuestCardService;
 import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.rabbitmq.log.message.GoldLogMessage;
+import com.ssafy.srank.rabbitmq.log.message.SynthesisLogMessage;
 import com.ssafy.srank.rabbitmq.log.producer.GoldLogProducer;
+import com.ssafy.srank.rabbitmq.log.producer.SynthesisLogProducer;
 import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import com.ssafy.srank.synthesis.application.dto.request.SynthesisAttemptRequest;
 import com.ssafy.srank.synthesis.application.dto.request.SynthesisVerificationRequest;
@@ -70,13 +71,13 @@ public class SynthesisServiceImpl implements SynthesisService {
     private final SynthesisProperties synthesisProperties;
     private final SynthesisProofHelper synthesisProofHelper;
     private final EconomyLogFacade economyLogFacade;
-    private final SynthesisLogFacade synthesisLogFacade;
     private final SynthesisLogCommandFactory synthesisLogCommandFactory;
     private final SynthesisMetrics synthesisMetrics;
     private final BusinessExceptionMetrics businessExceptionMetrics;
     private final BlockchainRequestDispatchService blockchainRequestDispatchService;
     private final ApplicationEventPublisher eventPublisher;
     private final GoldLogProducer goldProducer;
+    private final SynthesisLogProducer synthesisLogProducer;
 
     @Override
     @Transactional
@@ -134,7 +135,7 @@ public class SynthesisServiceImpl implements SynthesisService {
                     savedResultCard
             );
 
-            Long synthesisLogId = synthesisLogFacade.record(synthesisLogCommandFactory.create(
+            var logCommand = synthesisLogCommandFactory.create(
                     userId,
                     cardIds,
                     savedResultCard,
@@ -148,11 +149,32 @@ public class SynthesisServiceImpl implements SynthesisService {
                     resultRoll,
                     resultDigest,
                     now
+            );
+            List<Long> sourceIds = logCommand.sourceUserCardIds();
+            synthesisLogProducer.sendSynthesisLogMessage(new SynthesisLogMessage(
+                    logCommand.userId(),
+                    logCommand.resultUserCardId(),
+                    logCommand.success(),
+                    logCommand.costGold(),
+                    sourceIds.size() > 0 ? sourceIds.get(0) : null,
+                    sourceIds.size() > 1 ? sourceIds.get(1) : null,
+                    sourceIds.size() > 2 ? sourceIds.get(2) : null,
+                    sourceIds.size() > 3 ? sourceIds.get(3) : null,
+                    sourceIds.size() > 4 ? sourceIds.get(4) : null,
+                    logCommand.sourceCardGrade(),
+                    logCommand.clientSeed(),
+                    logCommand.serverSeed(),
+                    logCommand.algorithmVersion(),
+                    logCommand.policyVersion(),
+                    logCommand.resultRoll(),
+                    logCommand.resultDigest(),
+                    logCommand.createdAt()
             ));
 
             blockchainRequestDispatchService.dispatchAfterCommit(BlockchainRequestMessage.forSynthesis(
-                    synthesisLogId,
                     user.getWalletAddress(),
+                    clientSeed,
+                    context.serverSeed(),
                     cardIds
             ));
 
