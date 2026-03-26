@@ -187,9 +187,43 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
         try {
             long gold;
 
-            if(request.questType().equals(QuestType.MAIN)){
+            if (request.questType().equals(QuestType.MAIN)) {
+                QuestDetailResponse mainQuestDetail = mainService.getUserMainQuestDetail(userId, request.questId());
+                String status = mainQuestDetail.getStatus();
+
+                if ("IN_PROGRESS".equals(status)) {
+                    // endAt 吏?ъ쑝硫??꾨즺 泥섎━
+                    if (mainQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
+                        completeQuest(userId, request.questId(), request.questType().toString());
+                    } else {
+                        throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // ?꾩쭅 吏꾪뻾 以?
+                    }
+                } else if ("COMPLETED".equals(status)) {
+                    // ?대? ?꾨즺???곹깭 ??諛붾줈 蹂댁긽?쇰줈
+                } else {
+                    // CLAIMED ?????먮윭
+                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
+                }
+
                 gold = mainService.claimRewardMainQuest(userId, request.questId());
-            }else{
+            } else {
+                QuestDetailResponse userSubQuestDetail = subService.getUserSubQuestDetail(userId, request.questId());
+                String status = userSubQuestDetail.getStatus();
+
+                if ("IN_PROGRESS".equals(status)) {
+                    // endAt 吏?ъ쑝硫??꾨즺 泥섎━
+                    if (userSubQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
+                        completeQuest(userId, request.questId(), request.questType().toString());
+                    } else {
+                        throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // ?꾩쭅 吏꾪뻾 以?
+                    }
+                } else if ("COMPLETED".equals(status)) {
+                    // ?대? ?꾨즺???곹깭 ??諛붾줈 蹂댁긽?쇰줈
+                } else {
+                    // CLAIMED ?????먮윭
+                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
+                }
+
                 gold = subService.claimRewardSubQuest(userId, request.questId());
             }
             userService.rewardGold(userId, gold, GoldLogReason.QUEST_REWARD);
@@ -218,66 +252,74 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
             questMetrics.recordRewardClaim(System.nanoTime() - startNanos, questType, result, errorCode);
         }
 
-        long gold;
+        if (false) {
+            long gold;
 
-        if (request.questType() == QuestType.MAIN) {
-            QuestDetailResponse mainQuestDetail = mainService.getUserMainQuestDetail(userId, request.questId());
-            String status = mainQuestDetail.getStatus();
+            if (request.questType() == QuestType.MAIN) {
+                QuestDetailResponse mainQuestDetail = mainService.getUserMainQuestDetail(userId, request.questId());
+                String status = mainQuestDetail.getStatus();
 
-            if ("IN_PROGRESS".equals(status)) {
-                // endAt 지났으면 완료 처리
-                if (mainQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
-                    completeQuest(userId, request.questId(), request.questType().toString());
+                if ("IN_PROGRESS".equals(status)) {
+                    // endAt 지났으면 완료 처리
+                    if (mainQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
+                        completeQuest(userId, request.questId(), request.questType().toString());
+                    } else {
+                        throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // 아직 진행 중
+                    }
+                } else if ("COMPLETED".equals(status)) {
+                    // 이미 완료된 상태 → 바로 보상으로
                 } else {
-                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // 아직 진행 중
+                    // CLAIMED 등 → 에러
+                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
                 }
-            } else if ("COMPLETED".equals(status)) {
-                // 이미 완료된 상태 → 바로 보상으로
+
+                gold = mainService.claimRewardMainQuest(userId, request.questId());
             } else {
-                // CLAIMED 등 → 에러
-                throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
+                QuestDetailResponse userSubQuestDetail = subService.getUserSubQuestDetail(userId, request.questId());
+                String status = userSubQuestDetail.getStatus();
+
+                if ("IN_PROGRESS".equals(status)) {
+                    // endAt 지났으면 완료 처리
+                    if (userSubQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
+                        completeQuest(userId, request.questId(), request.questType().toString());
+                    } else {
+                        throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // 아직 진행 중
+                    }
+                } else if ("COMPLETED".equals(status)) {
+                    // 이미 완료된 상태 → 바로 보상으로
+                } else {
+                    // CLAIMED 등 → 에러
+                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
+                }
+
+                gold = subService.claimRewardSubQuest(userId, request.questId());
             }
 
-            gold = mainService.claimRewardMainQuest(userId, request.questId());
-        } else {
-            QuestDetailResponse userSubQuestDetail = subService.getUserSubQuestDetail(userId, request.questId());
-            String status = userSubQuestDetail.getStatus();
-
-            if ("IN_PROGRESS".equals(status)) {
-                // endAt 지났으면 완료 처리
-                if (userSubQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
-                    completeQuest(userId, request.questId(), request.questType().toString());
-                } else {
-                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // 아직 진행 중
-                }
-            } else if ("COMPLETED".equals(status)) {
-                // 이미 완료된 상태 → 바로 보상으로
-            } else {
-                // CLAIMED 등 → 에러
-                throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
-            }
-
-            gold = subService.claimRewardSubQuest(userId, request.questId());
+            userService.rewardGold(userId, gold, GoldLogReason.QUEST_REWARD);
+            producer.sendQuestLogMessage(
+                    new QuestMessage(
+                            userId,
+                            request.questType().toString(),
+                            null,
+                            request.questId(),
+                            null,
+                            "REWARD",
+                            LocalDateTime.now()
+                    )
+            );
         }
-
-        userService.rewardGold(userId, gold, GoldLogReason.QUEST_REWARD);
-        producer.sendQuestLogMessage(
-                new QuestMessage(
-                        userId,
-                        request.questType().toString(),
-                        null,
-                        request.questId(),
-                        null,
-                        "REWARD",
-                        LocalDateTime.now()
-                )
-        );
     }
 
     @Transactional
     @Override
     public void completeQuest(Long userId, Long questId, String type) {
-        if(QuestType.valueOf(type.toUpperCase()) == QuestType.MAIN){
+        long startNanos = System.nanoTime();
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
+        String questType = MetricTagValues.text(type);
+
+        try {
+            if(QuestType.valueOf(type.toUpperCase()) == QuestType.MAIN){
             //진행중인 메인 퀘스트 상태 변경 (진행중->완료)
             mainService.completeMainQuest(userId, questId);
             //카드
@@ -308,6 +350,18 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
                         "COMPLETE",
                         LocalDateTime.now()
                 ));
+        } catch (BusinessException e) {
+            result = MetricTagValues.RESULT_FAILURE;
+            errorCode = e.getErrorCode().getCode();
+            businessExceptionMetrics.record("quest.complete", e);
+            throw e;
+        } catch (RuntimeException e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
+            throw e;
+        } finally {
+            questMetrics.recordComplete(System.nanoTime() - startNanos, questType, result, errorCode);
+        }
     }
 
     public List<Long> getUsedUserCardList(Long userId){
