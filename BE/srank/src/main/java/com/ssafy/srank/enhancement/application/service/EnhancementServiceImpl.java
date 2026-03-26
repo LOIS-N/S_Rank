@@ -1,5 +1,6 @@
 package com.ssafy.srank.enhancement.application.service;
 
+import com.ssafy.srank.blockchain.application.service.BlockchainRequestDispatchService;
 import com.ssafy.srank.card.application.dto.response.CursorPageResponse;
 import com.ssafy.srank.card.application.dto.response.UserCardResponse;
 import com.ssafy.srank.card.application.service.UserCardService;
@@ -17,16 +18,21 @@ import com.ssafy.srank.enhancement.application.dto.request.EnhancementRequest;
 import com.ssafy.srank.enhancement.application.dto.response.EnhanceResultResponse;
 import com.ssafy.srank.enhancement.domain.policy.EnhancePolicy;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.rabbitmq.log.message.EnhanceLogMessage;
 import com.ssafy.srank.rabbitmq.log.producer.EnhanceLogProducer;
 import com.ssafy.srank.ranking.application.event.UserCardStatChangedEvent;
+import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
 import com.ssafy.srank.user.application.service.UserService;
+import com.ssafy.srank.user.domain.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +45,7 @@ public class EnhancementServiceImpl implements EnhancementService {
     private final BusinessExceptionMetrics businessExceptionMetrics;
     private final EnhanceLogProducer producer;
     private final ApplicationEventPublisher eventPublisher;
+    private final BlockchainRequestDispatchService blockchainRequestDispatchService;
 
     @Override
     public CursorPageResponse<UserCardResponse> getEnhancementCardList(
@@ -102,6 +109,14 @@ public class EnhancementServiceImpl implements EnhancementService {
             } else {
                 response = fail(userId, request, userCardDetail, policy);
             }
+
+            String userWallet = userService.getWalletAddress(userId);
+            blockchainRequestDispatchService.dispatchAfterCommit(BlockchainRequestMessage.forEnhance(
+                    request.getClientSeed(),
+                    context.serverSeed(),
+                    userWallet,
+                    List.of(request.getCardId())
+            ));
 
             enhancementMetrics.recordGoldSpent(grade, policy.costGold);
             return response;

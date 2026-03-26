@@ -55,6 +55,25 @@ public record BlockchainRequestMessage(
         );
     }
 
+    public static BlockchainRequestMessage forEnhance(
+            String clientSeed,
+            String serverSeed,
+            String walletAddress,
+            List<Long> consumedCardIds
+    ) {
+        return new BlockchainRequestMessage(
+                BlockchainEventType.ENHANCE,
+                null,
+                walletAddress,
+                clientSeed,
+                serverSeed,
+                null,
+                null,
+                consumedCardIds,
+                0
+        );
+    }
+
     public BlockchainRequestMessage incrementRetry() {
         return new BlockchainRequestMessage(
                 eventType,

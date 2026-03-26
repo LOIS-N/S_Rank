@@ -72,4 +72,18 @@ public class LedgerWriteService {
     private interface ReceiptSupplier {
         TransactionReceipt send() throws Exception;
     }
+
+    public String recordEnhance(
+            String walletAddress,
+            String serverSeed,
+            String clientSeed
+
+    ) throws Exception {
+        TransactionReceipt receipt = ledger.recordEnhancement(
+                walletAddress,
+                serverSeed,
+                clientSeed
+        ).send();
+        return receipt.getTransactionHash();
+    }
 }
