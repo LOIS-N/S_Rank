@@ -3,6 +3,8 @@ package com.ssafy.srank.security;
 import com.ssafy.srank.auth.application.service.PrivyTokenService;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.common.metrics.AuthMetrics;
+import com.ssafy.srank.common.metrics.MetricTagValues;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
@@ -27,6 +29,7 @@ public class PrivyAuthenticationFilter extends OncePerRequestFilter {
     private final PrivyTokenService privyTokenService;
     private final UserRepository userRepository;
     private final HandlerExceptionResolver handlerExceptionResolver;
+    private final AuthMetrics authMetrics;
 
     @Value("${dev.backdoor.token:}")
     private String backdoorToken;
@@ -49,10 +52,14 @@ public class PrivyAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        long startNanos = System.nanoTime();
         String authHeader = request.getHeader("Authorization");
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
 
         try {
             if (!backdoorToken.isEmpty() && ("Bearer " + backdoorToken).equals(authHeader)) {
+                result = "backdoor";
                 CurrentUserPrincipal principal = new CurrentUserPrincipal(backdoorUserId, "dev-backdoor");
                 SecurityContextHolder.getContext().setAuthentication(
                         new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList())
@@ -79,8 +86,16 @@ public class PrivyAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(request, response);
         } catch (BusinessException e) {
+            result = MetricTagValues.RESULT_FAILURE;
+            errorCode = e.getErrorCode().getCode();
             SecurityContextHolder.clearContext();
             handlerExceptionResolver.resolveException(request, response, null, e);
+        } catch (ServletException | IOException | RuntimeException e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
+            throw e;
+        } finally {
+            authMetrics.recordFilter(System.nanoTime() - startNanos, result, errorCode);
         }
     }
 }

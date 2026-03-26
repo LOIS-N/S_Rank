@@ -2,6 +2,9 @@ package com.ssafy.srank.rabbitmq.blockchain.consumer;
 
 import com.ssafy.srank.blockchain.application.service.LedgerWriteService;
 import com.ssafy.srank.blockchain.config.BlockchainProperties;
+import com.ssafy.srank.common.metrics.BlockchainMetrics;
+import com.ssafy.srank.common.metrics.MetricTagValues;
+import com.ssafy.srank.common.metrics.RabbitMqMetrics;
 import com.ssafy.srank.log.application.facade.GachaLogFacade;
 import com.ssafy.srank.log.application.facade.SynthesisLogFacade;
 import com.ssafy.srank.log.domain.enums.BlockchainStatus;
@@ -25,9 +28,15 @@ public class BlockchainRequestConsumer {
     private final BlockchainProperties blockchainProperties;
     private final GachaLogFacade gachaLogFacade;
     private final SynthesisLogFacade synthesisLogFacade;
+    private final RabbitMqMetrics rabbitMqMetrics;
+    private final BlockchainMetrics blockchainMetrics;
 
     @RabbitListener(queues = RabbitMqConfig.BLOCKCHAIN_QUEUE)
     public void handle(BlockchainRequestMessage message) {
+        long startNanos = System.nanoTime();
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
+
         try {
             LedgerWriteService ledgerWriteService = ledgerWriteServiceProvider.getIfAvailable();
             if (ledgerWriteService == null || !blockchainProperties.isConfigured()) {
@@ -40,17 +49,29 @@ public class BlockchainRequestConsumer {
                         message.serverSeed(),
                         message.clientSeed(),
                         message.count(),
-                        message.gachaType()
+                        message.gachaType(),
+                        message.retryCount() + 1
                 );
                 case SYNTHESIS -> ledgerWriteService.recordSynthesis(
                         message.walletAddress(),
-                        message.consumedCardIds()
+                        message.consumedCardIds(),
+                        message.retryCount() + 1
                 );
             };
 
             markSuccess(message, txHash);
         } catch (Exception e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
             handleFailure(message, e);
+        } finally {
+            rabbitMqMetrics.recordConsume(
+                    System.nanoTime() - startNanos,
+                    RabbitMqConfig.BLOCKCHAIN_QUEUE,
+                    message.getClass().getSimpleName(),
+                    result,
+                    errorCode
+            );
         }
     }
 
@@ -61,8 +82,18 @@ public class BlockchainRequestConsumer {
         if (message.retryCount() < blockchainProperties.getRetryMax()) {
             try {
                 blockchainRequestProducer.send(message.incrementRetry());
+                blockchainMetrics.recordRetry(
+                        MetricTagValues.enumName(message.eventType()),
+                        MetricTagValues.number(message.retryCount() + 1),
+                        MetricTagValues.RESULT_SUCCESS
+                );
                 return;
             } catch (RuntimeException publishException) {
+                blockchainMetrics.recordRetry(
+                        MetricTagValues.enumName(message.eventType()),
+                        MetricTagValues.number(message.retryCount() + 1),
+                        MetricTagValues.RESULT_ERROR
+                );
                 log.error("failed to republish blockchain request eventType={} logIds={} retryCount={}",
                         message.eventType(), message.logIds(), message.retryCount(), publishException);
             }

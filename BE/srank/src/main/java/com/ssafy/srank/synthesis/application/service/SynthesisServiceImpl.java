@@ -12,6 +12,9 @@ import com.ssafy.srank.common.cardcreation.CardCreationService;
 import com.ssafy.srank.common.cardcreation.CreatedCardDraft;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.common.metrics.BusinessExceptionMetrics;
+import com.ssafy.srank.common.metrics.MetricTagValues;
+import com.ssafy.srank.common.metrics.SynthesisMetrics;
 import com.ssafy.srank.common.probablyfair.application.service.ProbablyFairService;
 import com.ssafy.srank.common.probablyfair.domain.ProbablyFairContext;
 import com.ssafy.srank.common.probablyfair.domain.ProbablyFairPurpose;
@@ -36,10 +39,10 @@ import com.ssafy.srank.user.repository.UserRepository;
 import jakarta.persistence.LockTimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.dao.QueryTimeoutException;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,6 +72,8 @@ public class SynthesisServiceImpl implements SynthesisService {
     private final EconomyLogFacade economyLogFacade;
     private final SynthesisLogFacade synthesisLogFacade;
     private final SynthesisLogCommandFactory synthesisLogCommandFactory;
+    private final SynthesisMetrics synthesisMetrics;
+    private final BusinessExceptionMetrics businessExceptionMetrics;
     private final BlockchainRequestDispatchService blockchainRequestDispatchService;
     private final ApplicationEventPublisher eventPublisher;
     private final GoldLogProducer goldProducer;
@@ -76,16 +81,23 @@ public class SynthesisServiceImpl implements SynthesisService {
     @Override
     @Transactional
     public SynthesisAttemptResponse attempt(Long userId, SynthesisAttemptRequest request) {
+        long startNanos = System.nanoTime();
+        String sourceGradeTag = MetricTagValues.VALUE_UNKNOWN;
+        String cardCountTag = MetricTagValues.VALUE_UNKNOWN;
+        String result = MetricTagValues.RESULT_FAILURE;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
+
         try {
             List<Long> cardIds = validateDistinctCardIds(request.getCardIds());
+            cardCountTag = MetricTagValues.number(cardIds.size());
             String clientSeed = request.getClientSeed().trim();
 
             User user = getLockedActiveUser(userId);
             List<UserCard> sourceCards = loadLockedSourceCards(userId, cardIds);
-
             userQuestCardService.validateCardsAvailable(userId, cardIds);
 
             CardGrade sourceGrade = validateSourceGrade(sourceCards);
+            sourceGradeTag = MetricTagValues.enumName(sourceGrade);
             synthesisProperties.validateCardCount(sourceGrade, cardIds.size());
 
             int costGold = synthesisProperties.getCostGold(sourceGrade);
@@ -95,7 +107,6 @@ public class SynthesisServiceImpl implements SynthesisService {
 
             LocalDateTime now = LocalDateTime.now();
             user.decreaseGold((long) costGold);
-
             goldProducer.sendGoldLogMessage(new GoldLogMessage(
                     userId,
                     -costGold,
@@ -107,6 +118,7 @@ public class SynthesisServiceImpl implements SynthesisService {
             ProbablyFairContext context = probablyFairService.issueContext();
             int resultRoll = rollResult(clientSeed, context);
             boolean success = isSuccess(sourceGrade, cardIds.size(), resultRoll);
+            result = success ? MetricTagValues.RESULT_SUCCESS : MetricTagValues.RESULT_FAILURE;
             CardGrade resultGrade = success ? synthesisProperties.getSuccessGrade(sourceGrade) : sourceGrade;
 
             sourceCards.forEach(card -> card.consumeForSynthesis(now));
@@ -114,6 +126,7 @@ public class SynthesisServiceImpl implements SynthesisService {
             CreatedCardDraft createdCard = createResultCard(userId, resultGrade, clientSeed, context);
             UserCard savedResultCard = userCardRepository.save(createdCard.userCard());
             eventPublisher.publishEvent(new UserCardsChangedEvent(userId));
+
             String resultDigest = synthesisProofHelper.buildResultDigest(
                     sourceGrade,
                     cardIds.size(),
@@ -153,11 +166,22 @@ public class SynthesisServiceImpl implements SynthesisService {
                     user.getGold(),
                     synthesisProofHelper.createProof(context, clientSeed)
             );
+        } catch (BusinessException e) {
+            errorCode = e.getErrorCode().getCode();
+            businessExceptionMetrics.record("synthesis.attempt", e);
+            throw e;
         } catch (RuntimeException e) {
             if (isLockConflict(e)) {
+                synthesisMetrics.recordLockConflict(sourceGradeTag);
+                errorCode = ErrorCode.SYNTHESIS_VRF_FAILED.getCode();
                 throw new BusinessException(ErrorCode.SYNTHESIS_VRF_FAILED);
             }
+
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
             throw e;
+        } finally {
+            synthesisMetrics.recordAttempt(System.nanoTime() - startNanos, sourceGradeTag, cardCountTag, result, errorCode);
         }
     }
 
@@ -176,7 +200,6 @@ public class SynthesisServiceImpl implements SynthesisService {
         CardGrade resultGrade = success ? synthesisProperties.getSuccessGrade(request.getSourceGrade()) : request.getSourceGrade();
 
         CreatedCardDraft createdCard = createResultCard(null, resultGrade, clientSeed, context);
-
         synthesisProofHelper.buildResultDigest(
                 request.getSourceGrade(),
                 request.getCardCount(),
@@ -284,6 +307,7 @@ public class SynthesisServiceImpl implements SynthesisService {
         );
     }
 
+    // 카드 생성 roll purpose를 합성 전용 namespace로 바꿔서 추후 분석 시 섞이지 않게 한다.
     private ProbablyFairPurpose mapPurpose(CardGrade grade, String purpose) {
         if (purpose.equals(CardCreationPurpose.template(grade))) {
             return ProbablyFairPurpose.of("SYNTHESIS_TEMPLATE_" + grade.name());

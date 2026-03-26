@@ -1,27 +1,38 @@
 package com.ssafy.srank.card.application.service;
 
 import com.ssafy.srank.card.application.dto.request.DeleteCardRequest;
-import com.ssafy.srank.card.application.dto.response.*;
-import com.ssafy.srank.card.domain.entity.UserCard;
+import com.ssafy.srank.card.application.dto.response.CardSkillResponse;
+import com.ssafy.srank.card.application.dto.response.CursorPageResponse;
+import com.ssafy.srank.card.application.dto.response.SpecialAbilityResponse;
+import com.ssafy.srank.card.application.dto.response.SpecialSkillEffectResponse;
+import com.ssafy.srank.card.application.dto.response.UserCardCursor;
+import com.ssafy.srank.card.application.dto.response.UserCardFlatResponse;
+import com.ssafy.srank.card.application.dto.response.UserCardResponse;
 import com.ssafy.srank.card.domain.entity.SpecialSkillTemplate;
+import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.domain.enums.PositionType;
 import com.ssafy.srank.card.domain.enums.SortType;
-import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import com.ssafy.srank.card.repository.SpecialSkillTemplateRepository;
 import com.ssafy.srank.card.repository.UserCardQueryRepository;
 import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
-import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
-import com.ssafy.srank.quest.application.service.QuestFacadeService;
+import com.ssafy.srank.common.metrics.BusinessExceptionMetrics;
+import com.ssafy.srank.common.metrics.CardMetrics;
+import com.ssafy.srank.common.metrics.MetricTagValues;
 import com.ssafy.srank.quest.application.service.UserQuestCardService;
+import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Base64;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +46,8 @@ public class UserCardServiceImpl implements UserCardService {
     private final SpecialSkillTemplateRepository specialSkillTemplateRepository;
     private final UserQuestCardService userQuestCardService;
     private final ApplicationEventPublisher eventPublisher;
+    private final CardMetrics cardMetrics;
+    private final BusinessExceptionMetrics businessExceptionMetrics;
 
     @Transactional(readOnly = true)
     @Override
@@ -56,18 +69,14 @@ public class UserCardServiceImpl implements UserCardService {
         boolean hasMore = rows.size() > fetchLimit;
         List<UserCardFlatResponse> page = hasMore ? rows.subList(0, fetchLimit) : rows;
 
-        // specialSkillTemplateId 모아서 한 번에 조회
         Set<Long> skillIds = page.stream()
                 .map(UserCardFlatResponse::specialSkillTemplateId)
                 .filter(id -> id != null)
                 .collect(Collectors.toSet());
 
-        Map<Long, SpecialAbilityResponse> specialAbilityMap = specialSkillTemplateRepository
-                .findAllById(skillIds).stream()
-                .collect(Collectors.toMap(
-                        SpecialSkillTemplate::getId,
-                        this::toSpecialAbilityResponse
-                ));
+        Map<Long, SpecialAbilityResponse> specialAbilityMap = specialSkillTemplateRepository.findAllById(skillIds)
+                .stream()
+                .collect(Collectors.toMap(SpecialSkillTemplate::getId, this::toSpecialAbilityResponse));
 
         List<UserCardResponse> cards = page.stream()
                 .map(flat -> flat.toResponse(
@@ -78,10 +87,9 @@ public class UserCardServiceImpl implements UserCardService {
                 .toList();
 
         String nextCursor = hasMore ? encodeCursor(page.get(page.size() - 1)) : null;
-
-        int totalCnt;
-        if(isEnhance) totalCnt = userCardRepository.countByUserIdAndIsDeletedFalseAndEnhanceTryCountLessThan(userId, 7);
-        else totalCnt = userCardRepository.countByUserIdAndIsDeletedFalse(userId);
+        int totalCnt = isEnhance
+                ? userCardRepository.countByUserIdAndIsDeletedFalseAndEnhanceTryCountLessThan(userId, 7)
+                : userCardRepository.countByUserIdAndIsDeletedFalse(userId);
 
         return new CursorPageResponse<>(cards, nextCursor, hasMore, totalCnt);
     }
@@ -114,34 +122,49 @@ public class UserCardServiceImpl implements UserCardService {
 
     @Override
     public void applyEnhanceSuccess(Long userId, Long cardId, int value1, int value2, int value3) {
-        UserCard userCard = userCardRepository.findByIdAndUserIdAndIsDeletedFalse(cardId, userId).orElseThrow(
-                ()-> new BusinessException(ErrorCode.CARD_NOT_FOUND));
+        UserCard userCard = userCardRepository.findByIdAndUserIdAndIsDeletedFalse(cardId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
         userCard.applyEnhanceSuccess(value1, value2, value3);
     }
 
     @Override
     public void applyEnhanceFail(Long userId, Long cardId) {
-        UserCard userCard = userCardRepository.findByIdAndUserIdAndIsDeletedFalse(cardId, userId).orElseThrow(
-                ()-> new BusinessException(ErrorCode.CARD_NOT_FOUND));
+        UserCard userCard = userCardRepository.findByIdAndUserIdAndIsDeletedFalse(cardId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
         userCard.applyEnhanceFail();
     }
 
     @Transactional
     @Override
     public void deleteCard(Long userId, DeleteCardRequest request) {
-        //진행중인 퀘스트 있는 경우 No
-        Set<Long> usedSet = new HashSet<>(userQuestCardService.getUsedCardList(userId));
-        boolean hasUsedCard = request.cards().stream()
-                .anyMatch(usedSet::contains);
-        if (hasUsedCard) {
-            throw new BusinessException(ErrorCode.CARD_IN_USE_CANNOT_DELETE);
-        }
-        List<UserCard> cardList = userCardRepository.findAllActiveByUserIdAndIdInForUpdate(userId, request.cards());
-        cardList.forEach(card -> card.softDelete(LocalDateTime.now()));
-        eventPublisher.publishEvent(new UserCardsChangedEvent(userId));
-    }
+        long startNanos = System.nanoTime();
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
 
-    // ── specialAbility 변환 ───────────────────────────────────────────────────
+        try {
+            Set<Long> usedSet = new HashSet<>(userQuestCardService.getUsedCardList(userId));
+            boolean hasUsedCard = request.cards().stream().anyMatch(usedSet::contains);
+            if (hasUsedCard) {
+                throw new BusinessException(ErrorCode.CARD_IN_USE_CANNOT_DELETE);
+            }
+
+            List<UserCard> cardList = userCardRepository.findAllActiveByUserIdAndIdInForUpdate(userId, request.cards());
+            cardList.forEach(card -> card.softDelete(LocalDateTime.now()));
+            cardMetrics.recordDeletedCards(cardList.size());
+            eventPublisher.publishEvent(new UserCardsChangedEvent(userId));
+        } catch (BusinessException e) {
+            result = MetricTagValues.RESULT_FAILURE;
+            errorCode = e.getErrorCode().getCode();
+            businessExceptionMetrics.record("card.delete", e);
+            throw e;
+        } catch (RuntimeException e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
+            throw e;
+        } finally {
+            cardMetrics.recordDelete(System.nanoTime() - startNanos, result, errorCode);
+        }
+    }
 
     private SpecialAbilityResponse toSpecialAbilityResponse(SpecialSkillTemplate template) {
         List<SpecialSkillEffectResponse> effects = template.getEffects().stream()
@@ -157,14 +180,8 @@ public class UserCardServiceImpl implements UserCardService {
                         e.getPriority()
                 ))
                 .toList();
-        return new SpecialAbilityResponse(
-                template.getSkillName(),
-                template.getDescription(),
-                effects
-        );
+        return new SpecialAbilityResponse(template.getSkillName(), template.getDescription(), effects);
     }
-
-    // ── cursor 인코딩/디코딩 ──────────────────────────────────────────────────
 
     private String encodeCursor(UserCardFlatResponse last) {
         int gradePriority = toGradePriority(last.grade());
@@ -174,7 +191,9 @@ public class UserCardServiceImpl implements UserCardService {
     }
 
     private UserCardCursor decodeCursor(String token) {
-        if (token == null || token.isBlank()) return null;
+        if (token == null || token.isBlank()) {
+            return null;
+        }
         try {
             String raw = new String(Base64.getDecoder().decode(token));
             String[] parts = raw.split(":");

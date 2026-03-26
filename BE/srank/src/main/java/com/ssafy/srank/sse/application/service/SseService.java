@@ -1,5 +1,9 @@
 package com.ssafy.srank.sse.application.service;
 
+import com.ssafy.srank.common.metrics.MetricTagValues;
+import com.ssafy.srank.common.metrics.SseMetrics;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -11,85 +15,92 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class SseService {
 
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
+    private final SseMetrics sseMetrics;
+
+    @PostConstruct
+    void bindMetrics() {
+        sseMetrics.bindConnectionGauge(emitters::size);
+    }
 
     public SseEmitter connect(Long userId) {
-        log.debug("[SSE] 연결 요청 - userId={}, 현재 연결 수={}", userId, emitters.size());
+        log.debug("[SSE] connect request userId={} connections={}", userId, emitters.size());
 
-        SseEmitter emitter = new SseEmitter(60L * 60 * 1000); // 1시간
+        SseEmitter emitter = new SseEmitter(60L * 60 * 1000);
         emitters.put(userId, emitter);
+        sseMetrics.recordConnection("connect", MetricTagValues.RESULT_SUCCESS);
 
-        // 연결 종료 콜백
         emitter.onCompletion(() -> {
             emitters.remove(userId);
-            log.debug("[SSE] 연결 완료(onCompletion) - userId={}", userId);
+            sseMetrics.recordConnection("completion", MetricTagValues.RESULT_SUCCESS);
+            log.debug("[SSE] completion userId={}", userId);
         });
 
-        // 타임아웃 콜백
         emitter.onTimeout(() -> {
             emitters.remove(userId);
-            log.debug("[SSE] 연결 타임아웃(onTimeout) - userId={}", userId);
+            sseMetrics.recordConnection("timeout", MetricTagValues.RESULT_SUCCESS);
+            log.debug("[SSE] timeout userId={}", userId);
         });
 
-        // 에러 콜백
-        emitter.onError((e) -> {
+        emitter.onError(e -> {
             emitters.remove(userId);
-            log.debug("[SSE] 연결 에러(onError) - userId={}, error={}", userId, e.getMessage());
+            sseMetrics.recordConnection("error", MetricTagValues.RESULT_ERROR);
+            log.debug("[SSE] error userId={} error={}", userId, e.getMessage());
         });
 
+        long startNanos = System.nanoTime();
         try {
-            emitter.send(SseEmitter.event()
-                    .name("connect")
-                    .data("SSE connected"));
-            log.debug("[SSE] 초기 connect 이벤트 전송 완료 - userId={}, 현재 연결 수={}", userId, emitters.size());
+            emitter.send(SseEmitter.event().name("connect").data("SSE connected"));
+            sseMetrics.recordSend("connect", MetricTagValues.RESULT_SUCCESS, System.nanoTime() - startNanos);
+            log.debug("[SSE] initial connect event sent userId={}", userId);
         } catch (IOException e) {
             emitters.remove(userId);
-            log.warn("[SSE] 초기 connect 이벤트 전송 실패 - userId={}, error={}", userId, e.getMessage());
+            sseMetrics.recordSend("connect", MetricTagValues.RESULT_ERROR, System.nanoTime() - startNanos);
+            log.warn("[SSE] initial connect event failed userId={} error={}", userId, e.getMessage());
         }
 
         return emitter;
     }
 
     public void sendToUser(Long userId, String eventName, Object data) {
+        long startNanos = System.nanoTime();
         SseEmitter emitter = emitters.get(userId);
         if (emitter == null) {
-            // 연결되지 않은 유저에게 이벤트 전송 시도 (정상 케이스일 수 있으나 추적용으로 WARN)
-            log.warn("[SSE] 전송 대상 emitter 없음 (미연결 유저) - userId={}, eventName={}", userId, eventName);
+            sseMetrics.recordSend(eventName, MetricTagValues.RESULT_IGNORED, System.nanoTime() - startNanos);
+            log.warn("[SSE] missing emitter userId={} event={}", userId, eventName);
             return;
         }
 
-        log.debug("[SSE] 이벤트 전송 시도 - userId={}, eventName={}", userId, eventName);
-
         try {
-            emitter.send(SseEmitter.event()
-                    .name(eventName)
-                    .data(data));
-            log.debug("[SSE] 이벤트 전송 완료 - userId={}, eventName={}", userId, eventName);
+            emitter.send(SseEmitter.event().name(eventName).data(data));
+            sseMetrics.recordSend(eventName, MetricTagValues.RESULT_SUCCESS, System.nanoTime() - startNanos);
+            log.debug("[SSE] event sent userId={} event={}", userId, eventName);
         } catch (IOException e) {
             emitters.remove(userId);
-            log.warn("[SSE] 이벤트 전송 실패, emitter 제거 - userId={}, eventName={}, error={}", userId, eventName, e.getMessage());
+            sseMetrics.recordSend(eventName, MetricTagValues.RESULT_ERROR, System.nanoTime() - startNanos);
+            log.warn("[SSE] event send failed userId={} event={} error={}", userId, eventName, e.getMessage());
         }
     }
 
     @Scheduled(fixedRate = 30000)
     public void sendHeartbeat() {
-        log.debug("[SSE] Heartbeat 전송 시작 - 대상 수={}", emitters.size());
-
-        // keySet() 복사 후 순회 — 전송 실패 시 emitters에서 제거해도 순회에 영향 없음
         for (Long userId : emitters.keySet()) {
             SseEmitter emitter = emitters.get(userId);
-            if (emitter == null) continue;
+            if (emitter == null) {
+                continue;
+            }
+
+            long startNanos = System.nanoTime();
             try {
-                emitter.send(
-                        SseEmitter.event()
-                                .name("heartbeat")
-                                .data("ping")
-                );
+                emitter.send(SseEmitter.event().name("heartbeat").data("ping"));
+                sseMetrics.recordSend("heartbeat", MetricTagValues.RESULT_SUCCESS, System.nanoTime() - startNanos);
             } catch (IOException e) {
                 emitters.remove(userId);
-                log.warn("[SSE] Heartbeat 전송 실패, emitter 제거 - userId={}, error={}", userId, e.getMessage());
+                sseMetrics.recordSend("heartbeat", MetricTagValues.RESULT_ERROR, System.nanoTime() - startNanos);
+                log.warn("[SSE] heartbeat failed userId={} error={}", userId, e.getMessage());
             }
         }
     }
