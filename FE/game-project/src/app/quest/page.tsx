@@ -96,6 +96,13 @@ function displaySkillType(type: string): string {
   return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
 }
 
+// BE에서 초 단위로 받은 duration을 표시용 문자열로 변환
+// 60초 미만 → "N초", 60초 이상 → "N분"
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)}초`;
+  return `${Math.round(seconds / 60)}분`;
+}
+
 // DEV / Dev / DEVOPS / DevOps 를 모두 동일 타입으로 정규화
 function normalizeSkillType(type: string): string {
   const upper = type.toUpperCase();
@@ -289,7 +296,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
         <NineSliceBox src={`${ASSET_BASE}/assets/003-01/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={20} borderScale={0.35} className="quest-info-box">
           <div className="quest-info-box-label">예상 시간 / 보상</div>
           <div className="quest-info-box-text">
-            <div>예상 시간 : {quest.durationMinutes}분</div>
+            <div>예상 시간 : {formatDuration(quest.durationMinutes)}</div>
             <div>예상 보상 : {quest.rewardGold.toLocaleString()}G</div>
           </div>
         </NineSliceBox>
@@ -673,12 +680,12 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       const token = await getAuthToken();
       const type = quest.isMain ? 'main' : 'sub';
       const targetDeskId = beDeskTemplateId ?? (selectingDeskId !== null ? selectingDeskId + 1 : 1);
-      const durationMinutes = Math.min(estimatedTime ?? quest.durationMinutes, quest.durationMinutes);
+      const durationSeconds = Math.min(estimatedTime ?? quest.durationMinutes, quest.durationMinutes);
 
       const res = await api.post(`/api/v1/quests/${type}/${quest.questId}/start`, {
         deskId: targetDeskId,
         cardIds: selectedCards,
-        duration: durationMinutes * 60,  // 소요 시간 (초)
+        duration: durationSeconds,  // 소요 시간 (초) — BE가 초 단위로 제공
       }, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -699,7 +706,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       // FE 인덱스(0~4)로 store 업데이트, BE 템플릿 ID(1~5)와 혼용 방지
       const feDeskIndex = selectingDeskId ?? 0;
       const userQuestId = res.data.data as number;
-      startQuest(feDeskIndex, durationMinutes * 60, rewardInfo.reward, quest.title, userQuestId, type as 'main' | 'sub');
+      startQuest(feDeskIndex, durationSeconds, rewardInfo.reward, quest.title, userQuestId, type as 'main' | 'sub');
       router.push('/');
     } catch (err: unknown) {
       const e = err as { response?: { status?: number; data?: { message?: string; code?: string; error?: { message?: string; code?: string } } }; message?: string };
@@ -712,8 +719,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       });
       const errCode = errData?.error?.code || errData?.code;
       if (errCode === 'Q006') {
-        const hardcapMinutes = quest.durationMinutes * 2;
-        setHardcapMessage(`프로젝트에 진행할 인원들의 능력치가 생각보다 낮습니다. ${hardcapMinutes}분을 뛰어 넘어야 퀘스트 수주가 가능합니다!`);
+        setHardcapMessage(`프로젝트에 진행할 인원들의 능력치가 생각보다 낮습니다. ${formatDuration(quest.durationMinutes * 2)}을 뛰어 넘어야 퀘스트 수주가 가능합니다!`);
       } else if (errCode === 'Q007') {
         setWarningMessage('프로젝트를 시작할 수 있는 부서가 없습니다.');
       } else {
@@ -1073,7 +1079,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
           <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
             <div className="quest-info-box-label">예상 시간 / 보상</div>
             <div className="quest-info-box-text">
-              <div>예상 시간 : {estimatedTime != null ? `${estimatedTime}분` : `${quest.durationMinutes}분`}</div>
+              <div>예상 시간 : {formatDuration(estimatedTime ?? quest.durationMinutes)}</div>
               <div>예상 보상 : {rewardInfo.reward.toLocaleString()}G</div>
             </div>
           </NineSliceBox>
