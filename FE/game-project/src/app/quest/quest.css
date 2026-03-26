@@ -430,8 +430,6 @@
 /* 수락하기 버튼 */
 .quest-accept-button {
   cursor: pointer;
-  padding: 12px 0;
-  /* 8px -> 12px */
   text-align: center;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
@@ -440,8 +438,7 @@
   text-shadow: none;
   transition: transform 0.15s ease, filter 0.15s ease;
   flex-shrink: 0;
-  min-height: 72px;
-  /* 54px -> 72px */
+  min-height: 84px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -984,12 +981,15 @@
   display: flex;
   gap: 16px;
   flex: 0 0 84px;
+  align-items: stretch;
 }
 
 .phase2-btn-cancel,
 .phase2-btn-accept,
 .phase2-btn-auto {
   flex: 1;
+  min-width: 0;
+  height: 84px;
   display: flex;
   cursor: pointer;
   font-family: 'StardustS', 'Stardust', sans-serif;

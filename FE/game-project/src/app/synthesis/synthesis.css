@@ -626,11 +626,15 @@
   display: flex;
   gap: 16px;
   flex: 0 0 84px;
+  align-items: stretch;
+  justify-content: center;
 }
 
 .synthesis-btn-cancel,
 .synthesis-btn-accept {
-  flex: 1;
+  flex: 0 0 150px;
+  width: 150px;
+  height: 84px;
   display: flex;
   cursor: pointer;
   font-family: 'StardustS', 'Stardust', sans-serif;
@@ -638,6 +642,19 @@
   font-size: 26px;
   color: #2a2a40;
   transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+/* 합성 결과 확인 버튼 */
+.synthesis-result-panel .synthesis-action-buttons {
+  flex: 0 0 96px;
+  justify-content: center;
+}
+
+.synthesis-result-panel .synthesis-btn-accept {
+  flex: 0 0 220px;
+  width: 220px;
+  height: 96px;
+  font-size: 28px;
 }
 
 .synthesis-btn-cancel .nineslice-content,
