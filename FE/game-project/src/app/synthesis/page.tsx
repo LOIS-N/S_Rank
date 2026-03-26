@@ -375,7 +375,7 @@ export default function SynthesisPage() {
 
     const { min, max } = getRequiredCardCount(autoGrade);
     const clampedCount = Math.min(Math.max(autoCount, min), max);
-    const gradeCards = cards.filter(c => c.grade === autoGrade);
+    const gradeCards = cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId));
 
     if (gradeCards.length < clampedCount) {
       alert(`${autoGrade}등급 카드가 ${clampedCount}장 이상 필요합니다. (현재 ${gradeCards.length}장)`);
@@ -742,7 +742,7 @@ export default function SynthesisPage() {
                 <button
                   className={`synthesis-tab-btn${synthMode === 'manual' ? ' active' : ''}`}
                   onClick={() => setSynthMode('manual')}
-                >수동 합성</button>
+                >수동 선택</button>
                 <button
                   className={`synthesis-tab-btn${synthMode === 'auto' ? ' active' : ''}`}
                   onClick={() => setSynthMode('auto')}
@@ -860,7 +860,7 @@ export default function SynthesisPage() {
                     </div>
                     <div className="synthesis-drop-cards">
                       {(() => {
-                        const gradeCards = cards.filter(c => c.grade === autoGrade);
+                        const gradeCards = cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId));
                         const total = getRequiredCardCount(autoGrade).max;
                         const cardWidth = total <= 2 ? 100 : total === 3 ? 130 : total === 4 ? 110 : 95;
                         const overlap = total <= 2 ? -10 : total === 3 ? -20 : total === 4 ? -25 : -30;
@@ -947,7 +947,7 @@ export default function SynthesisPage() {
                       slice={[200, 208, 200, 208]}
                       framePadding={14}
                       borderScale={0.4}
-                      className={`synthesis-btn-accept ${isSynthesizing || cards.filter(c => c.grade === autoGrade).length < autoCount ? 'disabled' : ''}`}
+                      className={`synthesis-btn-accept ${isSynthesizing || cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId)).length < autoCount ? 'disabled' : ''}`}
                       style={{ flex: 1 }}
                       onClick={handleAutoSynthesize}
                     >
