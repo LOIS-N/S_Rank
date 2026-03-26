@@ -24,8 +24,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     protected ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
-        log.warn("[BusinessException] code={}, message={}", e.getErrorCode().getCode(), e.getMessage(), e);
         ErrorCode errorCode = e.getErrorCode();
+        if (errorCode == ErrorCode.TOKEN_EXPIRED) {
+            log.debug("[BusinessException] code={}, message={}", errorCode.getCode(), e.getMessage());
+        } else {
+            log.warn("[BusinessException] code={}, message={}", errorCode.getCode(), e.getMessage(), e);
+        }
         return ResponseEntity
                 .status(errorCode.getHttpStatus())
                 .body(ApiResponse.fail(errorCode));
