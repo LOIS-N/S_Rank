@@ -3,6 +3,9 @@ package com.ssafy.srank.quest.application.service;
 import com.ssafy.srank.card.application.service.UserCardService;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.common.metrics.BusinessExceptionMetrics;
+import com.ssafy.srank.common.metrics.MetricTagValues;
+import com.ssafy.srank.common.metrics.QuestMetrics;
 import com.ssafy.srank.desk.application.service.DeskService;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.quest.application.dto.request.CompleteQuestRequest;
@@ -10,6 +13,9 @@ import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
 import com.ssafy.srank.quest.application.dto.request.QuestDateTimeRequest;
 import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
+import com.ssafy.srank.quest.domain.entity.QuestType;
+import com.ssafy.srank.quest.domain.entity.UserMainQuest;
+import com.ssafy.srank.quest.domain.entity.UserSubQuest;
 import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.domain.entity.*;
 import com.ssafy.srank.rabbitmq.log.message.QuestMessage;
@@ -43,6 +49,8 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
     private final UserCardService userCardService;
     private final DeskService deskService;
     private final UserService userService;
+    private final QuestMetrics questMetrics;
+    private final BusinessExceptionMetrics businessExceptionMetrics;
 
     @Transactional
     @Override
@@ -60,145 +68,258 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
     @Transactional
     @Override
     public Long startMainQuest(Long userId, Long questTemplateId, MainQuestRequest request) {
-        //Start 검증
-        validateCardCount(request.cardIds()); //카드 수
-        validateCards(userId, request.cardIds()); //보유 카드
-        validateDeskUnlocked(userId, request.deskId());//해금된 책상
+        long startNanos = System.nanoTime();
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
 
-        //종료 시간 계산
-        LocalDateTime startAt = LocalDateTime.now();
-        LocalDateTime endAt = startAt.plusSeconds(request.duration());
+        try{
+            //Start 검증
+            validateCardCount(request.cardIds()); //카드 수
+            validateCards(userId, request.cardIds()); //보유 카드
+            validateDeskUnlocked(userId, request.deskId());//해금된 책상
 
-        //퀘스트 저장
-        UserMainQuest mainQuest = mainService.startMainQuest(
-                userId,questTemplateId,request,
-                QuestDateTimeRequest.builder().startAt(startAt).endAt(endAt).build());
+            //종료 시간 계산
+            LocalDateTime startAt = LocalDateTime.now();
+            LocalDateTime endAt = startAt.plusSeconds(request.duration());
 
-        //카드 저장
-        questCardService.saveMainQuestCards(mainQuest, request.cardIds());
+            //퀘스트 저장
+            UserMainQuest mainQuest = mainService.startMainQuest(
+                    userId,questTemplateId,request,
+                    QuestDateTimeRequest.builder().startAt(startAt).endAt(endAt).build());
 
-        //레디스 TTL 저장
-        String key = "quest:%d:%d:%s".formatted(userId, mainQuest.getId(), "main");
-        redisTemplate.opsForValue().set(key,"1", request.duration(), TimeUnit.SECONDS);
+            //카드 저장
+            questCardService.saveMainQuestCards(mainQuest, request.cardIds());
 
-        //로그 생성
-        producer.sendQuestLogMessage(
-                new QuestMessage(
-                        userId,
-                        "MAIN",
-                        questTemplateId,
-                        null,
-                        request.duration(),
-                        "START",
-                        startAt
-                        ));
-        return mainQuest.getId();
+            //레디스 TTL 저장
+            String key = "quest:%d:%d:%s".formatted(userId, mainQuest.getId(), "main");
+            redisTemplate.opsForValue().set(key,"1", request.duration(), TimeUnit.SECONDS);
+
+            //로그 생성
+            producer.sendQuestLogMessage(
+                    new QuestMessage(
+                            userId,
+                            "MAIN",
+                            questTemplateId,
+                            null,
+                            request.duration(),
+                            "START",
+                            startAt
+                    ));
+            return mainQuest.getId();
+        } catch (BusinessException e) {
+            result = MetricTagValues.RESULT_FAILURE;
+            errorCode = e.getErrorCode().getCode();
+            businessExceptionMetrics.record("quest.start_main", e);
+            throw e;
+        } catch (RuntimeException e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
+            throw e;
+        } finally {
+            questMetrics.recordStart(System.nanoTime() - startNanos, "main", result, errorCode);
+        }
     }
 
     @Transactional
     @Override
     public Long startSubQuest(Long userId, Long questTemplateId, SubQuestRequest request) {
-        //Start 검증
-        validateCardCount(request.cardIds()); //카드 수
-        validateCards(userId, request.cardIds()); //보유 카드
-        validateDeskUnlocked(userId, request.deskId());//해금된 책상
+        long startNanos = System.nanoTime();
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
 
-        //종료 시간 계산
-        LocalDateTime startAt = LocalDateTime.now();
-        LocalDateTime endAt = startAt.plusSeconds(request.duration());
+        try {
+            //Start 검증
+            validateCardCount(request.cardIds()); //카드 수
+            validateCards(userId, request.cardIds()); //보유 카드
+            validateDeskUnlocked(userId, request.deskId());//해금된 책상
 
-        //퀘스트 저장
-        UserSubQuest subQuest = subService.startSubQuest(
-                userId,questTemplateId,request,
-                QuestDateTimeRequest.builder().startAt(startAt).endAt(endAt).build());
+            //종료 시간 계산
+            LocalDateTime startAt = LocalDateTime.now();
+            LocalDateTime endAt = startAt.plusSeconds(request.duration());
 
-        //카드 저장
-        questCardService.saveSubQuestCards(subQuest, request.cardIds());
+            //퀘스트 저장
+            UserSubQuest subQuest = subService.startSubQuest(
+                    userId,questTemplateId,request,
+                    QuestDateTimeRequest.builder().startAt(startAt).endAt(endAt).build());
 
-        //레디스 TTL 저장
-        String key = "quest:%d:%d:%s".formatted(userId, subQuest.getId(), "sub");
-        redisTemplate.opsForValue().set(key,"1",request.duration(), TimeUnit.SECONDS);
+            //카드 저장
+            questCardService.saveSubQuestCards(subQuest, request.cardIds());
 
-        //로그 생성
-        producer.sendQuestLogMessage(
-                new QuestMessage(
-                        userId,
-                        "SUB",
-                        questTemplateId,
-                        null,
-                        request.duration(),
-                        "START",
-                        startAt
-                ));
+            //레디스 TTL 저장
+            String key = "quest:%d:%d:%s".formatted(userId, subQuest.getId(), "sub");
+            redisTemplate.opsForValue().set(key,"1",request.duration(), TimeUnit.SECONDS);
 
-        return subQuest.getId();
+            //로그 생성
+            producer.sendQuestLogMessage(
+                    new QuestMessage(
+                            userId,
+                            "SUB",
+                            questTemplateId,
+                            null,
+                            request.duration(),
+                            "START",
+                            startAt
+                    ));
+
+            return subQuest.getId();
+        } catch (BusinessException e) {
+            result = MetricTagValues.RESULT_FAILURE;
+            errorCode = e.getErrorCode().getCode();
+            businessExceptionMetrics.record("quest.start_sub", e);
+            throw e;
+        } catch (RuntimeException e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
+            throw e;
+        } finally {
+            questMetrics.recordStart(System.nanoTime() - startNanos, "sub", result, errorCode);
+        }
     }
 
     @Transactional
     @Override
     public void claimReward(Long userId, CompleteQuestRequest request) {
+        long startNanos = System.nanoTime();
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
+        String questType = MetricTagValues.text(request.questType().name());
 
-        long gold;
+        try {
+            long gold;
 
-        if (request.questType() == QuestType.MAIN) {
-            QuestDetailResponse mainQuestDetail = mainService.getUserMainQuestDetail(userId, request.questId());
-            String status = mainQuestDetail.getStatus();
+            if (request.questType().equals(QuestType.MAIN)) {
+                QuestDetailResponse mainQuestDetail = mainService.getUserMainQuestDetail(userId, request.questId());
+                String status = mainQuestDetail.getStatus();
 
-            if ("IN_PROGRESS".equals(status)) {
-                // endAt 지났으면 완료 처리
-                if (mainQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
-                    completeQuest(userId, request.questId(), request.questType().toString());
+                if ("IN_PROGRESS".equals(status)) {
+                    // endAt 吏?ъ쑝硫??꾨즺 泥섎━
+                    if (mainQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
+                        completeQuest(userId, request.questId(), request.questType().toString());
+                    } else {
+                        throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // ?꾩쭅 吏꾪뻾 以?
+                    }
+                } else if ("COMPLETED".equals(status)) {
+                    // ?대? ?꾨즺???곹깭 ??諛붾줈 蹂댁긽?쇰줈
                 } else {
-                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // 아직 진행 중
+                    // CLAIMED ?????먮윭
+                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
                 }
-            } else if ("COMPLETED".equals(status)) {
-                // 이미 완료된 상태 → 바로 보상으로
+
+                gold = mainService.claimRewardMainQuest(userId, request.questId());
             } else {
-                // CLAIMED 등 → 에러
-                throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
-            }
+                QuestDetailResponse userSubQuestDetail = subService.getUserSubQuestDetail(userId, request.questId());
+                String status = userSubQuestDetail.getStatus();
 
-            gold = mainService.claimRewardMainQuest(userId, request.questId());
-        } else {
-            QuestDetailResponse userSubQuestDetail = subService.getUserSubQuestDetail(userId, request.questId());
-            String status = userSubQuestDetail.getStatus();
-
-            if ("IN_PROGRESS".equals(status)) {
-                // endAt 지났으면 완료 처리
-                if (userSubQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
-                    completeQuest(userId, request.questId(), request.questType().toString());
+                if ("IN_PROGRESS".equals(status)) {
+                    // endAt 吏?ъ쑝硫??꾨즺 泥섎━
+                    if (userSubQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
+                        completeQuest(userId, request.questId(), request.questType().toString());
+                    } else {
+                        throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // ?꾩쭅 吏꾪뻾 以?
+                    }
+                } else if ("COMPLETED".equals(status)) {
+                    // ?대? ?꾨즺???곹깭 ??諛붾줈 蹂댁긽?쇰줈
                 } else {
-                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // 아직 진행 중
+                    // CLAIMED ?????먮윭
+                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
                 }
-            } else if ("COMPLETED".equals(status)) {
-                // 이미 완료된 상태 → 바로 보상으로
-            } else {
-                // CLAIMED 등 → 에러
-                throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
-            }
 
-            gold = subService.claimRewardSubQuest(userId, request.questId());
+                gold = subService.claimRewardSubQuest(userId, request.questId());
+            }
+            userService.rewardGold(userId, gold, GoldLogReason.QUEST_REWARD);
+
+            //로그 생성
+            producer.sendQuestLogMessage(
+                    new QuestMessage(
+                            userId,
+                            request.questType().toString(),
+                            null,
+                            request.questId(),
+                            null,
+                            "REWARD",
+                            LocalDateTime.now()
+                    ));
+        } catch (BusinessException e) {
+            result = MetricTagValues.RESULT_FAILURE;
+            errorCode = e.getErrorCode().getCode();
+            businessExceptionMetrics.record("quest.claim_reward", e);
+            throw e;
+        } catch (RuntimeException e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
+            throw e;
+        } finally {
+            questMetrics.recordRewardClaim(System.nanoTime() - startNanos, questType, result, errorCode);
         }
 
-        userService.rewardGold(userId, gold, GoldLogReason.QUEST_REWARD);
+        if (false) {
+            long gold;
 
-        producer.sendQuestLogMessage(
-                new QuestMessage(
-                        userId,
-                        request.questType().toString(),
-                        null,
-                        request.questId(),
-                        null,
-                        "REWARD",
-                        LocalDateTime.now()
-                )
-        );
+            if (request.questType() == QuestType.MAIN) {
+                QuestDetailResponse mainQuestDetail = mainService.getUserMainQuestDetail(userId, request.questId());
+                String status = mainQuestDetail.getStatus();
+
+                if ("IN_PROGRESS".equals(status)) {
+                    // endAt 지났으면 완료 처리
+                    if (mainQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
+                        completeQuest(userId, request.questId(), request.questType().toString());
+                    } else {
+                        throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // 아직 진행 중
+                    }
+                } else if ("COMPLETED".equals(status)) {
+                    // 이미 완료된 상태 → 바로 보상으로
+                } else {
+                    // CLAIMED 등 → 에러
+                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
+                }
+
+                gold = mainService.claimRewardMainQuest(userId, request.questId());
+            } else {
+                QuestDetailResponse userSubQuestDetail = subService.getUserSubQuestDetail(userId, request.questId());
+                String status = userSubQuestDetail.getStatus();
+
+                if ("IN_PROGRESS".equals(status)) {
+                    // endAt 지났으면 완료 처리
+                    if (userSubQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
+                        completeQuest(userId, request.questId(), request.questType().toString());
+                    } else {
+                        throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // 아직 진행 중
+                    }
+                } else if ("COMPLETED".equals(status)) {
+                    // 이미 완료된 상태 → 바로 보상으로
+                } else {
+                    // CLAIMED 등 → 에러
+                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
+                }
+
+                gold = subService.claimRewardSubQuest(userId, request.questId());
+            }
+
+            userService.rewardGold(userId, gold, GoldLogReason.QUEST_REWARD);
+            producer.sendQuestLogMessage(
+                    new QuestMessage(
+                            userId,
+                            request.questType().toString(),
+                            null,
+                            request.questId(),
+                            null,
+                            "REWARD",
+                            LocalDateTime.now()
+                    )
+            );
+        }
     }
 
     @Transactional
     @Override
     public void completeQuest(Long userId, Long questId, String type) {
-        if(QuestType.valueOf(type.toUpperCase()) == QuestType.MAIN){
+        long startNanos = System.nanoTime();
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
+        String questType = MetricTagValues.text(type);
+
+        try {
+            if(QuestType.valueOf(type.toUpperCase()) == QuestType.MAIN){
             //진행중인 메인 퀘스트 상태 변경 (진행중->완료)
             mainService.completeMainQuest(userId, questId);
             //카드
@@ -229,6 +350,18 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
                         "COMPLETE",
                         LocalDateTime.now()
                 ));
+        } catch (BusinessException e) {
+            result = MetricTagValues.RESULT_FAILURE;
+            errorCode = e.getErrorCode().getCode();
+            businessExceptionMetrics.record("quest.complete", e);
+            throw e;
+        } catch (RuntimeException e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
+            throw e;
+        } finally {
+            questMetrics.recordComplete(System.nanoTime() - startNanos, questType, result, errorCode);
+        }
     }
 
     public List<Long> getUsedUserCardList(Long userId){

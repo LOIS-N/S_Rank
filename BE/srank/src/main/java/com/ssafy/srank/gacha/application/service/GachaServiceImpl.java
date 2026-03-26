@@ -5,6 +5,9 @@ import com.ssafy.srank.card.application.service.UserCardService;
 import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.common.metrics.BusinessExceptionMetrics;
+import com.ssafy.srank.common.metrics.GachaMetrics;
+import com.ssafy.srank.common.metrics.MetricTagValues;
 import com.ssafy.srank.common.probablyfair.application.service.ProbablyFairService;
 import com.ssafy.srank.common.probablyfair.domain.ProbablyFairContext;
 import com.ssafy.srank.gacha.application.dto.request.GachaDrawRequest;
@@ -19,8 +22,8 @@ import com.ssafy.srank.gacha.application.service.model.PreparedDraw;
 import com.ssafy.srank.gacha.domain.enums.GachaType;
 import com.ssafy.srank.gacha.domain.policy.GachaPolicyRegistry;
 import com.ssafy.srank.log.application.facade.GachaLogFacade;
-import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import com.ssafy.srank.user.application.dto.response.MyGachaInfo;
 import com.ssafy.srank.user.application.service.UserService;
@@ -47,40 +50,66 @@ public class GachaServiceImpl implements GachaService {
     private final GachaDigestBuilder gachaDigestBuilder;
     private final GachaDrawLogCommandFactory gachaDrawLogCommandFactory;
     private final GachaLogFacade gachaLogFacade;
+    private final GachaMetrics gachaMetrics;
+    private final BusinessExceptionMetrics businessExceptionMetrics;
     private final BlockchainRequestDispatchService blockchainRequestDispatchService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
     public GachaDrawResponse draw(Long userId, GachaDrawRequest request) {
-        // draw는 검증, 차감, 카드 준비, 저장, 로그, 응답 조립을 순서대로 오케스트레이션한다.
-        DrawContext context = buildDrawContext(userId, request);
-        spendGold(context);
+        long startNanos = System.nanoTime();
+        String gachaType = MetricTagValues.enumName(request.getType());
+        String drawCount = MetricTagValues.number(request.getCount());
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
 
-        List<PreparedDraw> preparedDraws = gachaDrawPreparationService.createPreparedDraws(
-                context.userId(),
-                context.type(),
-                context.clientSeed(),
-                context.pfContext(),
-                context.count()
-        );
-        List<UserCard> savedCards = saveCards(preparedDraws);
-        eventPublisher.publishEvent(new UserCardsChangedEvent(userId));
-        GachaProofMaterial proofMaterial = gachaDigestBuilder.build(
-                context.type(),
-                context.count(),
-                context.clientSeed(),
-                context.pfContext(),
-                preparedDraws
-        );
+        try {
+            DrawContext context = buildDrawContext(userId, request);
+            gachaType = MetricTagValues.enumName(context.type());
+            drawCount = MetricTagValues.number(context.count());
 
-        recordDrawLog(context, savedCards, preparedDraws, proofMaterial);
-        return buildDrawResponse(context, savedCards);
+            spendGold(context);
+
+            List<PreparedDraw> preparedDraws = gachaDrawPreparationService.createPreparedDraws(
+                    context.userId(),
+                    context.type(),
+                    context.clientSeed(),
+                    context.pfContext(),
+                    context.count()
+            );
+            List<UserCard> savedCards = saveCards(preparedDraws);
+            eventPublisher.publishEvent(new UserCardsChangedEvent(userId));
+
+            GachaProofMaterial proofMaterial = gachaDigestBuilder.build(
+                    context.type(),
+                    context.count(),
+                    context.clientSeed(),
+                    context.pfContext(),
+                    preparedDraws
+            );
+
+            recordDrawLog(context, savedCards, preparedDraws, proofMaterial);
+            GachaDrawResponse response = buildDrawResponse(context, savedCards);
+            gachaMetrics.recordGoldSpent(gachaType, drawCount, context.cost());
+            gachaMetrics.recordCardsCreated(gachaType, drawCount, savedCards.size());
+            return response;
+        } catch (BusinessException e) {
+            result = MetricTagValues.RESULT_FAILURE;
+            errorCode = e.getErrorCode().getCode();
+            businessExceptionMetrics.record("gacha.draw", e);
+            throw e;
+        } catch (RuntimeException e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
+            throw e;
+        } finally {
+            gachaMetrics.recordDraw(System.nanoTime() - startNanos, gachaType, drawCount, result, errorCode);
+        }
     }
 
     @Override
     public GachaVerificationResponse verify(GachaVerificationRequest request) {
-        // verify는 저장 없이 draw와 동일한 PF 계산 경로를 다시 수행해 결과를 재연산한다.
         int count = validateCount(request.getCount());
         ProbablyFairContext pfContext = new ProbablyFairContext(
                 request.getServerSeed().trim(),
@@ -112,7 +141,6 @@ public class GachaServiceImpl implements GachaService {
     }
 
     private DrawContext buildDrawContext(Long userId, GachaDrawRequest request) {
-        // 요청 정규화, 사용자 조회, 해금 여부, 인벤토리 한도, 비용 검증을 한 번에 묶는다.
         GachaType type = request.getType();
         int count = validateCount(request.getCount());
         String clientSeed = request.getClientSeed().trim();
@@ -120,7 +148,6 @@ public class GachaServiceImpl implements GachaService {
         LocalDateTime requestedAt = LocalDateTime.now();
 
         MyGachaInfo myGachaInfo = userService.getMyGachaInfo(userId);
-
         gachaPolicyRegistry.validateUnlocked(type, myGachaInfo.getLevel());
 
         long currentCardCount = userCardService.countActiveCards(userId);
@@ -147,14 +174,10 @@ public class GachaServiceImpl implements GachaService {
     }
 
     private void spendGold(DrawContext context) {
-        userService.spendGold(
-                context.userId(),
-                context.cost(),
-                GoldLogReason.GACHA_SPEND);
+        userService.spendGold(context.userId(), context.cost(), GoldLogReason.GACHA_SPEND);
     }
 
     private List<UserCard> saveCards(List<PreparedDraw> preparedDraws) {
-        // PF로 준비된 카드 엔티티만 일괄 저장한다.
         return userCardService.saveUserCards(preparedDraws.stream()
                 .map(PreparedDraw::userCard)
                 .toList());
@@ -166,7 +189,6 @@ public class GachaServiceImpl implements GachaService {
             List<PreparedDraw> preparedDraws,
             GachaProofMaterial proofMaterial
     ) {
-        // 저장 결과와 준비 과정의 proof를 합쳐 가챠 이력 로그 payload를 남긴다.
         List<Long> logIds = gachaLogFacade.recordDraw(gachaDrawLogCommandFactory.create(
                 context.userId(),
                 context.type(),
@@ -191,7 +213,6 @@ public class GachaServiceImpl implements GachaService {
     }
 
     private GachaDrawResponse buildDrawResponse(DrawContext context, List<UserCard> savedCards) {
-        // 외부 응답은 저장된 카드와 최소 proof 정보만 노출한다.
         List<GachaDrawCardResponse> cards = savedCards.stream()
                 .map(UserCard::toResponse)
                 .map(GachaDrawCardResponse::from)
@@ -209,7 +230,6 @@ public class GachaServiceImpl implements GachaService {
     }
 
     private int validateCount(Integer count) {
-        // 현재 가챠는 1회와 10회만 허용한다.
         if (count == null || (count != 1 && count != 10)) {
             throw new BusinessException(ErrorCode.GACHA_INVALID_COUNT);
         }

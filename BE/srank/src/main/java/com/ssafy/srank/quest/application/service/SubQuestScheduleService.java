@@ -3,6 +3,8 @@ package com.ssafy.srank.quest.application.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.srank.common.metrics.MetricTagValues;
+import com.ssafy.srank.common.metrics.QuestMetrics;
 import com.ssafy.srank.quest.application.dto.response.AiSubQuestResponse;
 import com.ssafy.srank.quest.repository.SubQuestTemplateRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,10 +23,12 @@ public class SubQuestScheduleService {
     private final RestClient openAiRestClient;
     private final SubQuestTemplateRepository subQuestRepository;
     private final ObjectMapper objectMapper;
+    private final QuestMetrics questMetrics;
 
     public void generateAndSave(int difficulty) throws JsonProcessingException {
         log.info("[SubQuestSchedule] OpenAI 서브 퀘스트 생성 시작 - difficulty={}", difficulty);
 
+        long openAiStartNanos = System.nanoTime();
         AiSubQuestResponse response = openAiRestClient.post()
                 .uri("/chat/completions")
                 .body(Map.of(
@@ -37,16 +41,25 @@ public class SubQuestScheduleService {
                 ))
                 .retrieve()
                 .body(AiSubQuestResponse.class);
+        questMetrics.recordOpenAiRequest(
+                System.nanoTime() - openAiStartNanos,
+                "generate_subquest",
+                "gpt-5.2",
+                MetricTagValues.number(difficulty),
+                MetricTagValues.RESULT_SUCCESS
+        );
 
         AiSubQuestResponse.SubQuestListContent listContent;
         try {
             listContent = objectMapper.readValue(response.getContent(), AiSubQuestResponse.SubQuestListContent.class);
         } catch (JsonProcessingException e) {
             log.warn("[SubQuestSchedule] OpenAI 응답 파싱 실패 - difficulty={}, error={}", difficulty, e.getMessage());
+            questMetrics.recordParseFailure(MetricTagValues.number(difficulty));
             throw e;
         }
 
         listContent.getQuests().forEach(quest -> subQuestRepository.save(quest.toEntity()));
+        questMetrics.recordSavedSubquests(MetricTagValues.number(difficulty), listContent.getQuests().size());
 
         log.info("[SubQuestSchedule] 서브 퀘스트 생성 완료 - difficulty={}, savedCount={}", difficulty, listContent.getQuests().size());
     }

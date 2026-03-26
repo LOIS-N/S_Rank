@@ -1,5 +1,7 @@
 package com.ssafy.srank.quest.application.listener;
 
+import com.ssafy.srank.common.metrics.MetricTagValues;
+import com.ssafy.srank.common.metrics.QuestMetrics;
 import com.ssafy.srank.quest.application.service.QuestFacadeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +15,9 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 @Slf4j
 public class RedisExpirationSubscriber {
+
     private final QuestFacadeService questService;
+    private final QuestMetrics questMetrics;
 
     @EventListener
     public void handleExpired(RedisKeyExpiredEvent<String> event) {
@@ -25,12 +29,15 @@ public class RedisExpirationSubscriber {
         } else {
             key = source.toString();
         }
+
         if (key == null || !key.startsWith("quest:")) {
+            questMetrics.recordExpirationEvent(MetricTagValues.RESULT_IGNORED);
             return;
         }
 
         String[] parts = key.split(":");
         if (parts.length != 4) {
+            questMetrics.recordExpirationEvent(MetricTagValues.RESULT_IGNORED);
             return;
         }
 
@@ -39,5 +46,6 @@ public class RedisExpirationSubscriber {
         String questType = parts[3];
 
         questService.completeQuest(userId, questId, questType);
+        questMetrics.recordExpirationEvent(MetricTagValues.RESULT_SUCCESS);
     }
 }
