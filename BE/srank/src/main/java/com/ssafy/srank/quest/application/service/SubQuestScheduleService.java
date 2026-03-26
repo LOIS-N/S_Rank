@@ -28,12 +28,11 @@ public class SubQuestScheduleService {
         AiSubQuestResponse response = openAiRestClient.post()
                 .uri("/chat/completions")
                 .body(Map.of(
-                        "model", "gpt-4.1-mini",
+                        "model", "gpt-5.2",
                         "messages", List.of(
-                                Map.of("role", "system", "content", SYSTEM_PROMPT),
+                                Map.of("role", "developer", "content", SYSTEM_PROMPT),
                                 Map.of("role", "user", "content", "난이도 " + difficulty + " 서브퀘스트 20개 생성해줘.")
                         ),
-                        "max_tokens", 4096,
                         "temperature", 0.3
                 ))
                 .retrieve()
@@ -66,16 +65,17 @@ public class SubQuestScheduleService {
             - 퀘스트는 실제 IT 프로젝트를 모티브로 한 재미있는 제목과 설명이어야 합니다.
             - 예시 :  '모바일 청접장 제작', '랜딩 페이지 제작'
             - 한 퀘스트에서 requiredSkills는 BE/FE/DEV/AI/DBA/DESIGN 중 절대 중복없이 3개를 선택합니다.
+            - 기준시간은 초로 나타내야합니다.
             - 스탯 범위는 난이도별 기준을 반드시 따릅니다.
             - JSON 외 다른 텍스트는 절대 출력하지 마세요.
                         
             난이도별 스탯 기준:
-            - 난이도 1: 포지션 3개, 포지션당 스탯 범위 15~25, 스탯 총합 범위 45~75, 기준시간 1분, 보상 2700G
-            - 난이도 2: 포지션 3개, 포지션당 스탯 범위 45~60, 스탯 총합 범위 135~180, 기준시간 3분, 보상 9000G
-            - 난이도 3: 포지션 4개, 포지션당 스탯 범위 90~120, 스탯 총합 범위 270~360, 기준시간 10분, 보상 30000G
-            - 난이도 4: 포지션 4개, 포지션당 스탯 범위 120~160, 스탯 총합 범위 360~480, 기준시간 30분, 보상 112500G
-            - 난이도 5: 포지션 5개, 포지션당 스탯 범위 150~200, 스탯 총합 범위 450~600, 기준시간 90분, 보상 405000G
-            - 난이도 6: 포지션 5개, 포지션당 스탯 범위 175~225, 스탯 총합 범위 525~675, 기준시간 240분, 보상 1350000G
+            - 난이도 1: 포지션 3개, 포지션당 스탯 범위 15~25, 스탯 총합 범위 45~75, 기준시간 60초, 보상 2700G
+            - 난이도 2: 포지션 3개, 포지션당 스탯 범위 45~60, 스탯 총합 범위 135~180, 기준시간 60초, 보상 9000G
+            - 난이도 3: 포지션 4개, 포지션당 스탯 범위 90~120, 스탯 총합 범위 270~360, 기준시간 180초, 보상 30000G
+            - 난이도 4: 포지션 4개, 포지션당 스탯 범위 120~160, 스탯 총합 범위 360~480, 기준시간 600초, 보상 112500G
+            - 난이도 5: 포지션 5개, 포지션당 스탯 범위 150~200, 스탯 총합 범위 450~600, 기준시간 1800초, 보상 405000G
+            - 난이도 6: 포지션 5개, 포지션당 스탯 범위 175~225, 스탯 총합 범위 525~675, 기준시간 5400초, 보상 1350000G
                         
             출력 형식:
             {
@@ -84,7 +84,7 @@ public class SubQuestScheduleService {
                   "title": "퀘스트 제목",
                   "description": "퀘스트 설명 (1~2문장)",
                   "difficulty": 난이도(1~6),
-                  "durationMinutes": 기준시간,
+                  "durationMinutes": 기준시간(초),
                   "rewardGold": 보상골드,
                   "requiredSkills": [
                     {"skillType": "BE", "skillValue": 숫자},

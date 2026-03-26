@@ -10,6 +10,7 @@ import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
 import com.ssafy.srank.quest.application.dto.request.QuestDateTimeRequest;
 import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
+import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.domain.entity.*;
 import com.ssafy.srank.rabbitmq.log.message.QuestMessage;
 import com.ssafy.srank.rabbitmq.log.producer.QuestLogProducer;
@@ -136,16 +137,51 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
     @Transactional
     @Override
     public void claimReward(Long userId, CompleteQuestRequest request) {
+
         long gold;
 
-        if(request.questType().equals(QuestType.MAIN)){
+        if (request.questType() == QuestType.MAIN) {
+            QuestDetailResponse mainQuestDetail = mainService.getUserMainQuestDetail(userId, request.questId());
+            String status = mainQuestDetail.getStatus();
+
+            if ("IN_PROGRESS".equals(status)) {
+                // endAt 지났으면 완료 처리
+                if (mainQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
+                    completeQuest(userId, request.questId(), request.questType().toString());
+                } else {
+                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // 아직 진행 중
+                }
+            } else if ("COMPLETED".equals(status)) {
+                // 이미 완료된 상태 → 바로 보상으로
+            } else {
+                // CLAIMED 등 → 에러
+                throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
+            }
+
             gold = mainService.claimRewardMainQuest(userId, request.questId());
-        }else{
+        } else {
+            QuestDetailResponse userSubQuestDetail = subService.getUserSubQuestDetail(userId, request.questId());
+            String status = userSubQuestDetail.getStatus();
+
+            if ("IN_PROGRESS".equals(status)) {
+                // endAt 지났으면 완료 처리
+                if (userSubQuestDetail.getEndAt().isBefore(LocalDateTime.now())) {
+                    completeQuest(userId, request.questId(), request.questType().toString());
+                } else {
+                    throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED); // 아직 진행 중
+                }
+            } else if ("COMPLETED".equals(status)) {
+                // 이미 완료된 상태 → 바로 보상으로
+            } else {
+                // CLAIMED 등 → 에러
+                throw new BusinessException(ErrorCode.QUEST_NOT_COMPLETED);
+            }
+
             gold = subService.claimRewardSubQuest(userId, request.questId());
         }
+
         userService.rewardGold(userId, gold, GoldLogReason.QUEST_REWARD);
 
-        //로그 생성
         producer.sendQuestLogMessage(
                 new QuestMessage(
                         userId,
@@ -155,7 +191,8 @@ public class QuestFacadeServiceImpl implements QuestFacadeService{
                         null,
                         "REWARD",
                         LocalDateTime.now()
-                ));
+                )
+        );
     }
 
     @Transactional

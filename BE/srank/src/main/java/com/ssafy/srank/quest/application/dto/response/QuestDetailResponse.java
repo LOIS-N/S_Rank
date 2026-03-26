@@ -85,6 +85,7 @@ public class QuestDetailResponse {
         return QuestDetailResponse.builder()
                 .title(quest.getMainQuestTemplate().getTitle())
                 .rewardGold(quest.getMainQuestTemplate().getRewardGold())
+                .status(String.valueOf(quest.getStatus()))
                 .startedAt(quest.getStartedAt())
                 .endAt(quest.getEndAt())
                 .build();
@@ -94,6 +95,7 @@ public class QuestDetailResponse {
         return QuestDetailResponse.builder()
                 .title(quest.getSubQuestTemplate().getTitle())
                 .rewardGold(quest.getSubQuestTemplate().getRewardGold())
+                .status(String.valueOf(quest.getStatus()))
                 .startedAt(quest.getStartedAt())
                 .endAt(quest.getEndAt())
                 .build();
