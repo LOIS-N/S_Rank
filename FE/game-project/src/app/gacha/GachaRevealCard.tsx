@@ -14,6 +14,7 @@ export interface GachaRevealCardData {
   skill1: CardSkill;
   skill2: CardSkill;
   skill3: CardSkill;
+  specialAbility?: { name: string; description: string; effects: string } | null;
 }
 
 interface GachaRevealCardProps {
@@ -99,6 +100,36 @@ if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
       0%   { box-shadow: 0 0 15px rgba(255,215,0,0.3), 0 0 30px rgba(255,215,0,0.15); }
       100% { box-shadow: 0 0 25px rgba(255,215,0,0.5), 0 0 50px rgba(255,215,0,0.25); }
     }
+    @keyframes grcRainbowBorderPulse {
+      0%   { border-color: rgba(255,0,128,0.5); box-shadow: 0 0 12px rgba(255,0,128,0.5); }
+      17%  { border-color: rgba(255,136,0,1);   box-shadow: 0 0 12px rgba(255,136,0,0.7); }
+      34%  { border-color: rgba(255,255,0,1);   box-shadow: 0 0 12px rgba(255,255,0,0.7); }
+      50%  { border-color: rgba(0,255,136,1);   box-shadow: 0 0 12px rgba(0,255,136,0.7); }
+      67%  { border-color: rgba(0,229,255,1);   box-shadow: 0 0 12px rgba(0,229,255,0.7); }
+      84%  { border-color: rgba(136,0,255,1);   box-shadow: 0 0 12px rgba(136,0,255,0.7); }
+      100% { border-color: rgba(255,0,128,0.5); box-shadow: 0 0 12px rgba(255,0,128,0.5); }
+    }
+    @keyframes grcRainbowFlash {
+      0%   { opacity: 1; transform: scale(0.8); }
+      30%  { opacity: 0.9; transform: scale(1.3); }
+      60%  { opacity: 0.5; transform: scale(1.8); }
+      100% { opacity: 0; transform: scale(2.3); }
+    }
+    @keyframes grcRainbowIdleGlow {
+      0%   { box-shadow: 0 0 15px rgba(255,0,128,0.4),  0 0 30px rgba(255,0,128,0.2); }
+      25%  { box-shadow: 0 0 20px rgba(0,229,255,0.5),  0 0 40px rgba(0,229,255,0.25); }
+      50%  { box-shadow: 0 0 18px rgba(255,255,0,0.4),  0 0 36px rgba(255,255,0,0.2); }
+      75%  { box-shadow: 0 0 20px rgba(136,0,255,0.5),  0 0 40px rgba(136,0,255,0.25); }
+      100% { box-shadow: 0 0 15px rgba(255,0,128,0.4),  0 0 30px rgba(255,0,128,0.2); }
+    }
+    @keyframes grcSpecialBadge {
+      0%   { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.9); }
+      100% { opacity: 1; transform: translateX(-50%) translateY(0)   scale(1); }
+    }
+    @keyframes grcSpecialBadgeShimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
     @keyframes grcParticle0 {
       0%   { opacity: 1; transform: translate(-50%,-50%) translate(0,0) scale(1); }
       100% { opacity: 0; transform: translate(-50%,-50%) translate(-60px,-80px) scale(0); }
@@ -137,7 +168,13 @@ export function GachaRevealCard({ card, revealDelay, statFontSize = 12, instantR
     timersRef.current = [];
     setPhase('hidden');
 
-    if (grade === 'S') {
+    if (grade === 'S' && card.specialAbility) {
+      timersRef.current = [
+        setTimeout(() => setPhase('pre'), revealDelay),
+        setTimeout(() => setPhase('flipping'), revealDelay + 1800),
+        setTimeout(() => setPhase('revealed'), revealDelay + 3300),
+      ];
+    } else if (grade === 'S') {
       timersRef.current = [
         setTimeout(() => setPhase('pre'), revealDelay),
         setTimeout(() => setPhase('flipping'), revealDelay + 1200),
@@ -157,7 +194,8 @@ export function GachaRevealCard({ card, revealDelay, statFontSize = 12, instantR
     }
 
     return () => timersRef.current.forEach(clearTimeout);
-  }, [revealDelay, grade, card.imageUrl, instantReveal]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealDelay, grade, card.imageUrl, card.specialAbility, instantReveal]);
 
   const isFlipped = phase === 'flipping' || phase === 'revealed';
   const isPre = phase === 'pre';
@@ -179,28 +217,36 @@ export function GachaRevealCard({ card, revealDelay, statFontSize = 12, instantR
 
       {/* Grade border removed */}
 
-      {/* S-grade burst particles */}
+      {/* S-grade burst particles (특수능력: 무지개 24개, 일반: 금+흰 12개) */}
       {grade === 'S' && isRevealed && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 30, overflow: 'visible' }}>
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} style={{
-              position: 'absolute', left: '50%', top: '50%',
-              width: 6, height: 6, borderRadius: '50%',
-              background: i % 3 === 0 ? '#ffd700' : i % 3 === 1 ? '#fff' : '#ffec80',
-              animation: `grcParticle${i % 4} 1s ease-out forwards`,
-              opacity: 0,
-            }} />
-          ))}
+          {Array.from({ length: card.specialAbility ? 24 : 12 }).map((_, i) => {
+            const RAINBOW = ['#ff0080','#ff8800','#ffff00','#00ff88','#00e5ff','#8800ff'];
+            const bg = card.specialAbility
+              ? RAINBOW[i % RAINBOW.length]
+              : (i % 3 === 0 ? '#ffd700' : i % 3 === 1 ? '#fff' : '#ffec80');
+            return (
+              <div key={i} style={{
+                position: 'absolute', left: '50%', top: '50%',
+                width: card.specialAbility ? 8 : 6, height: card.specialAbility ? 8 : 6,
+                borderRadius: '50%', background: bg,
+                animation: `grcParticle${i % 4} ${card.specialAbility ? '1.3s' : '1s'} ease-out forwards`,
+                opacity: 0,
+              }} />
+            );
+          })}
         </div>
       )}
 
-      {/* S-grade golden flash on flip */}
+      {/* S-grade flash on flip (특수능력: 무지개, 일반: 황금) */}
       {grade === 'S' && (phase === 'flipping' || isRevealed) && (
         <div style={{
           position: 'absolute', top: -20, left: -20, right: -20, bottom: -20,
           pointerEvents: 'none', zIndex: 20, borderRadius: 12,
-          background: 'radial-gradient(circle, rgba(255,215,0,0.6) 0%, rgba(255,215,0,0) 70%)',
-          animation: 'grcSFlash 0.8s ease-out forwards',
+          background: card.specialAbility
+            ? 'radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,0,128,0.4) 40%, rgba(136,0,255,0) 70%)'
+            : 'radial-gradient(circle, rgba(255,215,0,0.6) 0%, rgba(255,215,0,0) 70%)',
+          animation: card.specialAbility ? 'grcRainbowFlash 1.0s ease-out forwards' : 'grcSFlash 0.8s ease-out forwards',
         }} />
       )}
 
@@ -214,14 +260,17 @@ export function GachaRevealCard({ card, revealDelay, statFontSize = 12, instantR
         }} />
       )}
 
-      {/* S-grade persistent idle glow */}
+      {/* S-grade persistent idle glow (특수능력: 무지개, 일반: 황금) */}
       {grade === 'S' && isRevealed && (
         <div style={{
           position: 'absolute', top: -8, left: -8, right: -8, bottom: -8,
           pointerEvents: 'none', zIndex: 10, borderRadius: 4,
-          animation: 'grcSIdleGlow 2s ease-in-out infinite alternate',
+          animation: card.specialAbility
+            ? 'grcRainbowIdleGlow 3s ease-in-out infinite'
+            : 'grcSIdleGlow 2s ease-in-out infinite alternate',
         }} />
       )}
+
 
       {/* Card flip container */}
       <div style={{
@@ -248,12 +297,14 @@ export function GachaRevealCard({ card, revealDelay, statFontSize = 12, instantR
             style={{ width: '100%', height: '100%', objectFit: 'cover', imageRendering: 'pixelated', display: 'block' }}
           />
 
-          {/* S-grade: pulsing gold border during pre */}
+          {/* S-grade: pulsing border during pre (특수능력: 무지개, 일반: 황금) */}
           {isPre && grade === 'S' && (
             <div style={{
               position: 'absolute', inset: -3, pointerEvents: 'none',
               border: '3px solid rgba(255,215,0,0.8)',
-              animation: 'grcSBorderPulse 0.4s ease-in-out infinite alternate',
+              animation: card.specialAbility
+                ? 'grcRainbowBorderPulse 0.6s ease-in-out infinite'
+                : 'grcSBorderPulse 0.4s ease-in-out infinite alternate',
             }} />
           )}
           {/* A-grade: pulsing blue border during pre */}

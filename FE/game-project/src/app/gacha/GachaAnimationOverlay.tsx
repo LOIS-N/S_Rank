@@ -13,6 +13,7 @@ interface GachaAnimationCard {
   skill1: CardSkill;
   skill2: CardSkill;
   skill3: CardSkill;
+  specialAbility?: { name: string } | null;
 }
 
 interface Props {
@@ -326,9 +327,19 @@ export function GachaAnimationOverlay({ cards, onComplete, onDone }: Props) {
               aCards.forEach(idx => this.effectA(idx));
             }
             if (sCards.length > 0) {
-              this.cameras.main.shake(500, 0.02);
-              this.flash(0x00e5ff, 0.4);
-              sCards.forEach(idx => this.effectS(idx));
+              const hasSpecial = sCards.some(idx => !!cardsLocal[idx].specialAbility);
+              this.cameras.main.shake(hasSpecial ? 800 : 500, hasSpecial ? 0.035 : 0.02);
+              if (hasSpecial) {
+                this.flash(0xffffff, 0.5);
+                this.time.delayedCall(180, () => this.flash(0xff0080, 0.35));
+                this.time.delayedCall(360, () => this.flash(0x8800ff, 0.3));
+              } else {
+                this.flash(0x00e5ff, 0.4);
+              }
+              sCards.forEach(idx => {
+                if (cardsLocal[idx].specialAbility) this.effectSSpecial(idx);
+                else this.effectS(idx);
+              });
             }
           });
           this.time.delayedCall(landedAt + 900, () => this.finish());
@@ -438,6 +449,80 @@ export function GachaAnimationOverlay({ cards, onComplete, onDone }: Props) {
             targets: ring, scaleX: 4, scaleY: 4, alpha: 0,
             duration: 700, ease: "Sine.easeOut", onComplete: () => ring.destroy(),
           });
+        }
+
+        private effectSSpecial(idx: number) {
+          const p = posLocal[idx];
+          const RAINBOW = [0xff0080, 0xff8800, 0xffff00, 0x00ff88, 0x00e5ff, 0x8800ff];
+          if (!this.textures.exists("sp_rainbow")) {
+            const g = this.make.graphics({ x: 0, y: 0 });
+            g.fillStyle(0xffffff, 1);
+            g.fillCircle(5, 5, 5);
+            g.generateTexture("sp_rainbow", 10, 10);
+            g.destroy();
+          }
+          if (!this.textures.exists("ray")) {
+            const g = this.make.graphics({ x: 0, y: 0 });
+            g.fillStyle(0xffffff, 1);
+            g.fillRect(0, 0, 3, 50);
+            g.generateTexture("ray", 3, 50);
+            g.destroy();
+          }
+          // 파티클 1파: 폭발
+          this.add.particles(p.x, p.y, "sp_rainbow", {
+            speed: { min: 150, max: 500 }, angle: { min: 0, max: 360 },
+            scale: { start: 2, end: 0 }, alpha: { start: 1, end: 0 },
+            lifespan: { min: 600, max: 1400 }, quantity: 40,
+            tint: RAINBOW, gravityY: 80, duration: 600,
+          }).setDepth(52);
+          // 파티클 2파
+          this.time.delayedCall(200, () => {
+            this.add.particles(p.x, p.y, "sp_rainbow", {
+              speed: { min: 80, max: 300 }, angle: { min: 0, max: 360 },
+              scale: { start: 1.2, end: 0 }, alpha: { start: 0.85, end: 0 },
+              lifespan: { min: 400, max: 1000 }, quantity: 25,
+              tint: RAINBOW, gravityY: 40, duration: 500,
+            }).setDepth(52);
+          });
+          // 파티클 3파: 잔여 반짝임
+          this.time.delayedCall(450, () => {
+            this.add.particles(p.x, p.y, "sp_rainbow", {
+              speed: { min: 30, max: 150 }, angle: { min: 0, max: 360 },
+              scale: { start: 0.8, end: 0 }, alpha: { start: 0.6, end: 0 },
+              lifespan: { min: 800, max: 1600 }, quantity: 15,
+              tint: RAINBOW, gravityY: 20, duration: 600,
+            }).setDepth(52);
+          });
+          // 중앙 오라
+          const aura = this.add.circle(p.x, p.y, CARD_W * 1.2, 0xffffff, 0.25).setDepth(46);
+          this.tweens.add({
+            targets: aura, scaleX: 3.5, scaleY: 3.5, alpha: 0,
+            duration: 1000, ease: "Sine.easeOut", onComplete: () => aura.destroy(),
+          });
+          // 다중 링 3개
+          ([[CARD_W * 0.4, 0x00e5ff], [CARD_W * 0.6, 0xff0080], [CARD_W * 0.8, 0xffff00]] as [number, number][]).forEach(([radius, color], ri) => {
+            this.time.delayedCall(ri * 120, () => {
+              const ring = this.add.circle(p.x, p.y, radius).setDepth(47);
+              ring.setStrokeStyle(2, color, 0.9);
+              ring.setFillStyle();
+              this.tweens.add({
+                targets: ring, scaleX: 5, scaleY: 5, alpha: 0,
+                duration: 900, ease: "Sine.easeOut", onComplete: () => ring.destroy(),
+              });
+            });
+          });
+          // 왕관 광선 18개
+          for (let i = 0; i < 18; i++) {
+            const a = (i / 18) * Math.PI * 2;
+            const ray = this.add.sprite(p.x, p.y, "ray").setDepth(48);
+            ray.setTint(RAINBOW[i % RAINBOW.length]);
+            ray.setRotation(a).setAlpha(0.85).setScale(1, 0);
+            this.tweens.add({
+              targets: ray, scaleY: 3.5, alpha: 0,
+              duration: 800, delay: i * 20, ease: "Sine.easeOut",
+              onComplete: () => ray.destroy(),
+            });
+          }
         }
 
         private spawnDust(x: number, y: number) {

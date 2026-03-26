@@ -83,6 +83,14 @@ interface CardSkill {
   value: number;
 }
 
+interface SpecialSkillEffect {
+  effectType: string;
+  effectOperator: string;
+  effectAmount: number | null;
+  targetScope: string;
+  conditionType: string;
+}
+
 interface CardListItem {
   cardId: number;
   grade: string;
@@ -93,7 +101,13 @@ interface CardListItem {
   skill3: CardSkill;
   enhanceTryCount: number;
   enhanceSuccessCount: number;
-  specialAbility: { name: string; description: string; effects: string } | null;
+  specialAbility: { name: string; description: string; effects: SpecialSkillEffect[] } | null;
+}
+
+function getEnhanceRateBonus(effects: SpecialSkillEffect[] | undefined | null): number {
+  if (!effects) return 0;
+  const effect = effects.find(e => e.effectType === 'ENHANCE_SUCCESS_RATE_UP');
+  return effect?.effectAmount ?? 0;
 }
 
 interface CardDetailData {
@@ -739,7 +753,25 @@ export default function EnhancePage() {
 
                     {/* 3. 강화 상수 정보 */}
                     <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel enhance-info-box">
-                      <div className="cardlist-info-text">강화 성공 확률 : {getEnhanceData(selectedListCard.grade).prob}%</div>
+                      <div className="cardlist-info-text">
+                        {(() => {
+                          const baseProb = getEnhanceData(selectedListCard.grade).prob;
+                          const bonus = getEnhanceRateBonus(selectedListCard.specialAbility?.effects);
+                          const totalProb = baseProb + bonus;
+                          return bonus > 0 ? (
+                            <>
+                              강화 성공 확률 :{' '}
+                              <span style={{ textDecoration: 'line-through', opacity: 0.5 }}>{baseProb}%</span>
+                              {' '}
+                              <span style={{ color: '#2a6', fontWeight: 'bold' }}>{totalProb}%</span>
+                              {' '}
+                              <span style={{ fontSize: '0.85em', color: '#2a6' }}>
+                                ({selectedListCard.specialAbility!.name} +{bonus}%)
+                              </span>
+                            </>
+                          ) : `강화 성공 확률 : ${baseProb}%`;
+                        })()}
+                      </div>
                       <div className="cardlist-info-text">강화 비용 : {getEnhanceData(selectedListCard.grade).cost.toLocaleString()}G</div>
                       <div className="cardlist-info-text">성공 시 능력치 분배량 : +{getEnhanceData(selectedListCard.grade).statIncrease}</div>
                     </NineSliceBox>
