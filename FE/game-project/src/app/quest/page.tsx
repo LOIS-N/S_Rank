@@ -83,7 +83,7 @@ interface CardListItem {
   skill1: CardSkill;
   skill2: CardSkill;
   skill3: CardSkill;
-  specialAbility: { name: string; description: string; effects: string } | null;
+  specialAbility: { name: string; description: string; effects: Array<{ effectType: string; effectOperator: string; effectAmount: number; targetScope: string }> | string } | null;
   enhanceSuccessCount: number;
 }
 
@@ -124,6 +124,16 @@ function getTimeRatio(statRatio: number): number {
     }
   }
   return 0.5;
+}
+
+// 특수능력 effects 파싱 (BE에서 이미 배열로 오거나, 문자열로 오는 경우 모두 처리)
+function parseEffects(effects: unknown): Array<{ effectType: string; effectOperator: string; effectAmount: number; targetScope: string }> {
+  if (!effects) return [];
+  if (Array.isArray(effects)) return effects;
+  if (typeof effects === 'string') {
+    try { const p = JSON.parse(effects); return Array.isArray(p) ? p : []; } catch { return []; }
+  }
+  return [];
 }
 
 // DEV / Dev / DEVOPS / DevOps 를 모두 동일 타입으로 정규화
@@ -522,6 +532,28 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     }, 0);
   }, [selectedCardData]);
 
+  // --- 특수능력 보너스 포함 실효 스탯 합산 ---
+  const getEffectiveStatTotal = useCallback((skillType: string): number => {
+    let total = getStatTotal(skillType);
+    const normalized = normalizeSkillType(skillType);
+    for (const card of selectedCardData) {
+      const effects = parseEffects(card.specialAbility?.effects);
+      for (const eff of effects) {
+        if (eff.effectType === 'ALL_STATS_UP' && eff.effectOperator === 'FLAT') {
+          total += eff.effectAmount;
+        } else if (eff.effectType === 'MAX_STAT_UP' && eff.effectOperator === 'FLAT') {
+          const cardStats = [card.skill1, card.skill2, card.skill3];
+          const maxVal = Math.max(...cardStats.map(s => s.value));
+          const maxStat = cardStats.find(s => s.value === maxVal);
+          if (maxStat && normalizeSkillType(maxStat.skillType) === normalized) {
+            total += eff.effectAmount;
+          }
+        }
+      }
+    }
+    return total;
+  }, [selectedCardData, getStatTotal]);
+
   // --- 시간 계산: MAX(기준시간 × 요구/합산) + 민캡 50% ---
   const calculateOverflowTime = useCallback((): number | null => {
     if (!quest || requirements.length === 0 || selectedCardData.length === 0) return null;
@@ -529,16 +561,28 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
     let maxTime = 0;
     for (const req of requirements) {
-      const total = getStatTotal(req.type);
+      const total = getEffectiveStatTotal(req.type);
       if (total <= 0) return null;
       const statRatio = total / req.value;          // 배율: 1.0 = 딱 맞음, 2.0 = 2배 초과
       const posTime = baseTime * getTimeRatio(statRatio);
       if (posTime > maxTime) maxTime = posTime;
     }
 
+    // 특수능력 시간 단축 적용 (QUEST_TOTAL_TIME_REDUCE)
+    let timeMultiplier = 1.0;
+    for (const card of selectedCardData) {
+      const effects = parseEffects(card.specialAbility?.effects);
+      for (const eff of effects) {
+        if (eff.effectType === 'QUEST_TOTAL_TIME_REDUCE' && eff.effectOperator === 'PERCENT') {
+          timeMultiplier -= eff.effectAmount / 100;
+        }
+      }
+    }
+    timeMultiplier = Math.max(0.5, timeMultiplier); // 하드캡 50% 이하 불가
+
     // 하드캡: 기준 시간의 50% (getTimeRatio가 보장하지만 안전망으로 유지)
-    return Math.round(Math.max(maxTime, baseTime * 0.5) * 100) / 100;
-  }, [quest, requirements, selectedCardData, getStatTotal]);
+    return Math.round(Math.max(maxTime * timeMultiplier, baseTime * 0.5) * 100) / 100;
+  }, [quest, requirements, selectedCardData, getEffectiveStatTotal]);
 
   // --- 예상 시간 ---
   const estimatedTime = useMemo(() => calculateOverflowTime(), [calculateOverflowTime]);
@@ -682,9 +726,9 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       return;
     }
 
-    // 스탯 검증: 모든 포지션 합산 스탯 2265 요구 스탯
+    // 스탯 검증: 모든 포지션 합산 스탯 >= 요구 스탯 (특수능력 보너스 포함)
     for (const req of requirements) {
-      const total = getStatTotal(req.type);
+      const total = getEffectiveStatTotal(req.type);
       if (total < req.value) {
         setWarningMessage(`스탯이 부족합니다. (${req.type}: ${total} / ${req.value} 필요)`);
         return;
@@ -753,7 +797,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     } finally {
       setIsStarting(false);
     }
-  }, [quest, isStarting, selectedCards, requirements, getStatTotal, getAuthToken, estimatedTime, selectingDeskId, startQuest, rewardInfo.reward, router]);
+  }, [quest, isStarting, selectedCards, requirements, getEffectiveStatTotal, getAuthToken, estimatedTime, selectingDeskId, startQuest, rewardInfo.reward, router]);
 
   const [p2ScrollRatio, setP2ScrollRatio] = useState(0);
   const [p2TrackHeight, setP2TrackHeight] = useState(0);
@@ -1090,7 +1134,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
             <div className="quest-info-box-label">퀘스트 수행 조건</div>
             <div className="quest-info-box-text">
               {requirements.map((req) => {
-                const current = getStatTotal(req.type);
+                const current = getEffectiveStatTotal(req.type);
                 const meetsMin = current >= req.value;
                 return (
                   <div key={req.type} style={{ color: meetsMin ? '#111' : '#ff4444' }}>
