@@ -28,7 +28,7 @@ public class SubQuestScheduleService {
         AiSubQuestResponse response = openAiRestClient.post()
                 .uri("/chat/completions")
                 .body(Map.of(
-                        "model", "gpt-4.1-nano",
+                        "model", "gpt-4.1-mini",
                         "messages", List.of(
                                 Map.of("role", "system", "content", SYSTEM_PROMPT),
                                 Map.of("role", "user", "content", "난이도 " + difficulty + " 서브퀘스트 20개 생성해줘.")
@@ -65,7 +65,7 @@ public class SubQuestScheduleService {
             규칙:
             - 퀘스트는 실제 IT 프로젝트를 모티브로 한 재미있는 제목과 설명이어야 합니다.
             - 예시 :  '모바일 청접장 제작', '랜딩 페이지 제작'
-            - requiredSkills는 BE/FE/DEV/AI/DBA/DESIGN 중 중복없이 3개를 선택합니다.
+            - 한 퀘스트에서 requiredSkills는 BE/FE/DEV/AI/DBA/DESIGN 중 절대 중복없이 3개를 선택합니다.
             - 스탯 범위는 난이도별 기준을 반드시 따릅니다.
             - JSON 외 다른 텍스트는 절대 출력하지 마세요.
                         
