@@ -40,7 +40,7 @@ public class GachaDrawLogCommandFactory {
                 pfContext.serverSeed(),
                 pfContext.algorithmVersion(),
                 anchorPayload,
-                BlockchainStatus.PENDING,
+                BlockchainStatus.NOT_REQUESTED,
                 null,
                 false,
                 buildDrawnCardLogCommands(savedCards, preparedDraws),
