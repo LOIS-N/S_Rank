@@ -587,10 +587,20 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   // --- 예상 시간 ---
   const estimatedTime = useMemo(() => calculateOverflowTime(), [calculateOverflowTime]);
 
-  // --- 보상: 정책상 고정 (오버스펙 패널티 없음) ---
+  // --- 보상: 완벽주의자 특수능력 적용 ---
   const rewardInfo = useMemo(() => {
-    return { ratio: 1, multiplier: 1, reward: quest?.rewardGold ?? 0 };
-  }, [quest]);
+    const baseReward = quest?.rewardGold ?? 0;
+    let multiplier = 100;
+    for (const card of selectedCardData) {
+      const effects = parseEffects(card.specialAbility?.effects);
+      for (const eff of effects) {
+        if (eff.effectType === 'QUEST_REWARD_GOLD' && eff.effectOperator === 'PERCENT') {
+          multiplier += eff.effectAmount;
+        }
+      }
+    }
+    return { ratio: 1, multiplier: multiplier / 100, reward: Math.round(baseReward * multiplier / 100) };
+  }, [quest, selectedCardData]);
 
   // --- 자동 선택: 최적 조합 탐색 (완전 탐색 + 그리디 fallback) ---
   const handleAutoSelect = useCallback(() => {
