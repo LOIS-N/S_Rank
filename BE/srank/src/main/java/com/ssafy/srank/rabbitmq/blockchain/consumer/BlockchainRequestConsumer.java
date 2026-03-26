@@ -46,6 +46,11 @@ public class BlockchainRequestConsumer {
                         message.walletAddress(),
                         message.consumedCardIds()
                 );
+                case ENHANCE -> ledgerWriteService.recordEnhance(
+                        message.walletAddress(),
+                        message.serverSeed(),
+                        message.clientSeed()
+                );
             };
 
             markSuccess(message, txHash);
@@ -84,6 +89,7 @@ public class BlockchainRequestConsumer {
             gachaLogFacade.updateBlockchainResult(message.logIds(), BlockchainStatus.FAILED, null);
             return;
         }
+        if(message.eventType() == BlockchainEventType.ENHANCE) return;
         synthesisLogFacade.updateBlockchainResult(message.logIds().get(0), BlockchainStatus.FAILED, null);
     }
 }
