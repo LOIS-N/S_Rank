@@ -2,6 +2,7 @@ package com.ssafy.srank.blockchain.config;
 
 import com.ssafy.srank.blockchain.application.service.LedgerWriteService;
 import com.ssafy.srank.blockchain.contracts.Ledger;
+import com.ssafy.srank.common.metrics.BlockchainMetrics;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -65,7 +66,7 @@ public class BlockchainConfig {
             prefix = "app.blockchain",
             name = {"rpc-url", "private-key", "ledger-address"}
     )
-    public LedgerWriteService ledgerWriteService(Ledger ledger) {
-        return new LedgerWriteService(ledger);
+    public LedgerWriteService ledgerWriteService(Ledger ledger, BlockchainMetrics blockchainMetrics) {
+        return new LedgerWriteService(ledger, blockchainMetrics);
     }
 }

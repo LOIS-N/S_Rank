@@ -6,6 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.srank.common.config.PrivyProperties;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.common.metrics.AuthMetrics;
+import com.ssafy.srank.common.metrics.BusinessExceptionMetrics;
+import com.ssafy.srank.common.metrics.MetricTagValues;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -28,43 +31,81 @@ public class PrivyTokenServiceImpl implements PrivyTokenService {
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String ETHEREUM_CHAIN = "ethereum";
+    private static final String OPERATION_VERIFY_ACCESS_TOKEN = "auth.verify_access_token";
+    private static final String OPERATION_VERIFY_IDENTITY_TOKEN = "auth.verify_identity_token";
 
     private final PrivyProperties privyProperties;
     private final ObjectMapper objectMapper;
+    private final AuthMetrics authMetrics;
+    private final BusinessExceptionMetrics businessExceptionMetrics;
 
     private volatile PublicKey verificationKey;
 
     @Override
     public String verifyAccessToken(String authorizationHeader) {
-        String token = extractBearerToken(authorizationHeader);
-        Claims claims = parseClaims(token);
-        return readPrivyId(claims);
+        long startNanos = System.nanoTime();
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
+
+        try {
+            String token = extractBearerToken(authorizationHeader);
+            Claims claims = parseClaims(token);
+            return readPrivyId(claims);
+        } catch (BusinessException e) {
+            result = MetricTagValues.RESULT_FAILURE;
+            errorCode = e.getErrorCode().getCode();
+            businessExceptionMetrics.record(OPERATION_VERIFY_ACCESS_TOKEN, e);
+            throw e;
+        } catch (RuntimeException e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
+            throw e;
+        } finally {
+            authMetrics.recordTokenValidation(System.nanoTime() - startNanos, "access", result, errorCode);
+        }
     }
 
     @Override
     public PrivyIdentity verifyIdentityToken(String identityToken) {
-        Claims claims = parseClaims(identityToken);
-        String privyId = readPrivyId(claims);
-        List<Map<String, Object>> linkedAccounts = parseLinkedAccounts(claims.get("linked_accounts"));
+        long startNanos = System.nanoTime();
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
 
-        String email = linkedAccounts.stream()
-                .filter(account -> "email".equals(account.get("type")) || "google_oauth".equals(account.get("type")))
-                .map(account -> {
-                    Object emailValue = account.get("email");
-                    return emailValue != null ? stringValue(emailValue) : stringValue(account.get("address"));
-                })
-                .filter(StringUtils::hasText)
-                .findFirst()
-                .orElseThrow(() -> new BusinessException(ErrorCode.TOKEN_INVALID));
+        try {
+            Claims claims = parseClaims(identityToken);
+            String privyId = readPrivyId(claims);
+            List<Map<String, Object>> linkedAccounts = parseLinkedAccounts(claims.get("linked_accounts"));
 
-        String walletAddress = linkedAccounts.stream()
-                .filter(account -> ETHEREUM_CHAIN.equalsIgnoreCase(stringValue(account.get("chain_type"))))
-                .map(account -> stringValue(account.get("address")))
-                .filter(StringUtils::hasText)
-                .findFirst()
-                .orElseThrow(() -> new BusinessException(ErrorCode.TOKEN_INVALID));
+            String email = linkedAccounts.stream()
+                    .filter(account -> "email".equals(account.get("type")) || "google_oauth".equals(account.get("type")))
+                    .map(account -> {
+                        Object emailValue = account.get("email");
+                        return emailValue != null ? stringValue(emailValue) : stringValue(account.get("address"));
+                    })
+                    .filter(StringUtils::hasText)
+                    .findFirst()
+                    .orElseThrow(() -> new BusinessException(ErrorCode.TOKEN_INVALID));
 
-        return new PrivyIdentity(privyId, email, walletAddress);
+            String walletAddress = linkedAccounts.stream()
+                    .filter(account -> ETHEREUM_CHAIN.equalsIgnoreCase(stringValue(account.get("chain_type"))))
+                    .map(account -> stringValue(account.get("address")))
+                    .filter(StringUtils::hasText)
+                    .findFirst()
+                    .orElseThrow(() -> new BusinessException(ErrorCode.TOKEN_INVALID));
+
+            return new PrivyIdentity(privyId, email, walletAddress);
+        } catch (BusinessException e) {
+            result = MetricTagValues.RESULT_FAILURE;
+            errorCode = e.getErrorCode().getCode();
+            businessExceptionMetrics.record(OPERATION_VERIFY_IDENTITY_TOKEN, e);
+            throw e;
+        } catch (RuntimeException e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
+            throw e;
+        } finally {
+            authMetrics.recordTokenValidation(System.nanoTime() - startNanos, "identity", result, errorCode);
+        }
     }
 
     private Claims parseClaims(String token) {

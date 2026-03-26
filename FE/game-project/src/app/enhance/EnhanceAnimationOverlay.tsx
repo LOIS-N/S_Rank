@@ -133,8 +133,8 @@ function OverlayContent({ card, isSuccess, statChanges, onShowResult, onComplete
         background: 'linear-gradient(160deg, #1a1a2e 0%, #0f0f1a 100%)',
         border: '2px solid #3a3a6a',
         borderRadius: '8px',
-        padding: '32px 36px',
-        width: '300px',
+        padding: 'clamp(16px, 4vw, 32px) clamp(18px, 5vw, 36px)',
+        width: 'min(300px, 85vw)',
         textAlign: 'center',
         fontFamily: "'Courier New', monospace",
         boxShadow: '0 0 60px rgba(0,0,0,0.8), inset 0 0 30px rgba(0,0,50,0.3)',
@@ -175,8 +175,8 @@ function OverlayContent({ card, isSuccess, statChanges, onShowResult, onComplete
             src={card.imageUrl}
             alt=""
             style={{
-              width: '130px',
-              height: '195px',
+              width: 'clamp(80px, 20vw, 130px)',
+              height: 'clamp(120px, 30vw, 195px)',
               objectFit: 'cover',
               imageRendering: 'pixelated',
               display: 'block',
