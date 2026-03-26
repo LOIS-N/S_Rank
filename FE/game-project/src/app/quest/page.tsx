@@ -103,6 +103,29 @@ function formatDuration(seconds: number): string {
   return `${Math.round(seconds / 60)}분`;
 }
 
+// 카드 스탯 배율 → 시간 비율 변환 (구간별 선형 보간)
+// 1.0x=100%, 1.25x=88%, 1.5x=76%, 1.75x=63%, 2.0x 이상=50% (하드캡)
+const TIME_RATIO_BREAKPOINTS: [number, number][] = [
+  [1.00, 1.00],
+  [1.25, 0.88],
+  [1.50, 0.76],
+  [1.75, 0.63],
+  [2.00, 0.50],
+];
+
+function getTimeRatio(statRatio: number): number {
+  if (statRatio <= 1.0) return 1.0;
+  if (statRatio >= 2.0) return 0.5;
+  for (let i = 0; i < TIME_RATIO_BREAKPOINTS.length - 1; i++) {
+    const [x1, y1] = TIME_RATIO_BREAKPOINTS[i];
+    const [x2, y2] = TIME_RATIO_BREAKPOINTS[i + 1];
+    if (statRatio <= x2) {
+      return y1 + (y2 - y1) * (statRatio - x1) / (x2 - x1);
+    }
+  }
+  return 0.5;
+}
+
 // DEV / Dev / DEVOPS / DevOps 를 모두 동일 타입으로 정규화
 function normalizeSkillType(type: string): string {
   const upper = type.toUpperCase();
@@ -508,11 +531,12 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     for (const req of requirements) {
       const total = getStatTotal(req.type);
       if (total <= 0) return null;
-      const posTime = baseTime * (req.value / total);
+      const statRatio = total / req.value;          // 배율: 1.0 = 딱 맞음, 2.0 = 2배 초과
+      const posTime = baseTime * getTimeRatio(statRatio);
       if (posTime > maxTime) maxTime = posTime;
     }
 
-    // 민캡: 기준 시간의 50%
+    // 하드캡: 기준 시간의 50% (getTimeRatio가 보장하지만 안전망으로 유지)
     return Math.round(Math.max(maxTime, baseTime * 0.5) * 100) / 100;
   }, [quest, requirements, selectedCardData, getStatTotal]);
 
@@ -685,7 +709,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       const res = await api.post(`/api/v1/quests/${type}/${quest.questId}/start`, {
         deskId: targetDeskId,
         cardIds: selectedCards,
-        duration: durationSeconds,  // 소요 시간 (초) — BE가 초 단위로 제공
+        duration: Math.round(durationSeconds),  // 소요 시간 (초) — BE가 초 단위로 제공
       }, {
         headers: { Authorization: `Bearer ${token}` },
       });
