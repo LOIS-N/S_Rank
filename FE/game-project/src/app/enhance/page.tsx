@@ -301,6 +301,28 @@ export default function EnhancePage() {
     return cards.find(c => c.cardId === selectedCardId) || null;
   }, [cards, selectedCardId]);
 
+  // --- 특수능력 적용된 실효 강화 데이터 ---
+  const effectiveEnhanceData = useMemo(() => {
+    if (!selectedListCard) return null;
+    const base = getEnhanceData(selectedListCard.grade);
+    let prob = base.prob;
+    let cost = base.cost;
+    const effects: Array<{ effectType: string; effectOperator: string; effectAmount: number }> =
+      selectedListCard.specialAbility?.effects
+        ? Array.isArray(selectedListCard.specialAbility.effects)
+          ? selectedListCard.specialAbility.effects as Array<{ effectType: string; effectOperator: string; effectAmount: number }>
+          : (() => { try { return JSON.parse(selectedListCard.specialAbility!.effects as string); } catch { return []; } })()
+        : [];
+    for (const eff of effects) {
+      if (eff.effectType === 'ENHANCE_SUCCESS_RATE_UP' && eff.effectOperator === 'PERCENT') {
+        prob = prob + eff.effectAmount;
+      } else if (eff.effectType === 'ENHANCE_COST_DISCOUNT' && eff.effectOperator === 'PERCENT') {
+        cost = Math.round(cost * (1 - eff.effectAmount / 100));
+      }
+    }
+    return { ...base, prob, cost };
+  }, [selectedListCard]);
+
   // --- 추가된 로컬 상탯값 계산 ---
   const currentEnhancement = selectedCardId ? localEnhancements[selectedCardId] : null;
 
@@ -436,7 +458,7 @@ export default function EnhancePage() {
     setIsEnhancing(true);
     try {
       const token = await getAuthToken();
-      const cost = getEnhanceData(selectedListCard.grade).cost;
+      const cost = (effectiveEnhanceData ?? getEnhanceData(selectedListCard.grade)).cost;
       const { data: json } = await api.post(
         `/api/v1/enhancements/cards/${selectedListCard.cardId}`,
         { cardId: selectedListCard.cardId, clientSeed: crypto.randomUUID() },
@@ -739,9 +761,9 @@ export default function EnhancePage() {
 
                     {/* 3. 강화 상수 정보 */}
                     <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="cardlist-info-panel enhance-info-box">
-                      <div className="cardlist-info-text">강화 성공 확률 : {getEnhanceData(selectedListCard.grade).prob}%</div>
-                      <div className="cardlist-info-text">강화 비용 : {getEnhanceData(selectedListCard.grade).cost.toLocaleString()}G</div>
-                      <div className="cardlist-info-text">성공 시 능력치 분배량 : +{getEnhanceData(selectedListCard.grade).statIncrease}</div>
+                      <div className="cardlist-info-text">강화 성공 확률 : {(effectiveEnhanceData ?? getEnhanceData(selectedListCard.grade)).prob}%</div>
+                      <div className="cardlist-info-text">강화 비용 : {(effectiveEnhanceData ?? getEnhanceData(selectedListCard.grade)).cost.toLocaleString()}G</div>
+                      <div className="cardlist-info-text">성공 시 능력치 분배량 : +{(effectiveEnhanceData ?? getEnhanceData(selectedListCard.grade)).statIncrease}</div>
                     </NineSliceBox>
 
                     {/* 4. 강화 버튼 */}
