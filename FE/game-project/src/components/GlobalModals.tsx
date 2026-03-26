@@ -6,6 +6,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import client from "@/lib/axios";
+import { sendGAEvent } from "@/lib/gtag";
 import { stopTutorialBgm } from "./BgmPlayer";
 import TutorialQuestScript from "./TutorialQuestScript";
 import TutorialQuestTimer from "./TutorialQuestTimer";
@@ -156,6 +157,12 @@ export default function GlobalModals() {
             profileRes.data.data.gold,
             profileRes.data.data.coin,
           );
+          const storeQ = useGameStore.getState().quests.find(q => q.id === deskId);
+          sendGAEvent("quest_complete", {
+            quest_type: questType,
+            quest_id: questId,
+            reward_gold: storeQ?.reward ?? 0,
+          });
         }
       } catch (e) {
         console.error('[CompleteQuest] profile fetch error:', e);

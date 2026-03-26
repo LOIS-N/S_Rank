@@ -6,6 +6,7 @@ import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
 import { EnhanceResult, getEnhanceData } from "@/lib/enhanceLogic";
 import { EnhanceAnimationOverlay } from "./EnhanceAnimationOverlay";
+import { sendGAEvent } from "@/lib/gtag";
 import "./enhance.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -476,6 +477,11 @@ export default function EnhancePage() {
       setPendingResult({
         ...result,
         previousStats: { skill1: displaySkill1, skill2: displaySkill2, skill3: displaySkill3 },
+      });
+      sendGAEvent("enhance_result", {
+        card_grade: selectedListCard.grade,
+        success: isSuccess,
+        cost: cost,
       });
       setIsAnimating(true);
     } catch (err: any) {
