@@ -315,6 +315,28 @@ export default function EnhancePage() {
     return cards.find(c => c.cardId === selectedCardId) || null;
   }, [cards, selectedCardId]);
 
+  // --- 특수능력 적용된 실효 강화 데이터 ---
+  const effectiveEnhanceData = useMemo(() => {
+    if (!selectedListCard) return null;
+    const base = getEnhanceData(selectedListCard.grade);
+    let prob = base.prob;
+    let cost = base.cost;
+    const effects: Array<{ effectType: string; effectOperator: string; effectAmount: number }> =
+      selectedListCard.specialAbility?.effects
+        ? Array.isArray(selectedListCard.specialAbility.effects)
+          ? selectedListCard.specialAbility.effects as Array<{ effectType: string; effectOperator: string; effectAmount: number }>
+          : (() => { try { return JSON.parse(selectedListCard.specialAbility!.effects as string); } catch { return []; } })()
+        : [];
+    for (const eff of effects) {
+      if (eff.effectType === 'ENHANCE_SUCCESS_RATE_UP' && eff.effectOperator === 'PERCENT') {
+        prob = prob + eff.effectAmount;
+      } else if (eff.effectType === 'ENHANCE_COST_DISCOUNT' && eff.effectOperator === 'PERCENT') {
+        cost = Math.round(cost * (1 - eff.effectAmount / 100));
+      }
+    }
+    return { ...base, prob, cost };
+  }, [selectedListCard]);
+
   // --- 추가된 로컬 상탯값 계산 ---
   const currentEnhancement = selectedCardId ? localEnhancements[selectedCardId] : null;
 
@@ -450,7 +472,7 @@ export default function EnhancePage() {
     setIsEnhancing(true);
     try {
       const token = await getAuthToken();
-      const cost = getEnhanceData(selectedListCard.grade).cost;
+      const cost = (effectiveEnhanceData ?? getEnhanceData(selectedListCard.grade)).cost;
       const { data: json } = await api.post(
         `/api/v1/enhancements/cards/${selectedListCard.cardId}`,
         { cardId: selectedListCard.cardId, clientSeed: crypto.randomUUID() },

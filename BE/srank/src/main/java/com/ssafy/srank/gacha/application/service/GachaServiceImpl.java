@@ -21,9 +21,11 @@ import com.ssafy.srank.gacha.application.service.model.GachaProofMaterial;
 import com.ssafy.srank.gacha.application.service.model.PreparedDraw;
 import com.ssafy.srank.gacha.domain.enums.GachaType;
 import com.ssafy.srank.gacha.domain.policy.GachaPolicyRegistry;
-import com.ssafy.srank.log.application.facade.GachaLogFacade;
+import com.ssafy.srank.log.domain.enums.BlockchainStatus;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
+import com.ssafy.srank.rabbitmq.log.message.GachaLogMessage;
+import com.ssafy.srank.rabbitmq.log.producer.GachaLogProducer;
 import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import com.ssafy.srank.user.application.dto.response.MyGachaInfo;
 import com.ssafy.srank.user.application.service.UserService;
@@ -49,7 +51,7 @@ public class GachaServiceImpl implements GachaService {
     private final GachaDrawPreparationService gachaDrawPreparationService;
     private final GachaDigestBuilder gachaDigestBuilder;
     private final GachaDrawLogCommandFactory gachaDrawLogCommandFactory;
-    private final GachaLogFacade gachaLogFacade;
+    private final GachaLogProducer gachaLogProducer;
     private final GachaMetrics gachaMetrics;
     private final BusinessExceptionMetrics businessExceptionMetrics;
     private final BlockchainRequestDispatchService blockchainRequestDispatchService;
@@ -189,7 +191,7 @@ public class GachaServiceImpl implements GachaService {
             List<PreparedDraw> preparedDraws,
             GachaProofMaterial proofMaterial
     ) {
-        List<Long> logIds = gachaLogFacade.recordDraw(gachaDrawLogCommandFactory.create(
+        var logCommand = gachaDrawLogCommandFactory.create(
                 context.userId(),
                 context.type(),
                 context.count(),
@@ -200,10 +202,38 @@ public class GachaServiceImpl implements GachaService {
                 savedCards,
                 preparedDraws,
                 context.requestedAt()
-        ));
+        );
+
+        logCommand.drawnCards().forEach(card -> gachaLogProducer.sendGachaLogMessage(new GachaLogMessage(
+                logCommand.userId(),
+                logCommand.gachaType(),
+                logCommand.drawCount(),
+                card.drawIndex(),
+                card.userCardId(),
+                card.templateId(),
+                card.grade(),
+                card.gradeRoll(),
+                card.templateRoll(),
+                card.skillRoll(),
+                Math.toIntExact(logCommand.totalCost()),
+                logCommand.tutorial(),
+                card.skillType1(),
+                card.skillValue1(),
+                card.skillType2(),
+                card.skillValue2(),
+                card.skillType3(),
+                card.skillValue3(),
+                card.specialSkillCode(),
+                logCommand.clientSeed(),
+                logCommand.serverSeed(),
+                logCommand.algorithmVersion(),
+                logCommand.anchorPayload(),
+                BlockchainStatus.NOT_REQUESTED,
+                null,
+                logCommand.createdAt()
+        )));
 
         blockchainRequestDispatchService.dispatchAfterCommit(BlockchainRequestMessage.forGacha(
-                logIds,
                 context.walletAddress(),
                 context.clientSeed(),
                 context.pfContext().serverSeed(),
