@@ -3,15 +3,11 @@ package com.ssafy.srank.blockchain.application.service;
 import com.ssafy.srank.blockchain.contracts.Ledger;
 import com.ssafy.srank.gacha.domain.enums.GachaType;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.stereotype.Service;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
 import java.util.List;
 
-@Service
-@ConditionalOnBean(Ledger.class)
 @RequiredArgsConstructor
 public class LedgerWriteService {
 
