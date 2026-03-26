@@ -1,5 +1,7 @@
 package com.ssafy.srank.card.application.dto.response;
 
+import com.ssafy.srank.card.domain.enums.MarketStatus;
+
 public record UserCardResponse(
         Long cardId,
         String grade,
@@ -10,5 +12,6 @@ public record UserCardResponse(
         CardSkillResponse skill3,
         int enhanceTryCount,
         int enhanceSuccessCount,
-        SpecialAbilityResponse specialAbility
+        SpecialAbilityResponse specialAbility,
+        MarketStatus marketStatus
 ) {}

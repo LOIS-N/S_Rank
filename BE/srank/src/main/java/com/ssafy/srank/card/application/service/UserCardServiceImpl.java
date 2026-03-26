@@ -10,6 +10,7 @@ import com.ssafy.srank.card.application.dto.response.UserCardFlatResponse;
 import com.ssafy.srank.card.application.dto.response.UserCardResponse;
 import com.ssafy.srank.card.domain.entity.SpecialSkillTemplate;
 import com.ssafy.srank.card.domain.entity.UserCard;
+import com.ssafy.srank.card.domain.enums.MarketStatus;
 import com.ssafy.srank.card.domain.enums.PositionType;
 import com.ssafy.srank.card.domain.enums.SortType;
 import com.ssafy.srank.card.repository.SpecialSkillTemplateRepository;
@@ -20,6 +21,8 @@ import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.common.metrics.BusinessExceptionMetrics;
 import com.ssafy.srank.common.metrics.CardMetrics;
 import com.ssafy.srank.common.metrics.MetricTagValues;
+import com.ssafy.srank.market.application.dto.response.SellableCardResponse;
+import com.ssafy.srank.market.application.dto.response.SkillResponse;
 import com.ssafy.srank.quest.application.service.UserQuestCardService;
 import com.ssafy.srank.ranking.application.event.UserCardsChangedEvent;
 import lombok.RequiredArgsConstructor;
@@ -94,12 +97,45 @@ public class UserCardServiceImpl implements UserCardService {
         return new CursorPageResponse<>(cards, nextCursor, hasMore, totalCnt);
     }
 
+    @Override
+    public List<SellableCardResponse> getSellableUserCard(Long userId) {
+        List<UserCard> cards =
+                userCardRepository.findByUserIdAndMarketStatusAndIsDeletedFalse(userId, MarketStatus.OWNED);
+
+        LocalDateTime now = LocalDateTime.now();
+
+        return cards.stream()
+                .map(card -> new SellableCardResponse(
+                        card.getId(),
+                        card.getCardTemplate().getId(),
+                        card.getCardTemplate().getCharacterName(),
+                        card.getCardTemplate().getFrameImageUrl(),
+                        new SkillResponse(card.getStat1().getSkillType().name(), card.getStat1().getBaseValue(), card.getStat1().getBonusValue()),
+                        new SkillResponse(card.getStat2().getSkillType().name(), card.getStat2().getBaseValue(), card.getStat2().getBonusValue()),
+                        new SkillResponse(card.getStat3().getSkillType().name(), card.getStat3().getBaseValue(), card.getStat3().getBonusValue()),
+                        card.getSpecialSkillTemplate() == null ? null : card.getSpecialSkillTemplate().getSkillName(),
+                        card.getEnhanceTryCount(),
+                        card.getEnhanceSuccessCount(),
+                        card.getCardTemplate().getGrade().toString(),
+                        card.getCreatedAt(),
+                        now.plusHours(24)
+                ))
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     @Override
     public UserCardResponse getUserCardDetail(Long userId, Long cardId) {
         return userCardRepository.findByIdAndUserIdAndIsDeletedFalse(cardId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND))
                 .toResponse();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public UserCard getUserCardEntity(Long cardId) {
+        return userCardRepository.findById(cardId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
     }
 
     @Override
@@ -181,6 +217,14 @@ public class UserCardServiceImpl implements UserCardService {
                 ))
                 .toList();
         return new SpecialAbilityResponse(template.getSkillName(), template.getDescription(), effects);
+    }
+
+    @Transactional
+    @Override
+    public void changeMarketStatus(Long userId, Long cardId, MarketStatus status) {
+        UserCard card = userCardRepository.findByIdAndUserIdAndIsDeletedFalse(cardId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
+        card.changeMarketStatus(status);
     }
 
     private String encodeCursor(UserCardFlatResponse last) {

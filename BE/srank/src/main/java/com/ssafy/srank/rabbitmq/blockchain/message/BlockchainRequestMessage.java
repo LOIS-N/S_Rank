@@ -70,6 +70,44 @@ public record BlockchainRequestMessage(
         );
     }
 
+    /** 판매 등록 시 NFT_MINT 이벤트 생성 */
+    public static BlockchainRequestMessage forNftMint(
+            Long marketItemId,
+            Long userCardId,
+            String sellerWalletAddress
+    ) {
+        return new BlockchainRequestMessage(
+                BlockchainEventType.NFT_MINT,
+                sellerWalletAddress,
+                null,           // clientSeed - market은 불필요
+                null,           // serverSeed - market은 불필요
+                null,           // count - market은 불필요
+                null,           // gachaType - market은 불필요
+                List.of(marketItemId, userCardId),  // marketItemId, userCardId 순서로 전달
+                0
+        );
+    }
+
+    /** 구매 시 P2P_TRANSFER 이벤트 생성 */
+    public static BlockchainRequestMessage forP2pTransfer(
+            Long marketItemId,
+            Long userCardId,
+            String sellerWalletAddress,
+            String buyerWalletAddress,
+            Long priceCoin
+    ) {
+        return new BlockchainRequestMessage(
+                BlockchainEventType.P2P_TRANSFER,
+                buyerWalletAddress,  // 구매자 지갑 (토큰 차감 주체)
+                sellerWalletAddress, // clientSeed 필드 임시 재활용 - 판매자 지갑
+                String.valueOf(priceCoin), // serverSeed 필드 임시 재활용 - 코인 금액
+                null,
+                null,
+                List.of(marketItemId, userCardId),
+                0
+        );
+    }
+
     public BlockchainRequestMessage incrementRetry() {
         return new BlockchainRequestMessage(
                 eventType,
