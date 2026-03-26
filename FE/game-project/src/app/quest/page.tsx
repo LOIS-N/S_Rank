@@ -96,6 +96,13 @@ function displaySkillType(type: string): string {
   return type.toUpperCase() === 'DEVOPS' ? 'DEV' : type.toUpperCase();
 }
 
+// BE에서 초 단위로 받은 duration을 표시용 문자열로 변환
+// 60초 미만 → "N초", 60초 이상 → "N분"
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)}초`;
+  return `${Math.round(seconds / 60)}분`;
+}
+
 // DEV / Dev / DEVOPS / DevOps 를 모두 동일 타입으로 정규화
 function normalizeSkillType(type: string): string {
   const upper = type.toUpperCase();
@@ -289,7 +296,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
         <NineSliceBox src={`${ASSET_BASE}/assets/003-01/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={20} borderScale={0.35} className="quest-info-box">
           <div className="quest-info-box-label">예상 시간 / 보상</div>
           <div className="quest-info-box-text">
-            <div>예상 시간 : {quest.durationMinutes}분</div>
+            <div>예상 시간 : {formatDuration(quest.durationMinutes)}</div>
             <div>예상 보상 : {quest.rewardGold.toLocaleString()}G</div>
           </div>
         </NineSliceBox>
@@ -331,7 +338,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
 // --- Phase 2: 카드 배치 콘텐츠 ---
 function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () => void }) {
   const router = useRouter();
-  const { selectingDeskId, startQuest, quests: storeQuests, tutorialQuestStep: tStep, tutorialCards, tutorialEnhanceCount, tutorialAccessPage: tAccessPage } = useGameStore();
+  const { selectingDeskId, startQuest, quests: storeQuests, tutorialQuestStep: tStep, tutorialEnhanceCount, tutorialAccessPage: tAccessPage } = useGameStore();
   const isTutorialPhase2 = tStep !== null && [2, 32, 42].includes(tStep);
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -517,7 +524,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     return { ratio: 1, multiplier: 1, reward: quest?.rewardGold ?? 0 };
   }, [quest]);
 
-  // --- 자동 선택: 요구 스탯 50% 이상 충족하는 최소 카드 조합 그리디 선택 ---
+  // --- 자동 선택: 최적 조합 탐색 (완전 탐색 + 그리디 fallback) ---
   const handleAutoSelect = useCallback(() => {
     if (!quest || requirements.length === 0) return;
 
@@ -533,43 +540,82 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     const available = gradeOrderedCards.filter(c => !usedCardIds.includes(c.cardId));
     const minCards = Math.min(3, quest.cardSlotCount);
     const maxCards = quest.cardSlotCount;
-    const needs = requirements.map(r => ({ type: r.type, needed: r.value, current: 0 }));
-    const autoSelected: number[] = [];
-    const usedInAuto = new Set<number>();
 
-    while (autoSelected.length < maxCards) {
-      let bestCard: CardListItem | null = null;
-      let bestScore = -1;
+    // 1. 후보 집합: 요구 스탯에 기여하는 모든 카드, 기여도 합산 오름차순 정렬
+    //    (약한 카드도 포함해야 "B급 1장 + 보조 2장" 같은 최적 조합을 찾을 수 있음)
+    const getRelevantScore = (card: CardListItem) =>
+      requirements.reduce((s, r) => s + getCardStat(card, r.type), 0);
 
-      for (const card of available) {
-        if (usedInAuto.has(card.cardId)) continue;
-        // 미충족 needs에 대한 기여도 (초과분 제외)
-        const needScore = needs.reduce((s, need) => {
-          const stat = getCardStat(card, need.type);
-          return s + Math.min(stat, Math.max(0, need.needed - need.current));
-        }, 0);
-        // 전체 스탯 합산 (동점 tiebreaker)
-        const totalStat = requirements.reduce((s, r) => s + getCardStat(card, r.type), 0);
-        const score = needScore * 100 + totalStat;
-        if (score > bestScore) { bestScore = score; bestCard = card; }
-      }
+    const candidates = available
+      .filter(c => getRelevantScore(c) > 0)
+      .sort((a, b) => getRelevantScore(a) - getRelevantScore(b)); // 오름차순: 약한 카드 우선
 
-      if (!bestCard) break;
+    // 2. k장 조합 완전 탐색 + 가지치기
+    //    오름차순 정렬 덕분에 bestScore 확정 후 부분합 >= bestScore 즉시 pruning
+    let bestCombo: number[] | null = null;
+    let bestScore = Infinity;
 
-      autoSelected.push(bestCard.cardId);
-      usedInAuto.add(bestCard.cardId);
-      for (const need of needs) {
-        need.current += getCardStat(bestCard, need.type);
-      }
+    const tryEnumerate = (k: number): boolean => {
+      const combo: CardListItem[] = [];
+      const pick = (start: number, partialScore: number) => {
+        if (combo.length === k) {
+          const valid = requirements.every(req =>
+            combo.reduce((s, c) => s + getCardStat(c, req.type), 0) >= req.value
+          );
+          if (valid && partialScore < bestScore) {
+            bestScore = partialScore;
+            bestCombo = combo.map(c => c.cardId);
+          }
+          return;
+        }
+        const remaining = k - combo.length;
+        for (let i = start; i <= candidates.length - remaining; i++) {
+          const newScore = partialScore + getRelevantScore(candidates[i]);
+          if (newScore >= bestScore) break; // 오름차순이므로 이후 카드는 더 큼 → 전체 prune
+          combo.push(candidates[i]);
+          pick(i + 1, newScore);
+          combo.pop();
+        }
+      };
+      pick(0, 0);
+      return bestCombo !== null;
+    };
 
-      const allMet = needs.every(n => n.current >= n.needed);
-      if (allMet && autoSelected.length >= minCards) break;
+    for (let k = minCards; k <= maxCards; k++) {
+      if (tryEnumerate(k)) break; // 최소 카드 수로 충족되면 중단
     }
 
-    setSelectedCards(autoSelected);
+    // 3. fallback: 완전 탐색으로 충족 불가 시 그리디로 최선 시도
+    if (!bestCombo) {
+      const needs = requirements.map(r => ({ type: r.type, needed: r.value, current: 0 }));
+      const autoSelected: number[] = [];
+      const usedInAuto = new Set<number>();
+      while (autoSelected.length < maxCards) {
+        let bestCard: CardListItem | null = null;
+        let bestCardScore = -1;
+        for (const card of available) {
+          if (usedInAuto.has(card.cardId)) continue;
+          const needScore = needs.reduce((s, need) => {
+            const stat = getCardStat(card, need.type);
+            return s + Math.min(stat, Math.max(0, need.needed - need.current));
+          }, 0);
+          const totalStat = requirements.reduce((s, r) => s + getCardStat(card, r.type), 0);
+          const cardScore = needScore * 100 + totalStat;
+          if (cardScore > bestCardScore) { bestCardScore = cardScore; bestCard = card; }
+        }
+        if (!bestCard) break;
+        autoSelected.push(bestCard.cardId);
+        usedInAuto.add(bestCard.cardId);
+        for (const need of needs) need.current += getCardStat(bestCard, need.type);
+        if (needs.every(n => n.current >= n.needed) && autoSelected.length >= minCards) break;
+      }
+      bestCombo = autoSelected;
+    }
+
+    setSelectedCards(bestCombo);
     setWarningMessage(null);
     setHardcapMessage(null);
-  }, [quest, requirements, sortedCards, usedCardIds]);
+  }, [quest, requirements, gradeOrderedCards, usedCardIds]);
 
   // --- 카드 선택 (cardSlotCount 제한) ---
   const handleCardClick = (id: number) => {
@@ -634,12 +680,12 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       const token = await getAuthToken();
       const type = quest.isMain ? 'main' : 'sub';
       const targetDeskId = beDeskTemplateId ?? (selectingDeskId !== null ? selectingDeskId + 1 : 1);
-      const durationMinutes = Math.min(estimatedTime ?? quest.durationMinutes, quest.durationMinutes);
+      const durationSeconds = Math.min(estimatedTime ?? quest.durationMinutes, quest.durationMinutes);
 
       const res = await api.post(`/api/v1/quests/${type}/${quest.questId}/start`, {
         deskId: targetDeskId,
         cardIds: selectedCards,
-        duration: durationMinutes * 60,  // 소요 시간 (초)
+        duration: durationSeconds,  // 소요 시간 (초) — BE가 초 단위로 제공
       }, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -660,7 +706,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       // FE 인덱스(0~4)로 store 업데이트, BE 템플릿 ID(1~5)와 혼용 방지
       const feDeskIndex = selectingDeskId ?? 0;
       const userQuestId = res.data.data as number;
-      startQuest(feDeskIndex, durationMinutes * 60, rewardInfo.reward, quest.title, userQuestId, type as 'main' | 'sub');
+      startQuest(feDeskIndex, durationSeconds, rewardInfo.reward, quest.title, userQuestId, type as 'main' | 'sub');
       router.push('/');
     } catch (err: unknown) {
       const e = err as { response?: { status?: number; data?: { message?: string; code?: string; error?: { message?: string; code?: string } } }; message?: string };
@@ -673,8 +719,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       });
       const errCode = errData?.error?.code || errData?.code;
       if (errCode === 'Q006') {
-        const hardcapMinutes = quest.durationMinutes * 2;
-        setHardcapMessage(`프로젝트에 진행할 인원들의 능력치가 생각보다 낮습니다. ${hardcapMinutes}분을 뛰어 넘어야 퀘스트 수주가 가능합니다!`);
+        setHardcapMessage(`프로젝트에 진행할 인원들의 능력치가 생각보다 낮습니다. ${formatDuration(quest.durationMinutes * 2)}을 뛰어 넘어야 퀘스트 수주가 가능합니다!`);
       } else if (errCode === 'Q007') {
         setWarningMessage('프로젝트를 시작할 수 있는 부서가 없습니다.');
       } else {
@@ -931,6 +976,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
                           <span className="badge-plus">+</span><span className="badge-num">{card.enhanceSuccessCount}</span>
                         </span>
                       )}
+                      {selected && <span className="card-check-overlay">✓</span>}
                       <span className="phase2-card-stat stat-1" style={{ color: reqTypes.has(normalizeSkillType(card.skill1.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                       <span className="phase2-card-stat stat-2" style={{ color: reqTypes.has(normalizeSkillType(card.skill2.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                       <span className="phase2-card-stat stat-3" style={{ color: reqTypes.has(normalizeSkillType(card.skill3.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
@@ -1033,7 +1079,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
           <NineSliceBox src={`${ASSET_BASE}/assets/003-02/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={14} borderScale={0.35} className="phase2-info-box">
             <div className="quest-info-box-label">예상 시간 / 보상</div>
             <div className="quest-info-box-text">
-              <div>예상 시간 : {estimatedTime != null ? `${estimatedTime}분` : `${quest.durationMinutes}분`}</div>
+              <div>예상 시간 : {formatDuration(estimatedTime ?? quest.durationMinutes)}</div>
               <div>예상 보상 : {rewardInfo.reward.toLocaleString()}G</div>
             </div>
           </NineSliceBox>

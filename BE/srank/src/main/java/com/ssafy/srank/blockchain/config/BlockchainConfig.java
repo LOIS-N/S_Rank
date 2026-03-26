@@ -1,5 +1,6 @@
 package com.ssafy.srank.blockchain.config;
 
+import com.ssafy.srank.blockchain.application.service.LedgerWriteService;
 import com.ssafy.srank.blockchain.contracts.Ledger;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -57,5 +58,14 @@ public class BlockchainConfig {
                 blockchainCredentials,
                 blockchainGasProvider
         );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "app.blockchain",
+            name = {"rpc-url", "private-key", "ledger-address"}
+    )
+    public LedgerWriteService ledgerWriteService(Ledger ledger) {
+        return new LedgerWriteService(ledger);
     }
 }

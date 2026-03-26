@@ -23,7 +23,7 @@ const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 export default function Home() {
   const { login, logout, authenticated, ready } = usePrivy();
   const { isAuthenticated, isNewUser, nickname } = useUserStore();
-  const { gameStatus, setNickname, startGame, setGameStatus, isHUDModalOpen, setTutorialActive } = useGameStore();
+  const { gameStatus, setNickname, startGame, setGameStatus, isHUDModalOpen, setTutorialActive, setTutorialIsNewUser } = useGameStore();
   const [syncTimedOut, setSyncTimedOut] = useState(false);
 
   // Problem 1: 인증 완료 시 게임 상태 동기화 (useUserStore 기준)
@@ -34,6 +34,7 @@ export default function Home() {
       // 신규 유저 튜토리얼 플래그 확인 (NicknameModal에서 설정)
       if (sessionStorage.getItem('tutorialPending') === '1') {
         sessionStorage.removeItem('tutorialPending');
+        setTutorialIsNewUser(true);
         setTutorialActive(true);
       }
       startGame();
@@ -76,7 +77,7 @@ export default function Home() {
       </div>
 
       {/* 0-1. 로그인/동기화 배경 이미지 (nginx static) */}
-      {gameStatus !== 'PLAYING' && (
+      {!authenticated && (
         <div className="absolute inset-0 z-[1]">
           <img
             src={`${ASSET_BASE}/assets/001/city_bg.webp`}

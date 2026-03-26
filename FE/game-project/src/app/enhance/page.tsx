@@ -482,8 +482,8 @@ export default function EnhancePage() {
       {/* 튜토리얼 강화 안내 오버레이 */}
       {showTutorialIntro && (
         <div
-          className="fixed inset-0 z-[400] flex items-center justify-center pointer-events-auto font-dot"
-          style={{ background: 'rgba(0,0,8,0.85)' }}
+          className="flex items-center justify-center pointer-events-auto font-dot"
+          style={{ position: 'absolute', inset: 0, zIndex: 400, background: 'rgba(0,0,8,0.85)' }}
           onClick={() => setShowTutorialIntro(false)}
         >
           <div style={{
@@ -657,6 +657,7 @@ export default function EnhancePage() {
                               <span className="badge-plus">+</span><span className="badge-num">{card.enhanceSuccessCount}</span>
                             </span>
                           )}
+                          {isSelected && <span className="card-check-overlay">✓</span>}
                           <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                           <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                           <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>

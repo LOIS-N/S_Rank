@@ -375,7 +375,7 @@ export default function SynthesisPage() {
 
     const { min, max } = getRequiredCardCount(autoGrade);
     const clampedCount = Math.min(Math.max(autoCount, min), max);
-    const gradeCards = cards.filter(c => c.grade === autoGrade);
+    const gradeCards = cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId));
 
     if (gradeCards.length < clampedCount) {
       alert(`${autoGrade}등급 카드가 ${clampedCount}장 이상 필요합니다. (현재 ${gradeCards.length}장)`);
@@ -520,8 +520,8 @@ export default function SynthesisPage() {
       {/* 튜토리얼 합성 안내 오버레이 */}
       {showTutorialIntro && (
         <div
-          className="fixed inset-0 z-[400] flex items-center justify-center pointer-events-auto font-dot"
-          style={{ background: 'rgba(0,0,8,0.85)' }}
+          className="flex items-center justify-center pointer-events-auto font-dot"
+          style={{ position: 'absolute', inset: 0, zIndex: 400, background: 'rgba(0,0,8,0.85)' }}
           onClick={() => setShowTutorialIntro(false)}
         >
           <div style={{
@@ -691,6 +691,7 @@ export default function SynthesisPage() {
                             <span className="badge-plus">+</span><span className="badge-num">{card.enhanceSuccessCount}</span>
                           </span>
                         )}
+                        {isSelected && <span className="card-check-overlay">✓</span>}
                         <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                         <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                         <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
@@ -741,7 +742,7 @@ export default function SynthesisPage() {
                 <button
                   className={`synthesis-tab-btn${synthMode === 'manual' ? ' active' : ''}`}
                   onClick={() => setSynthMode('manual')}
-                >수동 합성</button>
+                >수동 선택</button>
                 <button
                   className={`synthesis-tab-btn${synthMode === 'auto' ? ' active' : ''}`}
                   onClick={() => setSynthMode('auto')}
@@ -859,7 +860,7 @@ export default function SynthesisPage() {
                     </div>
                     <div className="synthesis-drop-cards">
                       {(() => {
-                        const gradeCards = cards.filter(c => c.grade === autoGrade);
+                        const gradeCards = cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId));
                         const total = getRequiredCardCount(autoGrade).max;
                         const cardWidth = total <= 2 ? 100 : total === 3 ? 130 : total === 4 ? 110 : 95;
                         const overlap = total <= 2 ? -10 : total === 3 ? -20 : total === 4 ? -25 : -30;
@@ -946,7 +947,7 @@ export default function SynthesisPage() {
                       slice={[200, 208, 200, 208]}
                       framePadding={14}
                       borderScale={0.4}
-                      className={`synthesis-btn-accept ${isSynthesizing || cards.filter(c => c.grade === autoGrade).length < autoCount ? 'disabled' : ''}`}
+                      className={`synthesis-btn-accept ${isSynthesizing || cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId)).length < autoCount ? 'disabled' : ''}`}
                       style={{ flex: 1 }}
                       onClick={handleAutoSynthesize}
                     >
