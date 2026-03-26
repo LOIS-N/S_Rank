@@ -134,9 +134,13 @@ export default function CardListPage() {
 
   // --- 선택 / 상세 상태 ---
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
-  const [confirmFire, setConfirmFire] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [usedCardIds, setUsedCardIds] = useState<number[]>([]);
+
+  // --- 다중 해고 모드 ---
+  const [isFireMode, setIsFireMode] = useState(false);
+  const [fireSelectedIds, setFireSelectedIds] = useState<Set<number>>(new Set());
+  const [confirmBulkFire, setConfirmBulkFire] = useState(false);
 
   // --- 필터 상태 ---
   const [capacitySort, setCapacitySort] = useState<string>("ALL");
@@ -219,31 +223,56 @@ export default function CardListPage() {
 
   // --- 카드 클릭 ---
   const handleCardClick = useCallback((cardId: number) => {
-    setSelectedCardId(cardId);
-    setConfirmFire(false);
+    if (isFireMode) {
+      if (usedCardIds.includes(cardId)) return; // 퀘스트 진행 중 카드는 선택 불가
+      setFireSelectedIds(prev => {
+        const next = new Set(prev);
+        if (next.has(cardId)) next.delete(cardId);
+        else next.add(cardId);
+        return next;
+      });
+    } else {
+      setSelectedCardId(cardId);
+    }
+  }, [isFireMode, usedCardIds]);
+
+  // --- 해고 모드 진입 / 취소 ---
+  const enterFireMode = useCallback(() => {
+    setIsFireMode(true);
+    setSelectedCardId(null);
+    setFireSelectedIds(new Set());
+    setConfirmBulkFire(false);
   }, []);
 
-  // --- 카드 해고 ---
-  const handleFireCard = useCallback(async () => {
-    if (!selectedCardId || isDeleting) return;
+  const exitFireMode = useCallback(() => {
+    setIsFireMode(false);
+    setFireSelectedIds(new Set());
+    setConfirmBulkFire(false);
+  }, []);
+
+  // --- 카드 일괄 해고 ---
+  const handleBulkFire = useCallback(async () => {
+    if (fireSelectedIds.size === 0 || isDeleting) return;
     setIsDeleting(true);
     try {
       const token = await getAuthToken();
+      const ids = Array.from(fireSelectedIds);
       await api.delete('/api/v1/cards', {
-        data: { cards: [selectedCardId] },
+        data: { cards: ids },
         headers: { Authorization: `Bearer ${token}` },
       });
-      setCards(prev => prev.filter(c => c.cardId !== selectedCardId));
-      setTotalCnt(prev => prev !== null ? prev - 1 : null);
-      setSelectedCardId(null);
-      setConfirmFire(false);
+      setCards(prev => prev.filter(c => !fireSelectedIds.has(c.cardId)));
+      setTotalCnt(prev => prev !== null ? prev - ids.length : null);
+      setFireSelectedIds(new Set());
+      setConfirmBulkFire(false);
+      setIsFireMode(false);
     } catch (err) {
-      console.error('카드 삭제 실패:', err);
+      console.error('카드 일괄 삭제 실패:', err);
     } finally {
       setIsDeleting(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCardId, isDeleting, getAuthToken]);
+  }, [fireSelectedIds, isDeleting, getAuthToken]);
 
   // --- 선택된 필터 스탯 기준 오름/내림차순 정렬 ---
   const sortedCards = useMemo(() => sortCards(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
@@ -405,13 +434,13 @@ export default function CardListPage() {
             <button
               className={`cardlist-filter-btn${sortOrder === 'desc' ? ' active' : ''}`}
               onClick={() => setSortOrder('desc')}
-              title="능력치 내림차순"
-            >▼ 내림차순</button>
+              title="높은 순"
+            >▼ 높은 순</button>
             <button
               className={`cardlist-filter-btn${sortOrder === 'asc' ? ' active' : ''}`}
               onClick={() => setSortOrder('asc')}
-              title="능력치 오름차순"
-            >▲ 오름차순</button>
+              title="낮은 순"
+            >▲ 낮은 순</button>
             {totalCnt !== null && (
               <span className="cardlist-total-cnt">{totalCnt} / 200</span>
             )}
@@ -477,11 +506,13 @@ export default function CardListPage() {
                   </div>
                 ) : (
                   sortedCards.map(card => {
-                    const isSelected = card.cardId === selectedCardId;
+                    const isSelected = !isFireMode && card.cardId === selectedCardId;
+                    const isFireSelected = isFireMode && fireSelectedIds.has(card.cardId);
+                    const isUsedInQuest = usedCardIds.includes(card.cardId);
                     return (
                       <div
                         key={card.cardId}
-                        className={`cardlist-card-item ${isSelected ? 'selected' : ''}`}
+                        className={`cardlist-card-item ${isSelected ? 'selected' : ''} ${isFireSelected ? 'fire-selected' : ''} ${isFireMode && isUsedInQuest ? 'fire-disabled' : ''}`}
                         data-grade={card.grade}
                         onClick={() => handleCardClick(card.cardId)}
                       >
@@ -489,6 +520,12 @@ export default function CardListPage() {
                         {card.enhanceSuccessCount > 0 && (
                           <span className="card-enhance-badge" data-level={String(card.enhanceSuccessCount)} data-grade={card.grade}>
                             <span className="badge-plus">+</span><span className="badge-num">{card.enhanceSuccessCount}</span>
+                          </span>
+                        )}
+                        {isSelected && <span className="card-check-overlay">✓</span>}
+                        {isFireMode && (
+                          <span className={`fire-check-overlay${isFireSelected ? ' checked' : ''}${isUsedInQuest ? ' disabled' : ''}`}>
+                            {isUsedInQuest ? '🔒' : isFireSelected ? '✓' : ''}
                           </span>
                         )}
                         <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
@@ -523,7 +560,41 @@ export default function CardListPage() {
           borderScale={0.5}
           className="cardlist-right-box"
         >
-          {selectedListCard ? (
+          {isFireMode ? (
+            <div className="cardlist-fire-mode-panel">
+              <div className="fire-mode-title">해고 모드</div>
+              <div className="fire-mode-hint">카드를 탭하여 선택하세요<br/>퀘스트 진행 중인 카드는 선택 불가</div>
+              <div className={`fire-mode-count${fireSelectedIds.size > 0 ? ' has-selection' : ''}`}>
+                {fireSelectedIds.size}장 선택됨
+              </div>
+              {confirmBulkFire ? (
+                <div className="fire-mode-confirm">
+                  <div className="fire-mode-confirm-text">정말 {fireSelectedIds.size}장을<br/>해고하시겠습니까?</div>
+                  <div className="fire-mode-confirm-btns">
+                    <button className="cardlist-fire-confirm-yes" onClick={handleBulkFire} disabled={isDeleting}>
+                      {isDeleting ? '처리 중...' : '확인'}
+                    </button>
+                    <button className="cardlist-fire-confirm-no" onClick={() => setConfirmBulkFire(false)} disabled={isDeleting}>
+                      취소
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="fire-mode-btns">
+                  <button
+                    className={`cardlist-fire-btn${fireSelectedIds.size === 0 ? ' fire-confirm-disabled' : ''}`}
+                    onClick={() => setConfirmBulkFire(true)}
+                    disabled={fireSelectedIds.size === 0}
+                  >
+                    해고 확정 ({fireSelectedIds.size})
+                  </button>
+                  <button className="cardlist-cancel-btn" onClick={exitFireMode}>
+                    취소
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : selectedListCard ? (
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
             <div className="cardlist-detail-split animate-detail" key={selectedListCard.cardId} style={{ flex: 1, minHeight: 0 }}>
               {/* 큰 카드 이미지 */}
@@ -586,20 +657,8 @@ export default function CardListPage() {
                 <button className="cardlist-fire-btn" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
                   퀘스트 진행 중
                 </button>
-              ) : confirmFire ? (
-                <div className="cardlist-fire-confirm">
-                  <span className="cardlist-fire-confirm-text">정말 해고하시겠습니까?</span>
-                  <div className="cardlist-fire-confirm-btns">
-                    <button className="cardlist-fire-confirm-yes" onClick={handleFireCard} disabled={isDeleting}>
-                      {isDeleting ? '처리 중...' : '확인'}
-                    </button>
-                    <button className="cardlist-fire-confirm-no" onClick={() => setConfirmFire(false)} disabled={isDeleting}>
-                      취소
-                    </button>
-                  </div>
-                </div>
               ) : (
-                <button className="cardlist-fire-btn" onClick={() => setConfirmFire(true)}>
+                <button className="cardlist-fire-btn" onClick={enterFireMode}>
                   해고하기
                 </button>
               )}

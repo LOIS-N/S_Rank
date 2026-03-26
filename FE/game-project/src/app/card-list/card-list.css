@@ -657,6 +657,216 @@
 }
 
 /* ============================
+   카드 선택 체크 오버레이 (공통)
+   ============================ */
+.card-check-overlay {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: #c0392b;
+  border: 2px solid #922b21;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ============================
+   해고 모드 버튼 (필터 바)
+   ============================ */
+.cardlist-fire-mode-btn {
+  background-color: #e0e0e0;
+  border-color: #555;
+  color: #333;
+}
+
+.cardlist-fire-mode-btn.fire-active {
+  background-color: #c0392b;
+  border-color: #922b21;
+  color: #fff;
+}
+
+.cardlist-fire-mode-btn.fire-active:hover {
+  background-color: #e74c3c;
+}
+
+/* ============================
+   해고 모드 카드 선택 오버레이
+   ============================ */
+.fire-check-overlay {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.fire-check-overlay.checked {
+  background-color: #c0392b;
+  border-color: #922b21;
+}
+
+.fire-check-overlay.disabled {
+  background-color: rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.3);
+  font-size: 10px;
+}
+
+/* 해고 모드 카드 선택 테두리 */
+.cardlist-card-item.fire-selected::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 7px;
+  right: 7px;
+  bottom: 0;
+  border-radius: 8px;
+  z-index: -1;
+  background: conic-gradient(from var(--border-angle, 0deg),
+      #ff4444, #ff8888, #cc0000, #ff6666, #ff4444, #ff4444);
+  animation: borderRotate 2s linear infinite;
+  pointer-events: none;
+}
+
+.cardlist-card-item.fire-selected {
+  filter: drop-shadow(0 0 8px rgba(192, 50, 50, 0.7));
+}
+
+/* 퀘스트 진행 중 카드 — 해고 모드에서 흐리게 */
+.cardlist-card-item.fire-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cardlist-card-item.fire-disabled:hover {
+  transform: none;
+  filter: none;
+}
+
+/* ============================
+   우측 패널 — 해고 모드 UI
+   ============================ */
+.cardlist-fire-mode-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.fire-mode-title {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: #c0392b;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.3);
+}
+
+.fire-mode-hint {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  color: #666;
+  text-align: center;
+  line-height: 1.8;
+}
+
+.fire-mode-count {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #888;
+  letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+.fire-mode-count.has-selection {
+  color: #c0392b;
+}
+
+.fire-mode-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+
+.fire-confirm-disabled {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+}
+
+.fire-confirm-disabled:hover {
+  background-color: #c0392b !important;
+  transform: none !important;
+}
+
+.cardlist-cancel-btn {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #333;
+  background-color: #e0e0e0;
+  border: 3px solid #555;
+  border-radius: 4px;
+  padding: 10px 40px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px rgba(0,0,0,0.4);
+  letter-spacing: 1px;
+  transition: background-color 0.15s, transform 0.1s;
+}
+
+.cardlist-cancel-btn:hover {
+  background-color: #d0d0d0;
+  transform: scale(1.04);
+}
+
+.fire-mode-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.fire-mode-confirm-text {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: #c0392b;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.fire-mode-confirm-btns {
+  display: flex;
+  gap: 12px;
+}
+
+/* ============================
    강화 횟수 배지 (카드 오른쪽 상단 모서리 대각 리본)
    ============================ */
 
