@@ -174,6 +174,7 @@ export default function GachaPage() {
   const [isPulling, setIsPulling] = useState(false);
   const [gachaEffect, setGachaEffect] = useState<EffectGrade | null>(null);
   const [lastPullCount, setLastPullCount] = useState<1 | 10>(1);
+  const [animOverlayVisible, setAnimOverlayVisible] = useState(false);
 
   // TODO: 테스트 모드 — 항상 뽑기 가능 (BE 연동 시 골드 체크로 복원)
   const canPull1 = true;
@@ -199,6 +200,7 @@ export default function GachaPage() {
       setSelectedCardIndex(null);
       setLastPullCount(1);
       setPhase('animating');
+      setAnimOverlayVisible(true);
       const newCount = tutorialGachaCount + 1;
       setTutorialGachaCount(newCount);
       if (newCount >= 3) {
@@ -259,6 +261,7 @@ export default function GachaPage() {
         setSelectedCardIndex(null);
         setLastPullCount(count);
         setPhase('animating');
+      setAnimOverlayVisible(true);
 
       }
     } catch (err: unknown) {
@@ -275,13 +278,16 @@ export default function GachaPage() {
   };
 
   const handleAnimationComplete = useCallback(() => {
-    // Transition from animation to result view
     const hasS = drawnCards.some(c => c.grade === 'S');
     const hasA = drawnCards.some(c => c.grade === 'A');
     if (hasS) setGachaEffect('S');
     else if (hasA) setGachaEffect('A');
     setPhase(lastPullCount === 1 ? 'result_1' : 'result_10');
   }, [drawnCards, lastPullCount]);
+
+  const handleOverlayDone = useCallback(() => {
+    setAnimOverlayVisible(false);
+  }, []);
 
   const handleReturn = () => {
     setDrawnCards([]);
@@ -338,10 +344,11 @@ export default function GachaPage() {
     <div className="gacha-page-container">
 
       {/* Phaser 뽑기 애니메이션 오버레이 */}
-      {phase === 'animating' && drawnCards.length > 0 && (
+      {animOverlayVisible && drawnCards.length > 0 && (
         <GachaAnimationOverlay
           cards={drawnCards}
           onComplete={handleAnimationComplete}
+          onDone={handleOverlayDone}
         />
       )}
 
@@ -444,7 +451,6 @@ export default function GachaPage() {
                   card={drawnCards[0]}
                   revealDelay={0}
                   statFontSize={21}
-                  instantReveal
                 />
               </div>
 
@@ -474,7 +480,6 @@ export default function GachaPage() {
                       card={card}
                       revealDelay={idx * 150}
                       statFontSize={12}
-                      instantReveal
                     />
                   </div>
                 ))}
