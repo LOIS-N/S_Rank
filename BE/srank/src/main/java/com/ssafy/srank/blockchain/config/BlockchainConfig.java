@@ -3,6 +3,7 @@ package com.ssafy.srank.blockchain.config;
 import com.ssafy.srank.blockchain.application.service.LedgerWriteService;
 import com.ssafy.srank.blockchain.contracts.Ledger;
 import com.ssafy.srank.common.metrics.BlockchainMetrics;
+import java.math.BigInteger;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,7 +11,7 @@ import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.gas.ContractGasProvider;
-import org.web3j.tx.gas.DefaultGasProvider;
+import org.web3j.tx.gas.StaticGasProvider;
 
 @Configuration
 public class BlockchainConfig {
@@ -39,7 +40,10 @@ public class BlockchainConfig {
             name = {"rpc-url", "private-key", "ledger-address"}
     )
     public ContractGasProvider blockchainGasProvider() {
-        return new DefaultGasProvider();
+        return new StaticGasProvider(
+                BigInteger.ZERO,
+                BigInteger.valueOf(5_000_000)
+        );
     }
 
     @Bean
