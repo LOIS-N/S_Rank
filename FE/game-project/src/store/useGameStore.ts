@@ -57,6 +57,8 @@ interface GameState {
   tutorialQuestTimerActive: boolean;
   tutorialQuestTimerSec: number;
   tutorialQuestTimerReward: number;
+  tutorialIsNewUser: boolean;  // true=신규 가입 플로우, false=기존 유저 리플레이
+  setTutorialIsNewUser: (v: boolean) => void;
   setAuth: (token: string | null) => void;
   increaseScore: (by: number) => void;
   increaseGold: (by: number) => void;
@@ -147,6 +149,7 @@ export const useGameStore = create<GameState>()(
   tutorialQuestTimerActive: false,
   tutorialQuestTimerSec: 0,
   tutorialQuestTimerReward: 0,
+  tutorialIsNewUser: false,
 
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
@@ -250,6 +253,7 @@ export const useGameStore = create<GameState>()(
   setTutorialGachaCount: (count) => set({ tutorialGachaCount: count }),
   setTutorialScriptId: (id) => set({ tutorialScriptId: id, tutorialQuestScriptVisible: id !== null }),
   setTutorialAccessPage: (page) => set({ tutorialAccessPage: page }),
+  setTutorialIsNewUser: (v) => set({ tutorialIsNewUser: v }),
   addTutorialCard: (card) => set((state) => ({ tutorialCards: [...state.tutorialCards, card] })),
   enhanceTutorialCard: (cardId) => set((state) => ({
     tutorialCards: state.tutorialCards.map(c =>
@@ -284,6 +288,7 @@ export const useGameStore = create<GameState>()(
     tutorialQuestTimerActive: false,
     tutorialQuestTimerSec: 0,
     tutorialQuestTimerReward: 0,
+    tutorialIsNewUser: false,
     bugsEnabled: true,
   }),
   pushNotification: (title, body) => set((state) => ({
@@ -381,6 +386,7 @@ export const useGameStore = create<GameState>()(
       tutorialScriptId: state.tutorialScriptId,
       tutorialAccessPage: state.tutorialAccessPage,
       tutorialQuestScriptVisible: state.tutorialQuestScriptVisible,
+      tutorialIsNewUser: state.tutorialIsNewUser,
     }),
   }
 ));
