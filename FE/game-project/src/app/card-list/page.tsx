@@ -237,10 +237,10 @@ export default function CardListPage() {
   }, [isFireMode, usedCardIds]);
 
   // --- 해고 모드 진입 / 취소 ---
-  const enterFireMode = useCallback(() => {
+  const enterFireMode = useCallback((preselectedId?: number) => {
     setIsFireMode(true);
     setSelectedCardId(null);
-    setFireSelectedIds(new Set());
+    setFireSelectedIds(preselectedId != null ? new Set([preselectedId]) : new Set());
     setConfirmBulkFire(false);
   }, []);
 
@@ -658,7 +658,7 @@ export default function CardListPage() {
                   퀘스트 진행 중
                 </button>
               ) : (
-                <button className="cardlist-fire-btn" onClick={enterFireMode}>
+                <button className="cardlist-fire-btn" onClick={() => enterFireMode(selectedCardId ?? undefined)}>
                   해고하기
                 </button>
               )}
