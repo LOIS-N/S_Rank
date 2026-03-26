@@ -134,7 +134,6 @@ public class GachaServiceImpl implements GachaService {
         }
 
         String walletAddress = userService.getWalletAddress(userId);
-
         return new DrawContext(
                 userId,
                 walletAddress,
