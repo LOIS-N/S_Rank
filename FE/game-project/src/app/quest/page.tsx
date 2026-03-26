@@ -517,7 +517,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     return { ratio: 1, multiplier: 1, reward: quest?.rewardGold ?? 0 };
   }, [quest]);
 
-  // --- 자동 선택: 요구 스탯 50% 이상 충족하는 최소 카드 조합 그리디 선택 ---
+  // --- 자동 선택: 최적 조합 탐색 (완전 탐색 + 그리디 fallback) ---
   const handleAutoSelect = useCallback(() => {
     if (!quest || requirements.length === 0) return;
 
@@ -533,43 +533,82 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     const available = gradeOrderedCards.filter(c => !usedCardIds.includes(c.cardId));
     const minCards = Math.min(3, quest.cardSlotCount);
     const maxCards = quest.cardSlotCount;
-    const needs = requirements.map(r => ({ type: r.type, needed: r.value, current: 0 }));
-    const autoSelected: number[] = [];
-    const usedInAuto = new Set<number>();
 
-    while (autoSelected.length < maxCards) {
-      let bestCard: CardListItem | null = null;
-      let bestScore = -1;
+    // 1. 후보 집합: 요구 스탯에 기여하는 모든 카드, 기여도 합산 오름차순 정렬
+    //    (약한 카드도 포함해야 "B급 1장 + 보조 2장" 같은 최적 조합을 찾을 수 있음)
+    const getRelevantScore = (card: CardListItem) =>
+      requirements.reduce((s, r) => s + getCardStat(card, r.type), 0);
 
-      for (const card of available) {
-        if (usedInAuto.has(card.cardId)) continue;
-        // 미충족 needs에 대한 기여도 (초과분 제외)
-        const needScore = needs.reduce((s, need) => {
-          const stat = getCardStat(card, need.type);
-          return s + Math.min(stat, Math.max(0, need.needed - need.current));
-        }, 0);
-        // 전체 스탯 합산 (동점 tiebreaker)
-        const totalStat = requirements.reduce((s, r) => s + getCardStat(card, r.type), 0);
-        const score = needScore * 100 + totalStat;
-        if (score > bestScore) { bestScore = score; bestCard = card; }
-      }
+    const candidates = available
+      .filter(c => getRelevantScore(c) > 0)
+      .sort((a, b) => getRelevantScore(a) - getRelevantScore(b)); // 오름차순: 약한 카드 우선
 
-      if (!bestCard) break;
+    // 2. k장 조합 완전 탐색 + 가지치기
+    //    오름차순 정렬 덕분에 bestScore 확정 후 부분합 >= bestScore 즉시 pruning
+    let bestCombo: number[] | null = null;
+    let bestScore = Infinity;
 
-      autoSelected.push(bestCard.cardId);
-      usedInAuto.add(bestCard.cardId);
-      for (const need of needs) {
-        need.current += getCardStat(bestCard, need.type);
-      }
+    const tryEnumerate = (k: number): boolean => {
+      const combo: CardListItem[] = [];
+      const pick = (start: number, partialScore: number) => {
+        if (combo.length === k) {
+          const valid = requirements.every(req =>
+            combo.reduce((s, c) => s + getCardStat(c, req.type), 0) >= req.value
+          );
+          if (valid && partialScore < bestScore) {
+            bestScore = partialScore;
+            bestCombo = combo.map(c => c.cardId);
+          }
+          return;
+        }
+        const remaining = k - combo.length;
+        for (let i = start; i <= candidates.length - remaining; i++) {
+          const newScore = partialScore + getRelevantScore(candidates[i]);
+          if (newScore >= bestScore) break; // 오름차순이므로 이후 카드는 더 큼 → 전체 prune
+          combo.push(candidates[i]);
+          pick(i + 1, newScore);
+          combo.pop();
+        }
+      };
+      pick(0, 0);
+      return bestCombo !== null;
+    };
 
-      const allMet = needs.every(n => n.current >= n.needed);
-      if (allMet && autoSelected.length >= minCards) break;
+    for (let k = minCards; k <= maxCards; k++) {
+      if (tryEnumerate(k)) break; // 최소 카드 수로 충족되면 중단
     }
 
-    setSelectedCards(autoSelected);
+    // 3. fallback: 완전 탐색으로 충족 불가 시 그리디로 최선 시도
+    if (!bestCombo) {
+      const needs = requirements.map(r => ({ type: r.type, needed: r.value, current: 0 }));
+      const autoSelected: number[] = [];
+      const usedInAuto = new Set<number>();
+      while (autoSelected.length < maxCards) {
+        let bestCard: CardListItem | null = null;
+        let bestCardScore = -1;
+        for (const card of available) {
+          if (usedInAuto.has(card.cardId)) continue;
+          const needScore = needs.reduce((s, need) => {
+            const stat = getCardStat(card, need.type);
+            return s + Math.min(stat, Math.max(0, need.needed - need.current));
+          }, 0);
+          const totalStat = requirements.reduce((s, r) => s + getCardStat(card, r.type), 0);
+          const cardScore = needScore * 100 + totalStat;
+          if (cardScore > bestCardScore) { bestCardScore = cardScore; bestCard = card; }
+        }
+        if (!bestCard) break;
+        autoSelected.push(bestCard.cardId);
+        usedInAuto.add(bestCard.cardId);
+        for (const need of needs) need.current += getCardStat(bestCard, need.type);
+        if (needs.every(n => n.current >= n.needed) && autoSelected.length >= minCards) break;
+      }
+      bestCombo = autoSelected;
+    }
+
+    setSelectedCards(bestCombo);
     setWarningMessage(null);
     setHardcapMessage(null);
-  }, [quest, requirements, sortedCards, usedCardIds]);
+  }, [quest, requirements, gradeOrderedCards, usedCardIds]);
 
   // --- 카드 선택 (cardSlotCount 제한) ---
   const handleCardClick = (id: number) => {
