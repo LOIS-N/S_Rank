@@ -318,7 +318,7 @@ export default function GachaPage() {
         onClick={canPull1 && !isPulling ? () => { setGachaArrowDismissed(true); handlePull(1); } : undefined}
       >
         <span>1회 뽑기</span>
-        <span className="btn-subtitle">({GACHA_COSTS[currentTab].single.toLocaleString()}G)</span>
+        {!isTutorialStep1 && <span className="btn-subtitle">({GACHA_COSTS[currentTab].single.toLocaleString()}G)</span>}
         {isTutorialStep1 && (
           <span className="btn-subtitle" style={{ color: '#ffdd88' }}> ({tutorialGachaCount}/3)</span>
         )}
@@ -386,7 +386,7 @@ export default function GachaPage() {
                 color: '#000',
               }}
             >
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{gold.toLocaleString()}</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{(tutorialQuestStep !== null ? 0 : gold).toLocaleString()}</span>
               <span style={{ marginLeft: '0.4cqw', fontSize: '1.4cqw' }}>G</span>
             </div>
           </div>
@@ -452,7 +452,7 @@ export default function GachaPage() {
               </div>
 
               {/* 뽑기 버튼 */}
-              {!(isTutorialStep1 && tutorialGachaCount >= 3) && (
+              {!isTutorialStep1 && (
                 <div className="gacha-single-pull-buttons">
                   <PullButtons />
                 </div>
@@ -486,7 +486,7 @@ export default function GachaPage() {
               </div>
             </div>
 
-            {!(isTutorialStep1 && tutorialGachaCount >= 3) && (
+            {!isTutorialStep1 && (
               <div className="gacha-bottom-buttons" onClick={(e) => e.stopPropagation()}>
                 <PullButtons />
               </div>

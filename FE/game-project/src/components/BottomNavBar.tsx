@@ -11,7 +11,7 @@ const SUB_PAGES = ["/quest", "/gacha", "/card-list", "/enhance", "/synthesis", "
 
 
 export default function BottomNavBar() {
-  const { gameStatus, openComingSoonModal, tutorialActive, tutorialAccessPage, quests, tutorialQuestStep } = useGameStore();
+  const { gameStatus, openComingSoonModal, tutorialActive, tutorialAccessPage, quests, tutorialQuestStep, tutorialQuestScriptVisible } = useGameStore();
   const router = useRouter();
   const pathname = usePathname();
   const [arrowDismissed, setArrowDismissed] = useState(false);
@@ -46,6 +46,7 @@ export default function BottomNavBar() {
   ];
 
   const handleMenuClick = (item: string, disabled: boolean) => {
+    if (tutorialQuestScriptVisible) return;
     if (disabled) {
       const msg = tutorialAllowedName !== undefined ? "튜토리얼 진행 후 이용 가능합니다." : undefined;
       openComingSoonModal(msg);
@@ -123,7 +124,7 @@ export default function BottomNavBar() {
                   backgroundImage: `url('${ASSET_BASE}/assets/002/lowerButton_001.webp')`,
                   backgroundSize: "100% 100%",
                   imageRendering: "pixelated",
-                  filter: (item.disabled || item.name === activeItem) ? "brightness(0.75)" : undefined,
+                  filter: (item.disabled || item.name === activeItem || tutorialQuestScriptVisible) ? "brightness(0.75)" : undefined,
                 }}
               >
                 {item.name}

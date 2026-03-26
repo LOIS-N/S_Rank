@@ -6,8 +6,8 @@ interface DiscordModalProps {
 
 export default function DiscordModal({ onClose }: DiscordModalProps) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold pointer-events-auto">
-      <div className="bg-[#b0c4de] p-8 border-4 border-white w-[455px] text-center shadow-[8px_8px_0px_#4a5d73] relative">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold pointer-events-auto" onClick={onClose} onPointerDown={e => e.stopPropagation()}>
+      <div className="bg-[#b0c4de] p-8 border-4 border-white w-[455px] text-center shadow-[8px_8px_0px_#4a5d73] relative" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
 
         <button onClick={onClose} className="absolute top-2 right-4 text-white hover:text-red-600 text-3xl drop-shadow-md">
           &times;

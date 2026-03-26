@@ -404,7 +404,9 @@ export default function GameCanvas() {
                       s.activeRewardModal?.isOpen ||
                       s.activeUnlockConfirm?.isOpen ||
                       s.questInfoModal ||
-                      s.isHUDModalOpen
+                      s.isHUDModalOpen ||
+                      s.showTutorialGoldModal ||
+                      s.tutorialQuestStep !== null  // 튜토리얼 진행 중 desk 클릭 차단
                     );
                   };
 

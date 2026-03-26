@@ -1,6 +1,7 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { pauseGameBgm, playTutorialBgm, fadeTutorialBgmOut } from './BgmPlayer';
+import { useGameStore } from '@/store/useGameStore';
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -15,13 +16,14 @@ interface Scene {
   lines: DialogLine[];
 }
 
-const SCENES: Scene[] = [
+function getScenes(nickname: string): Scene[] {
+  return [
   { bg: 'black', lines: [
     { text: '또다!' },
   ]},
   { bg: 'tutorialStory_000', lines: [
     { text: '대체 몇번째 불합격이지. 이젠 횟수를 세는 것도 힘들다.' },
-    { text: '나는 개발자 지망생 김개발.' },
+    { text: `나는 개발자 지망생 ${nickname}.` },
     { text: '부트캠프를 졸업한 뒤 열심히 자소서를 쓰고 있지만, 생각보다 결과가 좋지 않다...' },
     { text: '왜 세상은 경력직만 찾는 거지? 신입은 경력을 어디서 쌓으라는 거야...' },
     { text: '어?' },
@@ -58,13 +60,16 @@ const SCENES: Scene[] = [
     { text: "내 눈에는 전 세계의 유니콘들이 보인다. 이제 내 회사들은 '진짜'들로만 채운다." },
     { text: '조작 불가능한 실력의 시대, 내가 열겠어.' },
   ]},
-];
+  ];
+}
 
 interface Props {
   onComplete: () => void;
 }
 
 export default function TutorialStory({ onComplete }: Props) {
+  const nickname = useGameStore(s => s.nickname) || '김개발';
+  const SCENES = getScenes(nickname);
   const [sceneIdx, setSceneIdx]       = useState(0);
   const [lineIdx, setLineIdx]         = useState(0);
   const [fading, setFading]           = useState(false);

@@ -26,7 +26,6 @@ export default function GlobalModals() {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [completeError, setCompleteError] = useState(false);
-  const [showTutorialGoldModal, setShowTutorialGoldModal] = useState(false);
   const { logout: privyLogout } = usePrivy();
   const {
     comingSoonModal, closeComingSoonModal,
@@ -46,6 +45,7 @@ export default function GlobalModals() {
     tutorialQuestTimerActive, startTutorialQuestTimer, stopTutorialQuestTimer,
     tutorialQuestTimerReward, increaseGold,
     resetTutorialState,
+    showTutorialGoldModal, setShowTutorialGoldModal,
   } = useGameStore();
   const { clearUser, accessToken } = useUserStore();
 
@@ -326,6 +326,7 @@ export default function GlobalModals() {
           className="fixed inset-0 z-[2000] flex items-center justify-center pointer-events-auto font-dot"
           style={{ background: 'rgba(0,0,0,0.6)' }}
           onClick={() => setShowTutorialGoldModal(false)}
+          onPointerDown={e => e.stopPropagation()}
         >
           <div
             style={{
@@ -338,6 +339,7 @@ export default function GlobalModals() {
               cursor: 'pointer',
             }}
             onClick={e => e.stopPropagation()}
+            onPointerDown={e => e.stopPropagation()}
           >
             <div style={{ fontSize: '2rem', marginBottom: '1rem', color: '#7a5a00' }}>🎉 지급 완료</div>
             <p style={{ fontSize: '1.1rem', lineHeight: 1.8, color: '#3a2a00', fontWeight: 'bold', marginBottom: '1.5rem' }}>
