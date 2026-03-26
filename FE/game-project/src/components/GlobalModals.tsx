@@ -46,19 +46,21 @@ export default function GlobalModals() {
     tutorialQuestTimerActive, startTutorialQuestTimer, stopTutorialQuestTimer,
     tutorialQuestTimerReward, increaseGold,
     resetTutorialState,
+    tutorialIsNewUser,
     showTutorialGoldModal, setShowTutorialGoldModal,
   } = useGameStore();
   const { clearUser, accessToken } = useUserStore();
 
-  // 튜토리얼 완료 시 레벨업 API 호출
+  // 튜토리얼 완료 시 레벨업 API 호출 (신규 가입 플로우에서만)
   useEffect(() => {
     if (tutorialQuestStep !== 99) return;
+    if (!tutorialIsNewUser) return;  // 기존 유저 리플레이 시 스킵
     const token = useUserStore.getState().accessToken;
     if (!token) return;
     client.put('/api/v1/users/levelup', {}, {
       headers: { Authorization: `Bearer ${token}` },
     }).catch((e) => console.error('[Tutorial] levelup API error:', e));
-  }, [tutorialQuestStep]);
+  }, [tutorialQuestStep, tutorialIsNewUser]);
 
   const handleSessionExpiredConfirm = async () => {
     setSessionExpiredModal(false);
@@ -316,10 +318,8 @@ export default function GlobalModals() {
 
       {/* Tutorial Quest Script Overlay (shows on all pages) */}
       {tutorialQuestScriptVisible && tutorialScriptId && (
-        <div className="fixed inset-0 z-[300] pointer-events-none">
-          <div className="absolute inset-0 pointer-events-auto">
-            <TutorialQuestScript scriptId={tutorialScriptId} onDone={handleScriptDone} />
-          </div>
+        <div className="absolute inset-0 z-[300] pointer-events-auto">
+          <TutorialQuestScript scriptId={tutorialScriptId} onDone={handleScriptDone} />
         </div>
       )}
 
