@@ -20,102 +20,78 @@ import java.util.Map;
 @Slf4j
 public class SubQuestScheduleService {
 
-    private static final String MODEL = "gpt-4.1-nano";
-
     private final RestClient openAiRestClient;
     private final SubQuestTemplateRepository subQuestRepository;
     private final ObjectMapper objectMapper;
-    private final QuestMetrics questMetrics;
 
     public void generateAndSave(int difficulty) throws JsonProcessingException {
-        log.info("[SubQuestSchedule] OpenAI sub quest generation started difficulty={}", difficulty);
+        log.info("[SubQuestSchedule] OpenAI 서브 퀘스트 생성 시작 - difficulty={}", difficulty);
 
-        long startNanos = System.nanoTime();
-        AiSubQuestResponse response;
-        try {
-            response = openAiRestClient.post()
-                    .uri("/chat/completions")
-                    .body(Map.of(
-                            "model", MODEL,
-                            "messages", List.of(
-                                    Map.of("role", "system", "content", SYSTEM_PROMPT),
-                                    Map.of("role", "user", "content", "난이도 " + difficulty + " 서브퀘스트 20개 생성해줘.")
-                            ),
-                            "max_tokens", 4096,
-                            "temperature", 0.3
-                    ))
-                    .retrieve()
-                    .body(AiSubQuestResponse.class);
-
-            questMetrics.recordOpenAiRequest(
-                    System.nanoTime() - startNanos,
-                    "subquest_generate",
-                    MODEL,
-                    MetricTagValues.number(difficulty),
-                    MetricTagValues.RESULT_SUCCESS
-            );
-        } catch (RuntimeException e) {
-            questMetrics.recordOpenAiRequest(
-                    System.nanoTime() - startNanos,
-                    "subquest_generate",
-                    MODEL,
-                    MetricTagValues.number(difficulty),
-                    MetricTagValues.RESULT_ERROR
-            );
-            throw e;
-        }
+        AiSubQuestResponse response = openAiRestClient.post()
+                .uri("/chat/completions")
+                .body(Map.of(
+                        "model", "gpt-5.2",
+                        "messages", List.of(
+                                Map.of("role", "developer", "content", SYSTEM_PROMPT),
+                                Map.of("role", "user", "content", "난이도 " + difficulty + " 서브퀘스트 20개 생성해줘.")
+                        ),
+                        "temperature", 0.3
+                ))
+                .retrieve()
+                .body(AiSubQuestResponse.class);
 
         AiSubQuestResponse.SubQuestListContent listContent;
         try {
             listContent = objectMapper.readValue(response.getContent(), AiSubQuestResponse.SubQuestListContent.class);
         } catch (JsonProcessingException e) {
-            log.warn("[SubQuestSchedule] OpenAI response parse failed difficulty={} error={}", difficulty, e.getMessage());
-            questMetrics.recordParseFailure(MetricTagValues.number(difficulty));
+            log.warn("[SubQuestSchedule] OpenAI 응답 파싱 실패 - difficulty={}, error={}", difficulty, e.getMessage());
             throw e;
         }
 
         listContent.getQuests().forEach(quest -> subQuestRepository.save(quest.toEntity()));
-        questMetrics.recordSavedSubquests(MetricTagValues.number(difficulty), listContent.getQuests().size());
-        log.info("[SubQuestSchedule] sub quest generation completed difficulty={} savedCount={}", difficulty, listContent.getQuests().size());
+
+        log.info("[SubQuestSchedule] 서브 퀘스트 생성 완료 - difficulty={}, savedCount={}", difficulty, listContent.getQuests().size());
     }
 
     private String extractContent(String response) throws JsonProcessingException {
+        // response에서 choices[0].message.content 추출
         JsonNode root = objectMapper.readTree(response);
         return root.path("choices").get(0).path("message").path("content").asText();
     }
 
     private final String SYSTEM_PROMPT = """
-            ?뱀떊? IT ?ㅽ??몄뾽 寃쎌쁺 ?쒕??덉씠??寃뚯엫???섏뒪???앹꽦 AI?낅땲??
-            ?꾨옒 議곌굔??留욌뒗 ?쒕툕?섏뒪??1媛쒕? JSON ?뺤떇?쇰줈 ?앹꽦?섏꽭??
+            당신은 IT 스타트업 경영 시뮬레이션 게임의 퀘스트 생성 AI입니다.
+            아래 조건에 맞는 서브퀘스트 1개를 JSON 형식으로 생성하세요.
                         
-            洹쒖튃:
-            - ?섏뒪?몃뒗 ?ㅼ젣 IT ?꾨줈?앺듃瑜?紐⑦떚釉뚮줈 ???щ??덈뒗 ?쒕ぉ怨??ㅻ챸?댁뼱???⑸땲??
-            - ?덉떆 :  '紐⑤컮??泥?젒???쒖옉', '?쒕뵫 ?섏씠吏 ?쒖옉'
-            - requiredSkills??BE/FE/DEV/AI/DBA/DESIGN 以?以묐났?놁씠 3媛쒕? ?좏깮?⑸땲??
-            - ?ㅽ꺈 踰붿쐞???쒖씠?꾨퀎 湲곗???諛섎뱶???곕쫭?덈떎.
-            - JSON ???ㅻⅨ ?띿뒪?몃뒗 ?덈? 異쒕젰?섏? 留덉꽭??
+            규칙:
+            - 퀘스트는 실제 IT 프로젝트를 모티브로 한 재미있는 제목과 설명이어야 합니다.
+            - 예시 :  '모바일 청접장 제작', '랜딩 페이지 제작'
+            - 한 퀘스트에서 requiredSkills는 BE/FE/DEV/AI/DBA/DESIGN 중 절대 중복없이 3개를 선택합니다.
+            - 기준시간은 초로 나타내야합니다.
+            - 스탯 범위는 난이도별 기준을 반드시 따릅니다.
+            - JSON 외 다른 텍스트는 절대 출력하지 마세요.
                         
-            ?쒖씠?꾨퀎 ?ㅽ꺈 湲곗?:
-            - ?쒖씠??1: ?ъ???3媛? ?ъ??섎떦 ?ㅽ꺈 踰붿쐞 15~25, ?ㅽ꺈 珥앺빀 踰붿쐞 45~75, 湲곗??쒓컙 1遺? 蹂댁긽 2700G
-            - ?쒖씠??2: ?ъ???3媛? ?ъ??섎떦 ?ㅽ꺈 踰붿쐞 45~60, ?ㅽ꺈 珥앺빀 踰붿쐞 135~180, 湲곗??쒓컙 3遺? 蹂댁긽 9000G
-            - ?쒖씠??3: ?ъ???4媛? ?ъ??섎떦 ?ㅽ꺈 踰붿쐞 90~120, ?ㅽ꺈 珥앺빀 踰붿쐞 270~360, 湲곗??쒓컙 10遺? 蹂댁긽 30000G
-            - ?쒖씠??4: ?ъ???4媛? ?ъ??섎떦 ?ㅽ꺈 踰붿쐞 120~160, ?ㅽ꺈 珥앺빀 踰붿쐞 360~480, 湲곗??쒓컙 30遺? 蹂댁긽 112500G
-            - ?쒖씠??5: ?ъ???5媛? ?ъ??섎떦 ?ㅽ꺈 踰붿쐞 150~200, ?ㅽ꺈 珥앺빀 踰붿쐞 450~600, 湲곗??쒓컙 90遺? 蹂댁긽 405000G
-            - ?쒖씠??6: ?ъ???5媛? ?ъ??섎떦 ?ㅽ꺈 踰붿쐞 175~225, ?ㅽ꺈 珥앺빀 踰붿쐞 525~675, 湲곗??쒓컙 240遺? 蹂댁긽 1350000G
+            난이도별 스탯 기준:
+            - 난이도 1: 포지션 3개, 포지션당 스탯 범위 15~25, 스탯 총합 범위 45~75, 기준시간 30초, 보상 2700G
+            - 난이도 2: 포지션 3개, 포지션당 스탯 범위 45~60, 스탯 총합 범위 135~180, 기준시간 60초, 보상 7000G
+            - 난이도 3: 포지션 4개, 포지션당 스탯 범위 90~120, 스탯 총합 범위 270~360, 기준시간 180초, 보상 25000G
+            - 난이도 4: 포지션 4개, 포지션당 스탯 범위 120~160, 스탯 총합 범위 360~480, 기준시간 600초, 보상 120000G
+            - 난이도 5: 포지션 5개, 포지션당 스탯 범위 150~200, 스탯 총합 범위 450~600, 기준시간 1800초, 보상 600000G
+            - 난이도 6: 포지션 5개, 포지션당 스탯 범위 175~225, 스탯 총합 범위 525~675, 기준시간 5400초, 보상 3000000G
                         
-            異쒕젰 ?뺤떇:
+            출력 형식:
             {
               "quests": [
                 {
-                  "title": "?섏뒪???쒕ぉ",
-                  "description": "?섏뒪???ㅻ챸 (1~2臾몄옣)",
-                  "difficulty": ?쒖씠??1~6),
-                  "durationMinutes": 湲곗??쒓컙,
-                  "rewardGold": 蹂댁긽怨⑤뱶,
+                  "title": "퀘스트 제목",
+                  "description": "퀘스트 설명 (1~2문장)",
+                  "difficulty": 난이도(1~6),
+                  "durationMinutes": 기준시간(초),
+                  "rewardGold": 보상골드,
                   "requiredSkills": [
-                    {"skillType": "BE", "skillValue": ?レ옄},
-                    {"skillType": "FE", "skillValue": ?レ옄},
-                    {"skillType": "DEV", "skillValue": ?レ옄}
+                    {"skillType": "BE", "skillValue": 숫자},
+                    {"skillType": "FE", "skillValue": 숫자},
+                    {"skillType": "DEV", "skillValue": 숫자}
                   ]
                 }
               ]

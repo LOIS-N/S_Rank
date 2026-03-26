@@ -439,9 +439,21 @@ export default function GameCanvas() {
                     resultIcon.setVisible(false);
                     resultIcon.setInteractive({ useHandCursor: true });
                     resultIcon.on('pointerdown', () => {
-                      if (isAnyModalOpen()) return;
                       const state = useGameStore.getState();
                       const q = state.quests[index];
+                      const tStep = state.tutorialQuestStep;
+
+                      // 튜토리얼 퀘스트 (questId < 0): isAnyModalOpen 체크 없이 별도 처리
+                      if (tStep !== null && q && typeof q.questId === 'number' && q.questId < 0) {
+                        if (q.reward > 0) state.increaseGold(q.reward);
+                        state.completeQuestSilent(index);
+                        if (tStep === 2) state.setTutorialScriptId('step2_done');
+                        else if (tStep === 32) state.setTutorialScriptId('step32_done');
+                        else if (tStep === 42) state.setTutorialQuestStep(99);
+                        return;
+                      }
+
+                      if (isAnyModalOpen()) return;
                       if (q && q.questId && q.questType) {
                         state.setCompleteQuestTrigger({
                           deskId: index,

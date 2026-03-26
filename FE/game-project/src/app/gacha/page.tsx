@@ -445,8 +445,11 @@ export default function GachaPage() {
             1회 뽑기 결과
             ============================ */}
         {phase === 'result_1' && drawnCards.length > 0 && (
-          <div className="gacha-result-container" onClick={handleReturn}>
-            <div className="gacha-single-result-center" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="gacha-result-container"
+            onClick={isTutorialStep1 && tutorialGachaCount < 3 ? () => handlePull(1) : handleReturn}
+          >
+            <div className="gacha-single-result-center" onClick={isTutorialStep1 ? undefined : (e) => e.stopPropagation()}>
 
               {/* 카드 플립 리빌 */}
               <div className="gacha-single-big-card">
@@ -461,6 +464,13 @@ export default function GachaPage() {
               {!isTutorialStep1 && (
                 <div className="gacha-single-pull-buttons">
                   <PullButtons />
+                </div>
+              )}
+
+              {/* 튜토리얼: 클릭 힌트 */}
+              {isTutorialStep1 && (
+                <div style={{ marginTop: '1.5cqw', textAlign: 'center', color: '#aaccff', fontSize: '1.1cqw', fontFamily: "'Stardust', sans-serif", opacity: 0.85 }}>
+                  {tutorialGachaCount < 3 ? `▶ 클릭하여 계속 뽑기 (${tutorialGachaCount}/3)` : '▶ 클릭하여 돌아가기'}
                 </div>
               )}
             </div>
