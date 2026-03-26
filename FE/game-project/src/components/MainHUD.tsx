@@ -127,7 +127,7 @@ export default function MainHUD() {
   };
 
   const chapterTitle = chapterNo != null ? CHAPTER_TITLES[chapterNo] ?? null : null;
-  const chapterIcon  = chapterNo != null ? CHAPTER_ICONS[chapterNo]  ?? "✨" : null;
+  const chapterIcon = chapterNo != null ? CHAPTER_ICONS[chapterNo] ?? "✨" : null;
 
   return (
     <div className="absolute left-0 right-0 pointer-events-none font-dot flex flex-col justify-between select-none" style={{ top: "var(--game-clip-y, 0px)", bottom: "var(--game-clip-y, 0px)" }}>
@@ -215,11 +215,11 @@ export default function MainHUD() {
           {/* 오른쪽: 아이콘 버튼들 */}
           <div className="flex" style={{ gap: "1.0cqw", paddingRight: "1.0cqw" }}>
             {[
-              { id: "mypage",       icon: `${ASSET_BASE}/assets/002/mypage_002.webp`,   label: "마이페이지", comingSoon: false },
-              { id: "ranking",      icon: `${ASSET_BASE}/assets/002/ranking_002.webp`,  label: "랭킹",       comingSoon: false },
-              { id: "discord",      icon: `${ASSET_BASE}/assets/002/discord_002.webp`,  label: "디스코드",   comingSoon: false },
-              { id: "notification", icon: `${ASSET_BASE}/assets/002/message_002.webp`,  label: "알림",       comingSoon: true },
-              { id: "achievement",  icon: `${ASSET_BASE}/assets/002/awards_002.webp`,   label: "업적",       comingSoon: true },
+              { id: "mypage", icon: `${ASSET_BASE}/assets/002/mypage_002.webp`, label: "마이페이지", comingSoon: false },
+              { id: "ranking", icon: `${ASSET_BASE}/assets/002/ranking_002.webp`, label: "랭킹", comingSoon: false },
+              { id: "discord", icon: `${ASSET_BASE}/assets/002/discord_002.webp`, label: "디스코드", comingSoon: false },
+              { id: "notification", icon: `${ASSET_BASE}/assets/002/message_002.webp`, label: "알림", comingSoon: true },
+              { id: "achievement", icon: `${ASSET_BASE}/assets/002/awards_002.webp`, label: "업적", comingSoon: true },
             ].map((item) => {
               const isTutorialDisabled = tutorialQuestStep !== null;
               const isDisabled = item.comingSoon || isTutorialDisabled;
@@ -334,12 +334,12 @@ export default function MainHUD() {
       {/* --- 모달 영역 --- */}
       {activeModal && (
         <div className="absolute inset-0 z-[90] pointer-events-auto" onPointerDown={e => e.stopPropagation()}>
-          {activeModal === "mypage"        && <MyPageModal        onClose={closeModal} />}
-          {activeModal === "ranking"       && <RankingModal       onClose={closeModal} />}
-          {activeModal === "discord"       && <DiscordModal       onClose={closeModal} />}
-          {activeModal === "notification"  && <NotificationModal  onClose={closeModal} />}
-          {activeModal === "achievement"   && <AchievementModal   onClose={closeModal} />}
-          {activeModal === "guide"         && (
+          {activeModal === "mypage" && <MyPageModal onClose={closeModal} />}
+          {activeModal === "ranking" && <RankingModal onClose={closeModal} />}
+          {activeModal === "discord" && <DiscordModal onClose={closeModal} />}
+          {activeModal === "notification" && <NotificationModal onClose={closeModal} />}
+          {activeModal === "achievement" && <AchievementModal onClose={closeModal} />}
+          {activeModal === "guide" && (
             <div
               className="fixed inset-0 z-[100] flex items-center justify-center font-dot pointer-events-auto pb-[calc(6cqw+10px)]"
               style={{ background: 'rgba(0,0,0,0.6)' }}
@@ -374,7 +374,7 @@ export default function MainHUD() {
                     { title: '카드', body: '카드 한 장은 개발자 한 명을 의미합니다. 스탯은 FE, BE, AI, DBA, Devops, Design 총 여섯가지가 있습니다. 카드는 랜덤하게 다음 6가지 스탯 중 3가지를 가지게 됩니다. S등급 카드의 경우 랜덤하게 특별한 스킬을 가지기도 합니다. [해고하기] 버튼을 통해 사용하지 않는 카드를 판매할 수 있습니다.' },
                     { title: '퀘스트', body: '퀘스트는 하나의 프로젝트입니다. 퀘스트별로 요구하는 스테이터스가 다릅니다. 기술스택 필터링 버튼, 정렬, 자동선택 버튼을 통해 보다 간편하게 프로젝트를 수행할 수 있습니다.' },
                     { title: '뽑기', body: '전단지, 박람회, 공채 총 세 단계의 뽑기가 있습니다. 단계별로 뽑을 수 있는 카드의 등급과 비율이 달라집니다.' },
-                    { title: '강화', body: '기존의 카드 성능을 강화할 수 있습니다. 카드 한 장 당 총 7번의 강화가 가능합니다. 강화 성공 확률은 35%입니다. 강화 성공 횟수가 많아질수록 강화되는 능력치의 총합도 늘어납니다.' },
+                    { title: '강화', body: '기존의 카드 성능을 강화할 수 있습니다. 카드 한 장 당 총 7번의 강화가 가능합니다. 강화 성공 확률은 등급에 따라 다릅니다. 강화 성공 횟수가 많아질수록 강화되는 능력치의 총합도 늘어납니다.' },
                     { title: '합성', body: '기존 카드를 2장에서 5장까지 모아 합성할 수 있습니다. 합성은 같은 등급의 카드들로만 가능하며, 성공 시 바로 윗단계의 카드를 랜덤하게 뽑을 수 있습니다. S등급 카드의 경우 2장만 합성 가능하며, 100% 확률로 S등급의 카드를 얻을 수 있습니다.' },
                     { title: '버그', body: '유저의 회사 내부에는 끊임없이 버그들이 출몰합니다. 일반 버그는 마리당 50골드, 특별한 버그는 마리당 100골드를 지급합니다. 우측 상단의 버튼을 통해 비활성화가 가능합니다.' },
                   ].map(({ title, body }) => (

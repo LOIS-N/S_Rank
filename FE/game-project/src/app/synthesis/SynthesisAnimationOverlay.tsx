@@ -128,18 +128,18 @@ function OverlayContent({ resultCard, sourceGrade, isSuccess, onShowResult, onCo
         border: phase === 'result' && isSuccess
           ? '2px solid #FFD700'
           : phase === 'result'
-          ? '2px solid #ff4444'
-          : '2px solid #5a4a00',
+            ? '2px solid #ff4444'
+            : '2px solid #5a4a00',
         borderRadius: '8px',
-        padding: '32px 36px',
-        width: '300px',
+        padding: 'clamp(16px, 4vw, 32px) clamp(18px, 5vw, 36px)',
+        width: 'min(300px, 85vw)',
         textAlign: 'center',
         fontFamily: "'Courier New', monospace",
         boxShadow: phase === 'result' && isSuccess
           ? '0 0 60px rgba(255,215,0,0.35), inset 0 0 30px rgba(50,40,0,0.3)'
           : phase === 'result'
-          ? '0 0 60px rgba(255,68,68,0.3), inset 0 0 30px rgba(50,0,0,0.3)'
-          : '0 0 60px rgba(0,0,0,0.8), inset 0 0 30px rgba(50,40,0,0.2)',
+            ? '0 0 60px rgba(255,68,68,0.3), inset 0 0 30px rgba(50,0,0,0.3)'
+            : '0 0 60px rgba(0,0,0,0.8), inset 0 0 30px rgba(50,40,0,0.2)',
         animation: 'synthesis-fadein 0.3s ease-out',
         transition: 'border-color 0.4s, box-shadow 0.4s',
         zIndex: 1,
@@ -161,32 +161,32 @@ function OverlayContent({ resultCard, sourceGrade, isSuccess, onShowResult, onCo
           border: phase === 'result' && isSuccess
             ? '2px solid #FFD700'
             : phase === 'result'
-            ? '2px solid #ff4444'
-            : '2px solid #5a4a00',
+              ? '2px solid #ff4444'
+              : '2px solid #5a4a00',
           borderRadius: '4px',
           padding: '3px',
           marginBottom: '20px',
           boxShadow: phase === 'result' && isSuccess
             ? '0 0 20px rgba(255,215,0,0.5)'
             : phase === 'result'
-            ? '0 0 20px rgba(255,68,68,0.3)'
-            : 'none',
+              ? '0 0 20px rgba(255,68,68,0.3)'
+              : 'none',
           transition: 'border-color 0.4s, box-shadow 0.4s',
         }}>
           <img
             src={resultCard.imageUrl}
             alt=""
             style={{
-              width: '130px',
-              height: '195px',
+              width: 'clamp(80px, 20vw, 130px)',
+              height: 'clamp(120px, 30vw, 195px)',
               objectFit: 'cover',
               imageRendering: 'pixelated',
               display: 'block',
               filter: phase === 'fusing'
                 ? 'blur(6px) brightness(0.25)'
                 : phase === 'result' && !isSuccess
-                ? 'grayscale(70%) brightness(0.55)'
-                : 'none',
+                  ? 'grayscale(70%) brightness(0.55)'
+                  : 'none',
               transition: 'filter 0.5s',
             }}
           />
