@@ -76,7 +76,7 @@ export default function Home() {
       </div>
 
       {/* 0-1. 로그인/동기화 배경 이미지 (nginx static) */}
-      {gameStatus !== 'PLAYING' && (
+      {!authenticated && (
         <div className="absolute inset-0 z-[1]">
           <img
             src={`${ASSET_BASE}/assets/001/city_bg.webp`}

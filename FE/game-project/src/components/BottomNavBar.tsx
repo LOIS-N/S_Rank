@@ -42,13 +42,13 @@ export default function BottomNavBar() {
     { name: "뽑기",     disabled: tutorialAllowedName ? tutorialAllowedName !== "뽑기"     : false },
     { name: "강화",     disabled: tutorialAllowedName ? tutorialAllowedName !== "강화"     : false },
     { name: "합성",     disabled: tutorialAllowedName ? tutorialAllowedName !== "합성"     : false },
-    { name: "거래",     disabled: true },
+    { name: "거래",     disabled: tutorialAllowedName ? tutorialAllowedName !== "거래" : false },
   ];
 
   const handleMenuClick = (item: string, disabled: boolean) => {
     if (tutorialQuestScriptVisible) return;
     if (disabled) {
-      const msg = tutorialAllowedName !== undefined ? "튜토리얼 진행 후 이용 가능합니다." : undefined;
+      const msg = tutorialAllowedName !== null ? "튜토리얼 진행 후 이용 가능합니다." : undefined;
       openComingSoonModal(msg);
       return;
     }
@@ -59,7 +59,7 @@ export default function BottomNavBar() {
       case "강화":     router.push("/enhance");   break;
       case "합성":     router.push("/synthesis"); break;
       case "메인":     router.push("/");           break;
-      case "거래":     router.push("/trade");     break;
+      case "거래":     openComingSoonModal(); break;
       default: break;
     }
   };

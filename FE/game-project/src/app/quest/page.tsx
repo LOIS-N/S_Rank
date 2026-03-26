@@ -331,7 +331,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
 // --- Phase 2: 카드 배치 콘텐츠 ---
 function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () => void }) {
   const router = useRouter();
-  const { selectingDeskId, startQuest, quests: storeQuests, tutorialQuestStep: tStep, tutorialCards, tutorialEnhanceCount, tutorialAccessPage: tAccessPage } = useGameStore();
+  const { selectingDeskId, startQuest, quests: storeQuests, tutorialQuestStep: tStep, tutorialEnhanceCount, tutorialAccessPage: tAccessPage } = useGameStore();
   const isTutorialPhase2 = tStep !== null && [2, 32, 42].includes(tStep);
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
