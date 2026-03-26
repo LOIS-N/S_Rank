@@ -10,7 +10,7 @@ module.exports = {
         enabled: true,
         runs: 200,
       },
-      // evmVersion: "shanghai",
+      // evmVersion: "shanghai", <- 이놈이 범인이었음 paris만 호환됨. 현재 자동 지정 상태
     },
   },
   networks: {
