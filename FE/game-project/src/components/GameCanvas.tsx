@@ -406,7 +406,8 @@ export default function GameCanvas() {
                       s.questInfoModal ||
                       s.isHUDModalOpen ||
                       s.showTutorialGoldModal ||
-                      s.tutorialQuestStep !== null  // 튜토리얼 진행 중 desk 클릭 차단
+                      s.tutorialActive ||            // 튜토리얼 스토리 진행 중 desk 클릭 차단
+                      s.tutorialQuestStep !== null  // 튜토리얼 퀘스트 진행 중 desk 클릭 차단
                     );
                   };
 

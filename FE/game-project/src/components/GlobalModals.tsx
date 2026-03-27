@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
@@ -28,6 +28,10 @@ export default function GlobalModals() {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [completeError, setCompleteError] = useState(false);
+  const [goldSyncError, setGoldSyncError] = useState(false);
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+  const levelUpCalledRef = useRef(false);
   const { logout: privyLogout } = usePrivy();
   const {
     comingSoonModal, closeComingSoonModal,
@@ -59,11 +63,19 @@ export default function GlobalModals() {
     const token = useUserStore.getState().accessToken;
     if (!token) return;
     if (useUserStore.getState().level !== 0) return;  // 레벨 0일 때만 레벨업
+    if (levelUpCalledRef.current) return;  // React StrictMode 이중 실행 방지
+    levelUpCalledRef.current = true;
     client.put('/api/v1/users/levelup', {}, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(() => {
-      const s = useUserStore.getState();
-      s.setProfile({ nickname: s.nickname ?? '', level: s.level + 1, gold: s.gold, coin: s.coin });
+      return client.get('/api/v1/users/me', { headers: { Authorization: `Bearer ${token}` } });
+    }).then((meRes) => {
+      const me = meRes.data?.data;
+      if (me?.level != null) {
+        const s = useUserStore.getState();
+        // level만 BE 값으로 갱신, gold/coin은 로컬 튜토리얼 보상이 포함되어 있으므로 유지
+        s.setProfile({ nickname: s.nickname ?? '', level: me.level, gold: s.gold, coin: s.coin });
+      }
     }).catch((e) => console.error('[Tutorial] levelup API error:', e));
   }, [tutorialQuestStep, tutorialIsNewUser]);
 
@@ -136,7 +148,7 @@ export default function GlobalModals() {
             { headers: { Authorization: `Bearer ${token}` } }
           );
           if (res.status === 200) break; // 성공
-          setCompleteError(true);
+          if (mountedRef.current) setCompleteError(true);
           return;
         } catch (e: any) {
           const code = e?.response?.data?.error?.code || e?.response?.data?.errorCode;
@@ -146,7 +158,7 @@ export default function GlobalModals() {
             continue;
           }
           console.error('[CompleteQuest] API error:', e);
-          setCompleteError(true);
+          if (mountedRef.current) setCompleteError(true);
           return;
         }
       }
@@ -172,6 +184,10 @@ export default function GlobalModals() {
         }
       } catch (e) {
         console.error('[CompleteQuest] profile fetch error:', e);
+        if (mountedRef.current) {
+          setGoldSyncError(true);
+          setTimeout(() => { if (mountedRef.current) setGoldSyncError(false); }, 4000);
+        }
       }
       useGameStore.getState().completeQuestNoGold(deskId);
     };
@@ -381,6 +397,15 @@ export default function GlobalModals() {
             >
               확인
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- Gold Sync Error Toast --- */}
+      {goldSyncError && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[2100] font-dot pointer-events-none">
+          <div className="bg-[#3a2a1a] border-2 border-[#cc9900] px-6 py-3 text-[#ffcc00] text-lg shadow-[4px_4px_0px_#000]">
+            골드 동기화에 실패했습니다. 새로고침 후 확인해주세요.
           </div>
         </div>
       )}
