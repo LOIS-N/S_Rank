@@ -309,29 +309,6 @@ export default function GlobalModals() {
   return (
     <>
 
-      {/* Tutorial Skip Button — 퀘스트 페이지 튜토리얼 진행 중 항상 표시 (z:400, 스크립트 오버레이 z:300보다 위) */}
-      {tutorialQuestStep !== null && [2, 3, 32, 4, 42].includes(tutorialQuestStep) && pathname === '/quest' && (
-        <button
-          onClick={handleTutorialQuit}
-          className="fixed font-dot pointer-events-auto"
-          style={{
-            top: '1.2cqw',
-            right: '1.5cqw',
-            zIndex: 400,
-            padding: '0.5cqw 1.2cqw',
-            background: '#c0392b',
-            color: '#fff',
-            border: '2px solid #7b241c',
-            boxShadow: '2px 2px 0 #7b241c',
-            fontSize: '1.4cqw',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-          }}
-        >
-          튜토리얼 건너뛰기
-        </button>
-      )}
-
       {/* Tutorial Quest Script Overlay (shows on all pages) */}
       {tutorialQuestScriptVisible && tutorialScriptId && (
         <div className="absolute inset-0 z-[300] pointer-events-auto">
