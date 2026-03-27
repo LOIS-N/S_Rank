@@ -758,7 +758,13 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     }
 
     // 책상(부서) 사용 가능 여부 사전 검증
-    const deskIndex = selectingDeskId ?? 0;
+    const deskIndex = selectingDeskId !== null
+      ? selectingDeskId
+      : storeQuests.findIndex(q => !q.isLocked && q.status === 'IDLE');
+    if (deskIndex === -1) {
+      setWarningMessage('프로젝트를 시작할 수 있는 부서가 없습니다.');
+      return;
+    }
     const deskStatus = storeQuests[deskIndex]?.status;
     if (deskStatus === 'IN_PROGRESS') {
       setWarningMessage('프로젝트를 시작할 수 있는 부서가 없습니다.');
@@ -769,7 +775,10 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     try {
       const token = await getAuthToken();
       const type = quest.isMain ? 'main' : 'sub';
-      const targetDeskId = beDeskTemplateId ?? (selectingDeskId !== null ? selectingDeskId + 1 : 1);
+      // selectingDeskId가 null(퀘스트 탭 직접 진입)이면 beDeskTemplateId는 desk 0 기준으로 조회된 값이므로 신뢰하지 않음
+      const targetDeskId = selectingDeskId !== null
+        ? (beDeskTemplateId ?? (deskIndex + 1))
+        : (deskIndex + 1);
       const durationSeconds = Math.min(estimatedTime ?? quest.durationMinutes, quest.durationMinutes);
 
       const res = await api.post(`/api/v1/quests/${type}/${quest.questId}/start`, {
@@ -794,7 +803,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       });
 
       // FE 인덱스(0~4)로 store 업데이트, BE 템플릿 ID(1~5)와 혼용 방지
-      const feDeskIndex = selectingDeskId ?? 0;
+      const feDeskIndex = deskIndex;
       const userQuestId = res.data.data as number;
       startQuest(feDeskIndex, durationSeconds, rewardInfo.reward, quest.title, userQuestId, type as 'main' | 'sub');
       router.push('/');
@@ -819,7 +828,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     } finally {
       setIsStarting(false);
     }
-  }, [quest, isStarting, selectedCards, requirements, getEffectiveStatTotal, getAuthToken, estimatedTime, selectingDeskId, startQuest, rewardInfo.reward, router]);
+  }, [quest, isStarting, selectedCards, requirements, getEffectiveStatTotal, getAuthToken, estimatedTime, selectingDeskId, beDeskTemplateId, storeQuests, startQuest, rewardInfo.reward, router]);
 
   const [p2ScrollRatio, setP2ScrollRatio] = useState(0);
   const [p2TrackHeight, setP2TrackHeight] = useState(0);
@@ -1287,7 +1296,7 @@ export default function QuestPage() {
   const [subQuests, setSubQuests] = useState<Quest[]>([]);
   const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [chapterNumber, setChapterNumber] = useState(1);
+  const [chapterNumber, setChapterNumber] = useState(1); // BE 응답에서 갱신되는 표시용 챕터 번호 (요청 파라미터로는 사용하지 않음)
   const [isLoading, setIsLoading] = useState(true);
   const [showInProgressModal, setShowInProgressModal] = useState(false);
   const [showAllBusyModal, setShowAllBusyModal] = useState(false);
@@ -1299,11 +1308,11 @@ export default function QuestPage() {
   }, [getAccessToken]);
 
   // --- 메인 퀘스트 조회 ---
-  const fetchMainQuest = useCallback(async (chapter: number) => {
+  // chapterNumber 파라미터 제거: BE는 user.level로 챕터를 결정하므로 FE에서 전송 불필요
+  const fetchMainQuest = useCallback(async () => {
     try {
       const token = await getAuthToken();
       const { data: json } = await api.get('/api/v1/quests/main', {
-        params: { chapterNumber: chapter },
         headers: { Authorization: `Bearer ${token}` },
       });
       if (json.success && json.data && Array.isArray(json.data) && json.data.length > 0) {
@@ -1329,7 +1338,7 @@ export default function QuestPage() {
         };
         setMainQuest(quest);
         setSelectedQuest(quest);
-        setChapterNumber(current.chapterNo);
+        setChapterNumber(current.chapterNo); // 표시용으로만 사용
       }
     } catch (err) {
       console.error("메인 퀘스트 조회 실패:", err);
@@ -1384,7 +1393,7 @@ export default function QuestPage() {
       // Zustand persist 수화가 effect 실행보다 늦을 수 있으므로 최신 상태로 재확인
       if (useGameStore.getState().tutorialQuestStep !== null) return;
       setIsLoading(true);
-      await Promise.all([fetchMainQuest(chapterNumber), fetchSubQuests()]);
+      await Promise.all([fetchMainQuest(), fetchSubQuests()]);
       setIsLoading(false);
     };
     init();
