@@ -41,17 +41,17 @@ export default function RootLayout({
         {/* Google Analytics */}
         {gaId && (
           <>
+            {/* 1단계: gtag 스텁 즉시 정의 — 페이지 로드 직후 이벤트도 dataLayer에 큐잉됨 */}
+            <Script id="google-analytics-stub" strategy="beforeInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}`}
+            </Script>
+            {/* 2단계: gtag.js 로드 후 큐 처리 + GA 설정 */}
             <Script
               src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
               strategy="afterInteractive"
             />
             <Script id="google-analytics" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${gaId}');
-              `}
+              {`gtag('js',new Date());gtag('config','${gaId}');`}
             </Script>
           </>
         )}
