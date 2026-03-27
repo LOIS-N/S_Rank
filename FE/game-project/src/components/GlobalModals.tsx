@@ -58,8 +58,12 @@ export default function GlobalModals() {
     if (!tutorialIsNewUser) return;  // 기존 유저 리플레이 시 스킵
     const token = useUserStore.getState().accessToken;
     if (!token) return;
+    if (useUserStore.getState().level !== 0) return;  // 레벨 0일 때만 레벨업
     client.put('/api/v1/users/levelup', {}, {
       headers: { Authorization: `Bearer ${token}` },
+    }).then(() => {
+      const s = useUserStore.getState();
+      s.setProfile({ nickname: s.nickname ?? '', level: s.level + 1, gold: s.gold, coin: s.coin });
     }).catch((e) => console.error('[Tutorial] levelup API error:', e));
   }, [tutorialQuestStep, tutorialIsNewUser]);
 
