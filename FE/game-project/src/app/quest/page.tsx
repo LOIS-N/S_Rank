@@ -380,6 +380,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   useEffect(() => setMounted(true), []);
 
   // --- 보유 카드 목록 (API) ---
+  const cardCacheRef = useRef<Map<number, CardListItem>>(new Map());
   const [cards, setCards] = useState<CardListItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -477,6 +478,11 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [capacitySort]);
 
+  // 카드 데이터 캐시 갱신 (정렬 변경 시 cards가 초기화되어도 선택된 카드 표시 유지)
+  useEffect(() => {
+    cards.forEach(card => cardCacheRef.current.set(card.cardId, card));
+  }, [cards]);
+
   // 선택된 필터 스탯 기준 오름/내림차순 정렬 (자동선택은 항상 등급+총합 기준 별도 정렬)
   const sortedCards = useMemo(() => sortCardsByFilter(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
   const gradeOrderedCards = useMemo(() => sortCardsByGradeAndStat(cards), [cards]);
@@ -524,7 +530,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
   // --- 선택된 카드 객체 목록 ---
   const selectedCardData = useMemo(() => {
-    return selectedCards.map(id => sortedCards.find(c => c.cardId === id)).filter(Boolean) as CardListItem[];
+    return selectedCards.map(id => sortedCards.find(c => c.cardId === id) ?? cardCacheRef.current.get(id)).filter(Boolean) as CardListItem[];
   }, [selectedCards, sortedCards]);
 
   // --- 특정 스킬타입에 대한 선택된 카드들의 총합 스탯 ---
@@ -1107,7 +1113,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
               const yMultiplier = total <= 3 ? 10 : total === 4 ? 8 : 6;
               return Array.from({ length: total }).map((_, index) => {
                 const cardId = selectedCards[index];
-                const card = cardId ? sortedCards.find(c => c.cardId === cardId) : null;
+                const card = cardId ? (sortedCards.find(c => c.cardId === cardId) ?? cardCacheRef.current.get(cardId) ?? null) : null;
                 const angle = (index - (total - 1) / 2) * fanAngle;
                 const yOffset = Math.abs(index - (total - 1) / 2) * yMultiplier;
                 const style = {

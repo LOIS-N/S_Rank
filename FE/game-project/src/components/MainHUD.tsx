@@ -49,7 +49,6 @@ export default function MainHUD() {
     tutorialActive, setTutorialActive,
     tutorialQuestStep, setTutorialQuestStep,
     setTutorialGachaCount, setTutorialScriptId,
-    resetTutorialState,
     quests,
   } = useGameStore();
   const { accessToken, level: userLevel } = useUserStore();
@@ -310,24 +309,6 @@ export default function MainHUD() {
             alt="debug"
             style={{ width: "2.48cqw", height: "2.48cqw", imageRendering: "pixelated" }}
           />
-        </button>
-        {/* 튜토리얼 시작 / 스킵 버튼 */}
-        <button
-          onClick={tutorialQuestStep !== null ? resetTutorialState : () => setTutorialActive(true)}
-          className="relative flex items-center justify-center transition-all hover:brightness-110 font-dot"
-          style={{
-            width: "4cqw",
-            height: "4cqw",
-            backgroundImage: `url('${ASSET_BASE}/assets/002/upperButton_002.webp')`,
-            backgroundSize: "100% 100%",
-            fontSize: "1.3cqw",
-            fontWeight: "bold",
-            color: tutorialQuestStep !== null ? "#ffdd88" : "#fff",
-            textShadow: "1px 1px 0 #000, -1px -1px 0 #000",
-          }}
-          title={tutorialQuestStep !== null ? "튜토리얼 스킵" : "튜토리얼 시작"}
-        >
-          {tutorialQuestStep !== null ? "스킵" : "튜토"}
         </button>
       </div>
 
