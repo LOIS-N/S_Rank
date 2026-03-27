@@ -504,7 +504,7 @@ export default function EnhancePage() {
         card_grade: selectedListCard.grade,
         enhance_success_count: displayEnhanceLevel,
         remaining_enhances: 7 - displayEnhanceTries,
-        success: isSuccess,
+        success: isSuccess ? "success" : "fail",
         cost: cost,
       });
       setIsAnimating(true);
