@@ -274,7 +274,7 @@ export default function CardListPage() {
           skill2_value: card.skill2.value,
           skill3_type: card.skill3.skillType,
           skill3_value: card.skill3.value,
-          enhanced: card.enhanceSuccessCount > 0,
+          enhanced: card.enhanceSuccessCount > 0 ? "yes" : "no",
           enhance_level: card.enhanceSuccessCount,
           batch_size: batchSize,
         });
