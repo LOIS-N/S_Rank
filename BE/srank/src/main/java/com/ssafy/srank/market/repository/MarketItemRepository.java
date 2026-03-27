@@ -21,4 +21,13 @@ public interface MarketItemRepository extends JpaRepository<MarketItem, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT mi FROM MarketItem mi WHERE mi.marketItemId = :id")
     Optional<MarketItem> findByIdWithLock(@Param("id") Long id);
+
+    @Query("""
+        select mi
+        from MarketItem mi
+        join fetch mi.userCard uc
+        join fetch uc.cardTemplate ct
+        where mi.marketItemId = :marketItemId
+    """)
+    Optional<MarketItem> findByIdWithUserCardAndTemplate(Long marketItemId);
 }

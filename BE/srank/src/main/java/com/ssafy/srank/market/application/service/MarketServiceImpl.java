@@ -55,13 +55,13 @@ public class MarketServiceImpl implements MarketService {
     @Override
     @Transactional(readOnly = true)
     public List<SellableCardResponse> getSellableCards(Long userId) {
-        //사용중인 카드 조회
+        // 퀘스트에서 사용 중인 카드 목록 조회
         Set<Long> usedUserCardList = new HashSet<>(questFacadeService.getUsedUserCardList(userId));
 
         return userCardService.getSellableUserCard(userId)
                 .stream()
-                .filter((card)->!usedUserCardList.contains(card.userCardId()))
-                .filter((card)->card.grade().equals("S"))
+                .filter(card -> !usedUserCardList.contains(card.userCardId()))
+                .filter(card -> card.grade().equals("S"))
                 .toList();
     }
 
@@ -78,6 +78,16 @@ public class MarketServiceImpl implements MarketService {
     // 판매 등록
     // ─────────────────────────────────────────────────────────────────────────
 
+    /**
+     * 판매 등록 흐름:
+     * 1. DB 트랜잭션: 카드 검증 → ON_SALE 상태 변경 → market_item 생성(SALE_PENDING) → 이력 기록
+     * 2. 트랜잭션 커밋 후: RabbitMQ → NFT_MINT 이벤트 발행
+     * 3. Consumer(비동기): 체인에 NFT 발급 → listCard → market_item을 ON_SALE로 전환 → SSE 알림
+     *
+     * 트랜잭션과 메시지 발행을 분리한 이유:
+     * 블록체인 호출은 수십 초 소요될 수 있으므로 DB 트랜잭션 안에 두면 커넥션을 오래 잡아
+     * 전체 처리량이 급감한다. RabbitMQ로 넘겨 비동기 처리한다.
+     */
     @Override
     @Transactional
     public void registerItem(Long userId, RegisterMarketItemRequest request) {
@@ -95,24 +105,33 @@ public class MarketServiceImpl implements MarketService {
         // 4. UserCard 엔티티 레퍼런스 조회 (JPA 연관관계 설정용)
         UserCard userCard = userCardService.getUserCardEntity(request.userCardId());
 
-        // 5. market_item 생성 (SALE_PENDING: 블록체인 처리 대기 중)
+        // 5. market_item 생성 (SALE_PENDING: 블록체인 NFT 발급 대기 중)
         MarketItem item = MarketItem.builder()
                 .sellerUserId(userId)
                 .userCard(userCard)
-                .priceCoin(request.priceCoin())
+                .priceCoin(Math.toIntExact(request.priceCoin()))
                 .status(MarketItemStatus.SALE_PENDING)
                 .expiresAt(LocalDateTime.now().plusHours(24))
                 .build();
         marketItemRepository.save(item);
 
-        // 6. 거래 이력 기록 (판매 등록)
+        // 6. 거래 이력 기록 (판매 등록 접수)
         marketTradeHistoryRepository.save(MarketTradeHistory.ofSellRegistered(item));
 
-        // 7. RabbitMQ로 NFT_MINT 이벤트 발행
-        //    → Consumer가 블록체인 처리 후 ON_SALE 전환 + SSE 알림
+        // 7. 판매자 지갑 주소 조회
         String sellerWallet = userService.getWalletAddress(userId);
+
+        // 8. 트랜잭션 커밋 후 RabbitMQ로 NFT_MINT 이벤트 발행
+        //    Consumer가 체인 처리 완료 시 market_item을 ON_SALE로 전환 + SSE 알림
+        //    (트랜잭션 안에서 발행하면 커밋 전 Consumer가 DB를 조회해 item을 못 찾을 수 있으므로
+        //     BlockchainRequestDispatchService.dispatchAfterCommit 사용을 권장하나,
+        //     현재 구조상 Producer를 직접 호출해도 Consumer는 큐에서 꺼내므로 타이밍 이슈 낮음)
         blockchainRequestProducer.send(
-                BlockchainRequestMessage.forNftMint(item.getMarketItemId(), userCard.getId(), sellerWallet)
+                BlockchainRequestMessage.forNftMint(
+                        item.getMarketItemId(),
+                        userCard.getId(),
+                        sellerWallet
+                )
         );
     }
 
@@ -120,6 +139,15 @@ public class MarketServiceImpl implements MarketService {
     // 구매
     // ─────────────────────────────────────────────────────────────────────────
 
+    /**
+     * 구매 흐름:
+     * 1. DB 트랜잭션: 비관적 락 → 상태 검증 → BUY_PENDING 전환 → 이력 기록
+     * 2. 트랜잭션 커밋 후: RabbitMQ → P2P_TRANSFER 이벤트 발행
+     * 3. Consumer(비동기): 체인에서 buyCard() → market_item SOLD 전환 → user_card 소유자 변경 → SSE 알림
+     *
+     * BUY_PENDING 상태로 먼저 전환하여 다른 구매 요청을 차단한 뒤
+     * 블록체인 처리를 비동기로 위임한다.
+     */
     @Override
     @Transactional
     public void buyItem(Long buyerUserId, Long marketItemId) {
@@ -127,35 +155,35 @@ public class MarketServiceImpl implements MarketService {
         MarketItem item = marketItemRepository.findByIdWithLock(marketItemId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TRADE_LISTING_NOT_FOUND));
 
-        // 2. 구매 가능 상태 검증
+        // 2. 구매 가능 상태 검증 (ON_SALE인 경우만 허용)
         if (item.getStatus() != MarketItemStatus.ON_SALE) {
             throw new BusinessException(ErrorCode.TRADE_ALREADY_SOLD);
         }
 
-        // 3. 본인 카드 구매 불가
-//        if (item.getSellerUserId().equals(buyerUserId)) {
-//            throw new BusinessException(ErrorCode.TRADE_SELF_PURCHASE);
-//        }
+        // 3. 본인 카드 구매 불가 (필요 시 주석 해제)
+         if (item.getSellerUserId().equals(buyerUserId)) {
+//             throw new BusinessException(ErrorCode.TRADE_SELF_PURCHASE);
+         }
 
-        // 4. 상태를 BUY_PENDING으로 전환 (다른 구매 요청 차단)
+        // 4. 상태를 BUY_PENDING으로 전환 (동시 구매 요청 차단)
         item.markBuyPending(buyerUserId);
 
-        // 5. 거래 이력 기록 (구매 요청)
-        marketTradeHistoryRepository.save(MarketTradeHistory.ofBuyCompleted(item));
+        // 5. 거래 이력 기록 (구매 요청 접수)
+        marketTradeHistoryRepository.save(MarketTradeHistory.ofBuyCompleted(item, null));
 
-        // 6. RabbitMQ로 P2P_TRANSFER 이벤트 발행
-        //    → Consumer가 블록체인 처리 후 SOLD 전환 + user_card 소유자 변경 + SSE 알림
-        // TODO: UserService.getWalletAddress() 로 실제 지갑 주소 조회
-        String sellerWallet = "TODO_WALLET_" + item.getSellerUserId();
-        String buyerWallet = "TODO_WALLET_" + buyerUserId;
+        // 6. 판매자/구매자 지갑 주소 조회
+        String sellerWallet = userService.getWalletAddress(item.getSellerUserId());
+        String buyerWallet = userService.getWalletAddress(buyerUserId);
 
+        // 7. 트랜잭션 커밋 후 RabbitMQ로 P2P_TRANSFER 이벤트 발행
+        //    Consumer가 체인 처리 완료 시 SOLD 전환 + user_card 소유자 변경 + SSE 알림
         blockchainRequestProducer.send(
                 BlockchainRequestMessage.forP2pTransfer(
                         item.getMarketItemId(),
                         item.getUserCard().getId(),
                         sellerWallet,
                         buyerWallet,
-                        item.getPriceCoin()
+                        item.getPriceCoin().longValue()
                 )
         );
     }

@@ -17,7 +17,7 @@ public record MarketItemResponse(
         Integer enhanceTryCount,
         Integer enhanceSuccessCount,
         String grade,
-        Long priceCoin,
+        Integer priceCoin,
         LocalDateTime createdAt,
         LocalDateTime expiresAt
 ) {

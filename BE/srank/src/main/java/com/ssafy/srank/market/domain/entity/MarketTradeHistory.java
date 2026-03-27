@@ -38,7 +38,7 @@ public class MarketTradeHistory extends BaseEntity {
 
     private String nftTokenId;
 
-    private Long priceCoin;
+    private Integer priceCoin;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -54,6 +54,9 @@ public class MarketTradeHistory extends BaseEntity {
 
     private String memo;
 
+    @Column(length = 255)
+    private String txHash;
+
     public static MarketTradeHistory ofSellRegistered(MarketItem item) {
         return MarketTradeHistory.builder()
                 .marketItem(item)
@@ -65,10 +68,11 @@ public class MarketTradeHistory extends BaseEntity {
                 .status("PENDING")
                 .eventAt(LocalDateTime.now())
                 .expiresAt(item.getExpiresAt())
+                .txHash(null)
                 .build();
     }
 
-    public static MarketTradeHistory ofSellCompleted(MarketItem item) {
+    public static MarketTradeHistory ofSellCompleted(MarketItem item, String txHash) {
         return MarketTradeHistory.builder()
                 .marketItem(item)
                 .userCard(item.getUserCard())
@@ -79,10 +83,11 @@ public class MarketTradeHistory extends BaseEntity {
                 .historyType(MarketHistoryType.SELL_COMPLETED)
                 .status("COMPLETED")
                 .eventAt(LocalDateTime.now())
+                .txHash(txHash)
                 .build();
     }
 
-    public static MarketTradeHistory ofBuyCompleted(MarketItem item) {
+    public static MarketTradeHistory ofBuyCompleted(MarketItem item, String txHash) {
         return MarketTradeHistory.builder()
                 .marketItem(item)
                 .userCard(item.getUserCard())
@@ -93,6 +98,7 @@ public class MarketTradeHistory extends BaseEntity {
                 .historyType(MarketHistoryType.BUY_COMPLETED)
                 .status("COMPLETED")
                 .eventAt(LocalDateTime.now())
+                .txHash(txHash)
                 .build();
     }
 }

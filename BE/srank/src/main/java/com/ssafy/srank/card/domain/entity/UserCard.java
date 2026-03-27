@@ -106,8 +106,17 @@ public class UserCard extends SoftDeleteEntity {
         softDelete(now);
     }
 
-    public void changeMarketStatus(MarketStatus status){
+    public void changeMarketStatus(MarketStatus status) {
         this.marketStatus = status;
+    }
+
+    /**
+     * P2P 거래 완료 시 카드 소유자를 구매자로 이전한다.
+     * 마켓 상태도 OWNED로 초기화하여 구매자가 바로 사용 가능하게 한다.
+     */
+    public void changeOwner(Long newUserId) {
+        this.userId = newUserId;
+        this.marketStatus = MarketStatus.OWNED;
     }
 
     public UserCardResponse toResponse() {

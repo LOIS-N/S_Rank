@@ -33,4 +33,5 @@ public interface UserCardService {
     void applyEnhanceFail(Long userId, Long cardId);
     void deleteCard(Long userId, DeleteCardRequest request);
     void changeMarketStatus(Long userId, Long cardId, MarketStatus status);
+    void changeOwner(Long userCardId, Long buyerUserId);
 }

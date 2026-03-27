@@ -225,6 +225,19 @@ public class UserCardServiceImpl implements UserCardService {
         card.changeMarketStatus(status);
     }
 
+    /**
+     * P2P 거래 완료 시 카드 소유자를 구매자로 변경하고 마켓 상태를 OWNED로 초기화한다.
+     * BlockchainRequestConsumer에서 체인 처리 완료 후 호출된다.
+     */
+    @Transactional
+    @Override
+    public void changeOwner(Long userCardId, Long buyerUserId) {
+        UserCard card = userCardRepository.findById(userCardId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
+        // UserCard 도메인 메서드: userId 교체 + marketStatus = OWNED 초기화
+        card.changeOwner(buyerUserId);
+    }
+
     private String encodeCursor(UserCardFlatResponse last) {
         int gradePriority = toGradePriority(last.grade());
         int totalStat = last.skillValue1() + last.skillValue2() + last.skillValue3();

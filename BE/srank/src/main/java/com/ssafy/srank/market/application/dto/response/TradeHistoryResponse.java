@@ -18,7 +18,7 @@ public record TradeHistoryResponse(
         Integer enhanceTryCount,
         Integer enhanceSuccessCount,
         String grade,
-        Long priceCoin,
+        Integer priceCoin,
         String historyType,
         String status,
         LocalDateTime eventAt,

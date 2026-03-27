@@ -6,12 +6,20 @@ import java.util.List;
 
 public record BlockchainRequestMessage(
         BlockchainEventType eventType,
+        // Ledger 이벤트 필드 (GACHA / SYNTHESIS / ENHANCE)
         String walletAddress,
         String clientSeed,
         String serverSeed,
         Integer count,
         GachaType gachaType,
         List<Long> consumedCardIds,
+        // 마켓 이벤트 필드 (NFT_MINT / P2P_TRANSFER)
+        Long marketItemId,
+        Long userCardId,
+        String sellerWallet,
+        String buyerWallet,
+        Long priceCoin,
+        // 공통
         int retryCount
 ) {
 
@@ -24,12 +32,8 @@ public record BlockchainRequestMessage(
     ) {
         return new BlockchainRequestMessage(
                 BlockchainEventType.GACHA,
-                walletAddress,
-                clientSeed,
-                serverSeed,
-                count,
-                gachaType,
-                List.of(),
+                walletAddress, clientSeed, serverSeed, count, gachaType, List.of(),
+                null, null, null, null, null,
                 0
         );
     }
@@ -42,12 +46,8 @@ public record BlockchainRequestMessage(
     ) {
         return new BlockchainRequestMessage(
                 BlockchainEventType.SYNTHESIS,
-                walletAddress,
-                clientSeed,
-                serverSeed,
-                null,
-                null,
-                consumedCardIds,
+                walletAddress, clientSeed, serverSeed, null, null, consumedCardIds,
+                null, null, null, null, null,
                 0
         );
     }
@@ -60,12 +60,8 @@ public record BlockchainRequestMessage(
     ) {
         return new BlockchainRequestMessage(
                 BlockchainEventType.ENHANCE,
-                walletAddress,
-                clientSeed,
-                serverSeed,
-                null,
-                null,
-                consumedCardIds,
+                walletAddress, clientSeed, serverSeed, null, null, consumedCardIds,
+                null, null, null, null, null,
                 0
         );
     }
@@ -74,16 +70,12 @@ public record BlockchainRequestMessage(
     public static BlockchainRequestMessage forNftMint(
             Long marketItemId,
             Long userCardId,
-            String sellerWalletAddress
+            String sellerWallet
     ) {
         return new BlockchainRequestMessage(
                 BlockchainEventType.NFT_MINT,
-                sellerWalletAddress,
-                null,           // clientSeed - market은 불필요
-                null,           // serverSeed - market은 불필요
-                null,           // count - market은 불필요
-                null,           // gachaType - market은 불필요
-                List.of(marketItemId, userCardId),  // marketItemId, userCardId 순서로 전달
+                null, null, null, null, null, List.of(),
+                marketItemId, userCardId, sellerWallet, null, null,
                 0
         );
     }
@@ -92,18 +84,14 @@ public record BlockchainRequestMessage(
     public static BlockchainRequestMessage forP2pTransfer(
             Long marketItemId,
             Long userCardId,
-            String sellerWalletAddress,
-            String buyerWalletAddress,
+            String sellerWallet,
+            String buyerWallet,
             Long priceCoin
     ) {
         return new BlockchainRequestMessage(
                 BlockchainEventType.P2P_TRANSFER,
-                buyerWalletAddress,  // 구매자 지갑 (토큰 차감 주체)
-                sellerWalletAddress, // clientSeed 필드 임시 재활용 - 판매자 지갑
-                String.valueOf(priceCoin), // serverSeed 필드 임시 재활용 - 코인 금액
-                null,
-                null,
-                List.of(marketItemId, userCardId),
+                null, null, null, null, null, List.of(),
+                marketItemId, userCardId, sellerWallet, buyerWallet, priceCoin,
                 0
         );
     }
@@ -111,12 +99,8 @@ public record BlockchainRequestMessage(
     public BlockchainRequestMessage incrementRetry() {
         return new BlockchainRequestMessage(
                 eventType,
-                walletAddress,
-                clientSeed,
-                serverSeed,
-                count,
-                gachaType,
-                consumedCardIds,
+                walletAddress, clientSeed, serverSeed, count, gachaType, consumedCardIds,
+                marketItemId, userCardId, sellerWallet, buyerWallet, priceCoin,
                 retryCount + 1
         );
     }

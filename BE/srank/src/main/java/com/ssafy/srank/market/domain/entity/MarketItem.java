@@ -35,7 +35,7 @@ public class MarketItem extends BaseEntity {
     private String nftTokenId;
 
     @Column(nullable = false)
-    private Long priceCoin;
+    private Integer priceCoin;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
