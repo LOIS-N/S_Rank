@@ -2,5 +2,6 @@ package com.ssafy.srank.rabbitmq.blockchain.message;
 
 public enum BlockchainEventType {
     GACHA,
-    SYNTHESIS
+    SYNTHESIS,
+    ENHANCE
 }

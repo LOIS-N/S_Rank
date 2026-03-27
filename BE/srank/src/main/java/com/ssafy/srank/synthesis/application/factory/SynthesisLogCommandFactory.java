@@ -41,7 +41,7 @@ public class SynthesisLogCommandFactory {
                 policyVersion,
                 resultRoll,
                 resultDigest,
-                BlockchainStatus.PENDING,
+                BlockchainStatus.NOT_REQUESTED,
                 null,
                 createdAt
         );

@@ -3,9 +3,9 @@ const hre = require("hardhat");
 console.log("🚨 2. 하드햇 모듈 로드 성공!");
 
 async function main() {
-  console.log("🚀 싸피 네트워크(31221) 4대장 배포를 시작합니다...\n");
+  console.log("🚀 싸피 네트워크(31221) 배포 시작...\n");
 
-  // 1. 나만의 기축통화 (Srank Token) 배포
+  // 1. 인게임 재화 배포
   console.log("1️⃣ GameToken 배포 중...");
   const GameToken = await hre.ethers.getContractFactory("GameToken");
   const token = await GameToken.deploy();
@@ -26,7 +26,7 @@ async function main() {
   await nft.waitForDeployment();
   console.log(`✅ CardNFT 배포 완료! 주소: ${nft.target}`);
 
-  // 4. 마켓 배포 (🌟 핵심: 방금 만든 내 코인 주소와 NFT 주소를 연결!)
+  // 4. 마켓 배포 (코인 주소 및 NFT 주소 연결 필요!)
   console.log("\n4️⃣ CardMarket 배포 중...");
   const CardMarket = await hre.ethers.getContractFactory("CardMarket");
   // token.target 이 바로 위에서 배포한 내 코인 주소입니다!
@@ -35,7 +35,7 @@ async function main() {
   console.log(`✅ CardMarket 배포 완료! 주소: ${market.target}`);
 
   console.log(
-    "\n🎉 [배포 대성공] 아래 주소들을 Spring Boot application.properties 에 복붙하세요!",
+    "\n🎉 [배포 성공] 아래 주소들을 Spring Boot application.properties 에 복붙하세요!",
   );
   console.log(`contract.token.address=${token.target}`);
   console.log(`contract.ledger.address=${ledger.target}`);

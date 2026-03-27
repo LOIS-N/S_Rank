@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
-    private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[A-Za-z0-9媛-??{2,8}$");
+    private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[A-Za-z0-9가-힣]{2,8}$");
 
     private final UserRepository userRepository;
     private final AuthLogFacade authLogFacade;

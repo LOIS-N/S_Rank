@@ -5,10 +5,6 @@ import com.ssafy.srank.blockchain.config.BlockchainProperties;
 import com.ssafy.srank.common.metrics.BlockchainMetrics;
 import com.ssafy.srank.common.metrics.MetricTagValues;
 import com.ssafy.srank.common.metrics.RabbitMqMetrics;
-import com.ssafy.srank.log.application.facade.GachaLogFacade;
-import com.ssafy.srank.log.application.facade.SynthesisLogFacade;
-import com.ssafy.srank.log.domain.enums.BlockchainStatus;
-import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainEventType;
 import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.rabbitmq.blockchain.producer.BlockchainRequestProducer;
 import com.ssafy.srank.rabbitmq.config.RabbitMqConfig;
@@ -26,8 +22,6 @@ public class BlockchainRequestConsumer {
     private final ObjectProvider<LedgerWriteService> ledgerWriteServiceProvider;
     private final BlockchainRequestProducer blockchainRequestProducer;
     private final BlockchainProperties blockchainProperties;
-    private final GachaLogFacade gachaLogFacade;
-    private final SynthesisLogFacade synthesisLogFacade;
     private final RabbitMqMetrics rabbitMqMetrics;
     private final BlockchainMetrics blockchainMetrics;
 
@@ -57,6 +51,11 @@ public class BlockchainRequestConsumer {
                         message.consumedCardIds(),
                         message.retryCount() + 1
                 );
+                case ENHANCE -> ledgerWriteService.recordEnhance(
+                        message.walletAddress(),
+                        message.serverSeed(),
+                        message.clientSeed()
+                );
             };
 
             markSuccess(message, txHash);
@@ -76,8 +75,8 @@ public class BlockchainRequestConsumer {
     }
 
     private void handleFailure(BlockchainRequestMessage message, Exception e) {
-        log.error("failed to process blockchain request eventType={} logIds={} retryCount={}",
-                message.eventType(), message.logIds(), message.retryCount(), e);
+        log.error("failed to process blockchain request eventType={} retryCount={}",
+                message.eventType(), message.retryCount(), e);
 
         if (message.retryCount() < blockchainProperties.getRetryMax()) {
             try {
@@ -94,8 +93,8 @@ public class BlockchainRequestConsumer {
                         MetricTagValues.number(message.retryCount() + 1),
                         MetricTagValues.RESULT_ERROR
                 );
-                log.error("failed to republish blockchain request eventType={} logIds={} retryCount={}",
-                        message.eventType(), message.logIds(), message.retryCount(), publishException);
+                log.error("failed to republish blockchain request eventType={} retryCount={}",
+                        message.eventType(), message.retryCount(), publishException);
             }
         }
 
@@ -103,18 +102,10 @@ public class BlockchainRequestConsumer {
     }
 
     private void markSuccess(BlockchainRequestMessage message, String txHash) {
-        if (message.eventType() == BlockchainEventType.GACHA) {
-            gachaLogFacade.updateBlockchainResult(message.logIds(), BlockchainStatus.SUCCESS, txHash);
-            return;
-        }
-        synthesisLogFacade.updateBlockchainResult(message.logIds().get(0), BlockchainStatus.SUCCESS, txHash);
+        log.info("blockchain request completed eventType={} txHash={}", message.eventType(), txHash);
     }
 
     private void markFailed(BlockchainRequestMessage message) {
-        if (message.eventType() == BlockchainEventType.GACHA) {
-            gachaLogFacade.updateBlockchainResult(message.logIds(), BlockchainStatus.FAILED, null);
-            return;
-        }
-        synthesisLogFacade.updateBlockchainResult(message.logIds().get(0), BlockchainStatus.FAILED, null);
+        log.warn("blockchain request failed eventType={} retryCount={}", message.eventType(), message.retryCount());
     }
 }

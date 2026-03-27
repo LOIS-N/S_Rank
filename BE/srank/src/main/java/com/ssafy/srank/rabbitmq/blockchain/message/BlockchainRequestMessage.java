@@ -6,7 +6,6 @@ import java.util.List;
 
 public record BlockchainRequestMessage(
         BlockchainEventType eventType,
-        List<Long> logIds,
         String walletAddress,
         String clientSeed,
         String serverSeed,
@@ -17,7 +16,6 @@ public record BlockchainRequestMessage(
 ) {
 
     public static BlockchainRequestMessage forGacha(
-            List<Long> logIds,
             String walletAddress,
             String clientSeed,
             String serverSeed,
@@ -26,7 +24,6 @@ public record BlockchainRequestMessage(
     ) {
         return new BlockchainRequestMessage(
                 BlockchainEventType.GACHA,
-                logIds,
                 walletAddress,
                 clientSeed,
                 serverSeed,
@@ -38,16 +35,34 @@ public record BlockchainRequestMessage(
     }
 
     public static BlockchainRequestMessage forSynthesis(
-            Long logId,
             String walletAddress,
+            String clientSeed,
+            String serverSeed,
             List<Long> consumedCardIds
     ) {
         return new BlockchainRequestMessage(
                 BlockchainEventType.SYNTHESIS,
-                List.of(logId),
                 walletAddress,
+                clientSeed,
+                serverSeed,
                 null,
                 null,
+                consumedCardIds,
+                0
+        );
+    }
+
+    public static BlockchainRequestMessage forEnhance(
+            String clientSeed,
+            String serverSeed,
+            String walletAddress,
+            List<Long> consumedCardIds
+    ) {
+        return new BlockchainRequestMessage(
+                BlockchainEventType.ENHANCE,
+                walletAddress,
+                clientSeed,
+                serverSeed,
                 null,
                 null,
                 consumedCardIds,
@@ -58,7 +73,6 @@ public record BlockchainRequestMessage(
     public BlockchainRequestMessage incrementRetry() {
         return new BlockchainRequestMessage(
                 eventType,
-                logIds,
                 walletAddress,
                 clientSeed,
                 serverSeed,

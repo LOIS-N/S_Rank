@@ -5,6 +5,7 @@ import com.ssafy.srank.log.application.facade.SynthesisLogFacade;
 import com.ssafy.srank.log.domain.entity.SynthesisLog;
 import com.ssafy.srank.log.domain.enums.BlockchainStatus;
 import com.ssafy.srank.log.repository.SynthesisLogRepository;
+import com.ssafy.srank.rabbitmq.log.message.SynthesisLogMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,32 @@ public class SynthesisLogFacadeImpl implements SynthesisLogFacade {
                 .blockchainTxHash(command.blockchainTxHash())
                 .createdAt(command.createdAt())
                 .build()).getSynthesisLogId();
+    }
+
+    @Override
+    @Transactional
+    public void record(SynthesisLogMessage message) {
+        synthesisLogRepository.save(SynthesisLog.builder()
+                .userId(message.userId())
+                .resultUserCardId(message.resultUserCardId())
+                .success(message.success())
+                .costGold(message.costGold())
+                .sourceUserCardId1(message.sourceUserCardId1())
+                .sourceUserCardId2(message.sourceUserCardId2())
+                .sourceUserCardId3(message.sourceUserCardId3())
+                .sourceUserCardId4(message.sourceUserCardId4())
+                .sourceUserCardId5(message.sourceUserCardId5())
+                .sourceCardGrade(message.sourceCardGrade())
+                .clientSeed(message.clientSeed())
+                .serverSeed(message.serverSeed())
+                .algorithmVersion(message.algorithmVersion())
+                .policyVersion(message.policyVersion())
+                .resultRoll(message.resultRoll())
+                .resultDigest(message.resultDigest())
+                .blockchainStatus(BlockchainStatus.NOT_REQUESTED)
+                .blockchainTxHash(null)
+                .createdAt(message.createdAt())
+                .build());
     }
 
     @Override
