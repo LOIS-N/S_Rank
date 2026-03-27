@@ -146,6 +146,14 @@ export default function GlobalModals() {
           return;
         }
       }
+      // 퀘스트 완료 API 성공 직후 GA 이벤트 발송 (profile 조회 성공 여부와 무관)
+      const storeQ = useGameStore.getState().quests.find(q => q.id === deskId);
+      sendGAEvent("quest_complete", {
+        quest_type: questType,
+        quest_id: questId,
+        reward_gold: storeQ?.reward ?? 0,
+      });
+
       // 골드는 BE에서 받아서 갱신 (로컬 계산 제거 → 중복 지급 방지)
       try {
         const token = useUserStore.getState().accessToken;
@@ -157,12 +165,6 @@ export default function GlobalModals() {
             profileRes.data.data.gold,
             profileRes.data.data.coin,
           );
-          const storeQ = useGameStore.getState().quests.find(q => q.id === deskId);
-          sendGAEvent("quest_complete", {
-            quest_type: questType,
-            quest_id: questId,
-            reward_gold: storeQ?.reward ?? 0,
-          });
         }
       } catch (e) {
         console.error('[CompleteQuest] profile fetch error:', e);
