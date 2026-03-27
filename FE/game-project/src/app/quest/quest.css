@@ -245,8 +245,7 @@
   width: 80px;
   /* 36px -> 80px */
   flex: 1;
-  max-height: calc(100% - 200px);
-  /* Phase1 특유의 하단 버튼 공간 확보 유지 */
+  max-height: none;
   background-image: url('/assets/003-02/scrollBar_000.webp');
   /* Phase2 자산 사용 */
   background-size: 518% 108%;
@@ -257,6 +256,11 @@
   position: relative;
   overflow: visible;
   /* Phase2와 동일하게 썸이 삐져나올 수 있게 */
+}
+
+/* Phase1 특유의 하단 버튼 공간 확보: .scrollbar-column 안에서만 제한 */
+.scrollbar-column .scrollbar-track {
+  max-height: calc(100% - 200px);
 }
 
 /* 스크롤바 썸 (움직이는 손잡이) - Phase2 스타일로 통일 */
@@ -426,8 +430,6 @@
 /* 수락하기 버튼 */
 .quest-accept-button {
   cursor: pointer;
-  padding: 12px 0;
-  /* 8px -> 12px */
   text-align: center;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
@@ -436,8 +438,7 @@
   text-shadow: none;
   transition: transform 0.15s ease, filter 0.15s ease;
   flex-shrink: 0;
-  min-height: 72px;
-  /* 54px -> 72px */
+  min-height: 84px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -474,6 +475,82 @@
   min-height: 0;
   min-width: 0;
   position: relative;
+}
+
+.quest-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  position: absolute;
+  top: -46px;
+  /* 카드 목록 박스 위로 배치 */
+  left: 8px;
+  z-index: 10;
+}
+
+.quest-select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.quest-select {
+  appearance: none;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  padding: 6px 32px 6px 12px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+  outline: none;
+}
+
+.quest-select:focus {
+  border-color: #ffd700;
+}
+
+.quest-select-wrapper::after {
+  content: "▼";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 10px;
+  color: #111;
+}
+
+/* 정렬 버튼 (스킬 필터 select와 동일 크기) */
+.cardlist-filter-btn {
+  appearance: none;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  padding: 6px 12px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+  outline: none;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.cardlist-filter-btn:hover {
+  background-color: #d0d0d0;
+  transform: scale(1.05);
+}
+
+.cardlist-filter-btn.active {
+  background-color: #ffd700;
+  border-color: #b8960f;
+  color: #2a2a40;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5), inset 0 0 6px rgba(255, 215, 0, 0.3);
 }
 
 .phase2-left-box {
@@ -515,6 +592,7 @@
   transition: transform 0.15s ease, filter 0.15s ease;
   transform-origin: center center;
   aspect-ratio: 104 / 144;
+  overflow: hidden;
   /* SCardImage 비율 */
 }
 
@@ -542,10 +620,10 @@
 .phase2-card-item.selected::before {
   content: "";
   position: absolute;
-  top: -3px;
+  top: 0;
   left: 7px;
   right: 7px;
-  bottom: -3px;
+  bottom: 0;
   border-radius: 8px;
   z-index: -1;
   animation: borderRotate 2.5s linear infinite;
@@ -617,6 +695,26 @@
   to {
     --border-angle: 360deg;
   }
+}
+
+/* 카드 선택 체크 오버레이 (공통) */
+.card-check-overlay {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: #c0392b;
+  border: 2px solid #922b21;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  z-index: 5;
+  pointer-events: none;
 }
 
 /* 카드 능력치 오버레이 (card-list와 동일) */
@@ -751,6 +849,7 @@
 
 /* 포커 스타일 부채꼴 카드 */
 .phase2-fan-card {
+  position: relative;
   cursor: pointer;
   transition: transform 0.3s ease, filter 0.3s ease;
   transform-origin: center bottom;
@@ -764,6 +863,26 @@
   display: block;
   image-rendering: pixelated;
 }
+
+/* 부채꼴 카드 능력치 오버레이 */
+.phase2-fan-stat {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 10px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  z-index: 2;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.phase2-fan-stat.stat-1 { bottom: 25%; }
+.phase2-fan-stat.stat-2 { bottom: 14%; }
+.phase2-fan-stat.stat-3 { bottom: 3.5%; }
 
 .phase2-fan-card:hover {
   filter: brightness(1.2) drop-shadow(3px 8px 12px rgba(0, 0, 0, 0.6));
@@ -862,11 +981,15 @@
   display: flex;
   gap: 16px;
   flex: 0 0 84px;
+  align-items: stretch;
 }
 
 .phase2-btn-cancel,
-.phase2-btn-accept {
+.phase2-btn-accept,
+.phase2-btn-auto {
   flex: 1;
+  min-width: 0;
+  height: 84px;
   display: flex;
   cursor: pointer;
   font-family: 'StardustS', 'Stardust', sans-serif;
@@ -876,21 +999,32 @@
   transition: transform 0.15s ease, filter 0.15s ease;
 }
 
+.phase2-btn-auto {
+  filter: hue-rotate(200deg) brightness(1.05);
+}
+
 /* 버튼 내부 텍스트 완전 중앙 정렬 */
 .phase2-btn-cancel .nineslice-content,
-.phase2-btn-accept .nineslice-content {
+.phase2-btn-accept .nineslice-content,
+.phase2-btn-auto .nineslice-content {
   justify-content: center;
   align-items: center;
 }
 
 .phase2-btn-cancel:hover,
-.phase2-btn-accept:hover {
+.phase2-btn-accept:hover,
+.phase2-btn-auto:hover {
   transform: scale(1.02);
   filter: brightness(1.1);
 }
 
+.phase2-btn-auto:hover {
+  filter: hue-rotate(200deg) brightness(1.15);
+}
+
 .phase2-btn-cancel:active,
-.phase2-btn-accept:active {
+.phase2-btn-accept:active,
+.phase2-btn-auto:active {
   transform: scale(0.98);
   filter: brightness(0.95);
 }
@@ -915,4 +1049,119 @@
   background-size: 84% 48%;
   background-position: 50% 49%;
   background-repeat: no-repeat;
+}
+
+.cardlist-total-cnt {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #555;
+  letter-spacing: 1px;
+  padding: 6px 12px;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ============================
+   강화 횟수 배지 (카드 오른쪽 상단 모서리 대각 리본)
+   ============================ */
+
+@keyframes badge-pulse {
+  0%, 100% { scale: 1; }
+  50%       { scale: 1.07; }
+}
+
+.card-enhance-badge {
+  position: absolute;
+  top: 10px;
+  right: 4px;
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  line-height: 1;
+  rotate: 45deg;
+  animation: badge-pulse 3s ease-in-out infinite;
+  width: 48px;
+  height: 14px;
+  border-radius: 1px;
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #BDD0E0 0%, #BDD0E0 25%, #7090A8 25%, #7090A8 75%, #3A5068 75%);
+  border: 1px solid #1A2A38;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+.card-enhance-badge[data-grade="S"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.70) 0px, rgba(255,255,255,0.70) 1px,
+      rgba(255,255,255,0.15) 1px, rgba(0,0,0,0.06) 100%),
+    linear-gradient(to right, #EAF6FF 0%, #EAF6FF 25%, #4FB8F0 25%, #4FB8F0 75%, #1870C0 75%);
+  border: 1px solid #0A3870;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+.card-enhance-badge[data-grade="A"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.60) 0px, rgba(255,255,255,0.60) 1px,
+      rgba(255,255,255,0.12) 1px, rgba(0,0,0,0.07) 100%),
+    linear-gradient(to right, #FFE098 0%, #FFE098 25%, #E89020 25%, #E89020 75%, #8A4800 75%);
+  border: 1px solid #3A1200;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+.card-enhance-badge[data-grade="B"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.65) 0px, rgba(255,255,255,0.65) 1px,
+      rgba(255,255,255,0.12) 1px, rgba(0,0,0,0.07) 100%),
+    linear-gradient(to right, #EEF2F6 0%, #EEF2F6 25%, #A0B4C0 25%, #A0B4C0 75%, #506070 75%);
+  border: 1px solid #283840;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+.card-enhance-badge[data-grade="C"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #F0CC88 0%, #F0CC88 25%, #B07830 25%, #B07830 75%, #683808 75%);
+  border: 1px solid #381800;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+.card-enhance-badge[data-grade="D"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #BDD0E0 0%, #BDD0E0 25%, #7090A8 25%, #7090A8 75%, #3A5068 75%);
+  border: 1px solid #1A2A38;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+.badge-plus {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 7px;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.95);
+  line-height: 1;
+  margin-right: 1px;
+  position: relative;
+  z-index: 2;
+}
+.badge-num {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.95);
+  line-height: 1;
+  position: relative;
+  z-index: 2;
 }

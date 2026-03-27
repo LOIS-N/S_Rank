@@ -102,4 +102,8 @@ public class User extends BaseEntity {
         if(this.gold - gold < 0) throw new BusinessException(ErrorCode.GOLD_INSUFFICIENT);
         this.gold -= gold;
     }
+
+    public void levelUp(){
+        this.level ++;
+    }
 }

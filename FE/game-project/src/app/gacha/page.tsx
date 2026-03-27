@@ -5,8 +5,10 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { GachaRevealCard } from "./GachaRevealCard";
 import { GachaAnimationOverlay } from "./GachaAnimationOverlay";
+import { sendGAEvent } from "@/lib/gtag";
 import "./gacha.css";
 import api from "@/lib/axios";
+import { generateTutorialCard } from "@/lib/tutorialData";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -43,6 +45,7 @@ interface GachaCardResult {
   skill3: CardSkill;
   specialAbility: { name: string; description: string; effects: string } | null;
 }
+
 
 // --- Phaser Particle Effect Overlay ---
 // A등급: 1초, S등급: 2초 파티클 연출
@@ -160,16 +163,25 @@ function GachaEffectOverlay({ grade, onDone }: { grade: EffectGrade; onDone: () 
 export default function GachaPage() {
   const [currentTab, setCurrentTab] = useState<TabType>('flyer');
   const [phase, setPhase] = useState<PhaseType>('select');
-  const { gold, coffee, setResources, increaseGold, openComingSoonModal, accessToken } = useGameStore();
+  const {
+    gold, coffee, setResources, increaseGold, accessToken,
+    tutorialQuestStep, tutorialGachaCount, setTutorialGachaCount,
+    setTutorialQuestStep, setTutorialScriptId, setTutorialAccessPage,
+  } = useGameStore();
+  const [gachaArrowDismissed, setGachaArrowDismissed] = useState(false);
+  // tutorialQuestStep 변경 시 화살표 재표시
+  useEffect(() => { setGachaArrowDismissed(false); }, [tutorialQuestStep, tutorialGachaCount]);
   const { getAccessToken } = usePrivy();
   const [drawnCards, setDrawnCards] = useState<GachaCardResult[]>([]);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const [isPulling, setIsPulling] = useState(false);
   const [gachaEffect, setGachaEffect] = useState<EffectGrade | null>(null);
   const [lastPullCount, setLastPullCount] = useState<1 | 10>(1);
+  const [animOverlayVisible, setAnimOverlayVisible] = useState(false);
 
-  const canPull1 = gold >= GACHA_COSTS[currentTab].single;
-  const canPull10 = gold >= GACHA_COSTS[currentTab].ten;
+  // TODO: 테스트 모드 — 항상 뽑기 가능 (BE 연동 시 골드 체크로 복원)
+  const canPull1 = true;
+  const canPull10 = true;
 
   const getAuthToken = useCallback(async () => {
     return accessToken || await getAccessToken();
@@ -179,14 +191,43 @@ export default function GachaPage() {
   const handlePull = async (count: 1 | 10) => {
     if (isPulling) return;
     const cost = count === 1 ? GACHA_COSTS[currentTab].single : GACHA_COSTS[currentTab].ten;
-    if (gold < cost) return;
+    // TODO: 테스트 모드 — 골드 부족해도 뽑기 가능 (BE 연동 시 아래 주석 해제)
+    // if (gold < cost) return;
+
+    // 튜토리얼 step1: 가짜 뽑기 처리
+    if (tutorialQuestStep === 1) {
+      const cardIdx = tutorialGachaCount; // 0, 1, 2
+      const mockCard = generateTutorialCard(cardIdx);
+      useGameStore.getState().addTutorialCard(mockCard);
+      setDrawnCards([mockCard as unknown as GachaCardResult]);
+      setSelectedCardIndex(null);
+      setLastPullCount(1);
+      setPhase('animating');
+      setAnimOverlayVisible(true);
+      const newCount = tutorialGachaCount + 1;
+      setTutorialGachaCount(newCount);
+      if (newCount >= 3) {
+        setTimeout(() => {
+          setTutorialScriptId('gacha_done');
+        }, 2000);
+      }
+      return;
+    }
 
     setIsPulling(true);
+
+    // GA: 뽑기 시작 (API 호출 직전 — gacha_result와 비교해 이탈률 측정 가능)
+    sendGAEvent("gacha_start", {
+      gacha_type: currentTab,
+      pull_count: count,
+      cost: cost,
+    });
+
     try {
       const token = await getAuthToken();
       const { data: resData } = await api.post(
         '/api/v1/gacha/draws',
-        { type: TAB_TO_TYPE_ID[currentTab], count },
+        { type: TAB_TO_TYPE_ID[currentTab], count, clientSeed: crypto.randomUUID() },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       const drawData = resData.data ?? resData;
@@ -204,6 +245,22 @@ export default function GachaPage() {
           };
         });
 
+        // GA: 뽑기 결과 (카드별로 개별 이벤트 + 전체 요약)
+        const gradeCounts = normalized.reduce<Record<string, number>>((acc, card) => {
+          const g = (card.grade as string) ?? "?";
+          acc[g] = (acc[g] ?? 0) + 1;
+          return acc;
+        }, {});
+        sendGAEvent("gacha_result", {
+          gacha_type: currentTab,
+          pull_count: count,
+          grade_s: gradeCounts["S"] ?? 0,
+          grade_a: gradeCounts["A"] ?? 0,
+          grade_b: gradeCounts["B"] ?? 0,
+          grade_c: gradeCounts["C"] ?? 0,
+          grade_d: gradeCounts["D"] ?? 0,
+        });
+
         if (drawData.remainingGold != null) {
           setResources(drawData.remainingGold as number, coffee);
         } else {
@@ -214,18 +271,23 @@ export default function GachaPage() {
         setSelectedCardIndex(null);
         setLastPullCount(count);
         setPhase('animating');
+      setAnimOverlayVisible(true);
+
       }
     } catch (err: unknown) {
-      const e = err as { response?: { data?: unknown }; message?: string };
-      const errData = e.response?.data as Record<string, unknown> | undefined;
-      alert((errData?.message as string) || e.message || '뽑기에 실패했습니다.');
+      const e = err as { response?: { data?: { error?: { code?: string; message?: string }; message?: string } }; message?: string };
+      const errBody = e.response?.data;
+      const errCode = errBody?.error?.code;
+      const errMsg = errCode === 'GA003'
+        ? '레벨이 부족합니다.'
+        : (errBody?.error?.message ?? errBody?.message ?? e.message ?? '뽑기에 실패했습니다.');
+      useGameStore.getState().openComingSoonModal(errMsg);
     } finally {
       setIsPulling(false);
     }
   };
 
   const handleAnimationComplete = useCallback(() => {
-    // Transition from animation to result view
     const hasS = drawnCards.some(c => c.grade === 'S');
     const hasA = drawnCards.some(c => c.grade === 'A');
     if (hasS) setGachaEffect('S');
@@ -233,31 +295,58 @@ export default function GachaPage() {
     setPhase(lastPullCount === 1 ? 'result_1' : 'result_10');
   }, [drawnCards, lastPullCount]);
 
+  const handleOverlayDone = useCallback(() => {
+    setAnimOverlayVisible(false);
+  }, []);
+
   const handleReturn = () => {
     setDrawnCards([]);
     setSelectedCardIndex(null);
     setPhase('select');
   };
 
+  // 튜토리얼 step1: 전단지 탭으로 고정, 1회 뽑기만 표시
+  const isTutorialStep1 = tutorialQuestStep === 1;
+
   // 뽑기 버튼 (1회 / 10회)
   const PullButtons = () => (
     <>
+      <div style={{ position: 'relative' }}>
+        {isTutorialStep1 && !gachaArrowDismissed && (
+          <img
+            src={`${ASSET_BASE}/assets/tutorial/arrow.webp`}
+            alt=""
+            className="tutorial-arrow-y"
+            style={{
+              position: 'absolute', bottom: '100%', left: '50%',
+              transform: 'translateX(-50%)',
+              height: '4.7cqw', width: 'auto',
+              imageRendering: 'pixelated', pointerEvents: 'none', zIndex: 100,
+            }}
+          />
+        )}
       <div
         className={`gacha-action-btn${!canPull1 || isPulling ? ' btn-disabled' : ''}`}
         style={{ backgroundImage: `url('${ASSET_BASE}/assets/006/gachaButton_000.webp')` }}
-        onClick={canPull1 && !isPulling ? () => handlePull(1) : undefined}
+        onClick={canPull1 && !isPulling ? () => { setGachaArrowDismissed(true); handlePull(1); } : undefined}
       >
         <span>1회 뽑기</span>
-        <span className="btn-subtitle">({GACHA_COSTS[currentTab].single.toLocaleString()}G)</span>
+        {!isTutorialStep1 && <span className="btn-subtitle">({GACHA_COSTS[currentTab].single.toLocaleString()}G)</span>}
+        {isTutorialStep1 && (
+          <span className="btn-subtitle" style={{ color: '#ffdd88' }}> ({tutorialGachaCount}/3)</span>
+        )}
       </div>
-      <div
-        className={`gacha-action-btn btn-10pull${!canPull10 || isPulling ? ' btn-disabled' : ''}`}
-        style={{ backgroundImage: `url('${ASSET_BASE}/assets/006/gachaButton_000.webp')` }}
-        onClick={canPull10 && !isPulling ? () => handlePull(10) : undefined}
-      >
-        <span>10회 뽑기</span>
-        <span className="btn-subtitle">({GACHA_COSTS[currentTab].ten.toLocaleString()}G)</span>
       </div>
+      {!isTutorialStep1 && (
+        <div
+          className={`gacha-action-btn btn-10pull${!canPull10 || isPulling ? ' btn-disabled' : ''}`}
+          style={{ backgroundImage: `url('${ASSET_BASE}/assets/006/gachaButton_000.webp')` }}
+          onClick={canPull10 && !isPulling ? () => handlePull(10) : undefined}
+        >
+          <span>10회 뽑기</span>
+          <span className="btn-subtitle">({GACHA_COSTS[currentTab].ten.toLocaleString()}G)</span>
+        </div>
+      )}
     </>
   );
 
@@ -265,10 +354,11 @@ export default function GachaPage() {
     <div className="gacha-page-container">
 
       {/* Phaser 뽑기 애니메이션 오버레이 */}
-      {phase === 'animating' && drawnCards.length > 0 && (
+      {animOverlayVisible && drawnCards.length > 0 && (
         <GachaAnimationOverlay
           cards={drawnCards}
           onComplete={handleAnimationComplete}
+          onDone={handleOverlayDone}
         />
       )}
 
@@ -310,7 +400,7 @@ export default function GachaPage() {
                 color: '#000',
               }}
             >
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{gold.toLocaleString()}</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{(tutorialQuestStep !== null ? 0 : gold).toLocaleString()}</span>
               <span style={{ marginLeft: '0.4cqw', fontSize: '1.4cqw' }}>G</span>
             </div>
           </div>
@@ -329,8 +419,9 @@ export default function GachaPage() {
           </div>
           <div className="gacha-tab-wrapper">
             <div
-              className={`gacha-tab ${currentTab === 'fair' ? 'active' : ''} brightness-75`}
-              onClick={() => { openComingSoonModal(); }}
+              className={`gacha-tab ${currentTab === 'fair' ? 'active' : ''}${isTutorialStep1 ? ' btn-disabled' : ''}`}
+              onClick={isTutorialStep1 ? undefined : () => { setCurrentTab('fair'); handleReturn(); }}
+              style={isTutorialStep1 ? { opacity: 0.4, cursor: 'default', pointerEvents: 'none' } : undefined}
             >
               <div className="gacha-tab-inner" />
               <span>박람회 뽑기</span>
@@ -338,8 +429,9 @@ export default function GachaPage() {
           </div>
           <div className="gacha-tab-wrapper">
             <div
-              className={`gacha-tab ${currentTab === 'public' ? 'active' : ''} brightness-75`}
-              onClick={() => { openComingSoonModal(); }}
+              className={`gacha-tab ${currentTab === 'public' ? 'active' : ''}${isTutorialStep1 ? ' btn-disabled' : ''}`}
+              onClick={isTutorialStep1 ? undefined : () => { setCurrentTab('public'); handleReturn(); }}
+              style={isTutorialStep1 ? { opacity: 0.4, cursor: 'default', pointerEvents: 'none' } : undefined}
             >
               <div className="gacha-tab-inner" />
               <span>공채 뽑기</span>
@@ -360,8 +452,11 @@ export default function GachaPage() {
             1회 뽑기 결과
             ============================ */}
         {phase === 'result_1' && drawnCards.length > 0 && (
-          <div className="gacha-result-container" onClick={handleReturn}>
-            <div className="gacha-single-result-center" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="gacha-result-container"
+            onClick={isTutorialStep1 && tutorialGachaCount < 3 ? () => handlePull(1) : handleReturn}
+          >
+            <div className="gacha-single-result-center" onClick={isTutorialStep1 ? undefined : (e) => e.stopPropagation()}>
 
               {/* 카드 플립 리빌 */}
               <div className="gacha-single-big-card">
@@ -369,14 +464,22 @@ export default function GachaPage() {
                   card={drawnCards[0]}
                   revealDelay={0}
                   statFontSize={21}
-                  instantReveal
                 />
               </div>
 
               {/* 뽑기 버튼 */}
-              <div className="gacha-single-pull-buttons">
-                <PullButtons />
-              </div>
+              {!isTutorialStep1 && (
+                <div className="gacha-single-pull-buttons">
+                  <PullButtons />
+                </div>
+              )}
+
+              {/* 튜토리얼: 클릭 힌트 */}
+              {isTutorialStep1 && (
+                <div style={{ marginTop: '1.5cqw', textAlign: 'center', color: '#aaccff', fontSize: '1.1cqw', fontFamily: "'Stardust', sans-serif", opacity: 0.85 }}>
+                  {tutorialGachaCount < 3 ? `▶ 클릭하여 계속 뽑기 (${tutorialGachaCount}/3)` : '▶ 클릭하여 돌아가기'}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -399,16 +502,17 @@ export default function GachaPage() {
                       card={card}
                       revealDelay={idx * 150}
                       statFontSize={12}
-                      instantReveal
                     />
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="gacha-bottom-buttons" onClick={(e) => e.stopPropagation()}>
-              <PullButtons />
-            </div>
+            {!isTutorialStep1 && (
+              <div className="gacha-bottom-buttons" onClick={(e) => e.stopPropagation()}>
+                <PullButtons />
+              </div>
+            )}
           </div>
         )}
 

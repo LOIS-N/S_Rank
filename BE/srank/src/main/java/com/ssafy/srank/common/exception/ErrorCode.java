@@ -68,6 +68,7 @@ public enum ErrorCode {
     CARD_DELETED(HttpStatus.CONFLICT,                   "C006", "삭제된 카드입니다."),
     CARD_CANNOT_ENHANCE_DELETED(HttpStatus.CONFLICT,    "C007", "삭제된 카드는 강화할 수 없습니다."),
     CARD_ENHANCE_TRY_EXCEEDED(HttpStatus.BAD_REQUEST,   "C008", "강화 가능 횟수를 모두 소진했습니다."),
+    CARD_IN_USE_CANNOT_DELETE(HttpStatus.BAD_REQUEST, "C009", "진행 중인 퀘스트에 사용 중인 카드는 삭제할 수 없습니다."),
 
     // ======================== Q : Quest ========================
     QUEST_NOT_FOUND(HttpStatus.NOT_FOUND,               "Q001", "퀘스트를 찾을 수 없습니다."),
@@ -101,6 +102,8 @@ public enum ErrorCode {
     SYNTHESIS_GRADE_MISMATCH(HttpStatus.BAD_REQUEST,    "SY002", "합성 카드의 등급이 일치하지 않습니다."),
     SYNTHESIS_MAX_GRADE(HttpStatus.BAD_REQUEST,         "SY003", "이미 최고 등급 카드입니다. S→S 합성은 2장만 가능합니다."),
     SYNTHESIS_VRF_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "SY004", "합성 VRF 처리에 실패했습니다."),
+    SYNTHESIS_SAME_CARD_DUPLICATE(HttpStatus.BAD_REQUEST, "SY005", "동일한 카드를 중복 선택할 수 없습니다."),
+    SYNTHESIS_GOLD_INSUFFICIENT(HttpStatus.BAD_REQUEST, "SY006", "합성에 필요한 골드가 부족합니다."),
 
     // ======================== TR : Trade (거래) ========================
     TRADE_LISTING_NOT_FOUND(HttpStatus.NOT_FOUND,       "TR001", "거래 목록을 찾을 수 없습니다."),

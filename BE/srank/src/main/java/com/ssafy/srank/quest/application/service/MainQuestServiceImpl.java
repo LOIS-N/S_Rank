@@ -2,18 +2,25 @@ package com.ssafy.srank.quest.application.service;
 
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
+import com.ssafy.srank.quest.application.dto.request.QuestDateTimeRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.MainQuestResponse;
 import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.domain.entity.MainQuestTemplate;
+import com.ssafy.srank.quest.domain.entity.QuestStatus;
+import com.ssafy.srank.quest.domain.entity.UserMainQuest;
 import com.ssafy.srank.quest.repository.MainQuestTemplateRepository;
 import com.ssafy.srank.quest.repository.UserMainQuestRepository;
+import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
 import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,6 +34,48 @@ public class MainQuestServiceImpl implements MainQuestService {
     private final MainQuestTemplateRepository mainQuestTemplateRepository;
     private final UserMainQuestRepository userMainQuestRepository;
     private final UserService userService;
+
+
+    @Override
+    public List<InProcessQuestResponse> getUserMainQuestList(Long userId, LocalDateTime now) {
+        return userMainQuestRepository.findByUserIdAndStatusNot(userId, QuestStatus.CLAIMED).stream()
+                .map((quest) -> {
+                    Long second = quest.getStatus() == QuestStatus.COMPLETED
+                            ? 0 : Duration.between(now, quest.getEndAt()).getSeconds();
+                    return InProcessQuestResponse.fromUserMainQuest(quest, second);
+                }).toList();
+    }
+
+    @Override
+    public UserMainQuest startMainQuest(Long userId, Long questTemplateId, MainQuestRequest request, QuestDateTimeRequest date) {
+        // 사용자 메인 퀘스트 저장
+        UserMainQuest mainQuest = UserMainQuest.builder()
+                .userId(userId)
+                .mainQuestTemplate(MainQuestTemplate.builder().id(questTemplateId).build())
+                .status(QuestStatus.IN_PROGRESS)
+                .userDeskId(request.deskId())
+                .startedAt(date.getStartAt())
+                .endAt(date.getEndAt())
+                .build();
+        return userMainQuestRepository.save(mainQuest);
+    }
+
+    @Override
+    public void completeMainQuest(Long userId, Long questId) {
+        UserMainQuest mainQuest = userMainQuestRepository.findByIdAndUserIdAndStatus(questId, userId, QuestStatus.IN_PROGRESS)
+                .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
+
+        mainQuest.completeStatus();
+    }
+
+    @Override
+    public Long claimRewardMainQuest(Long userId, Long questId) {
+        UserMainQuest mainQuest = userMainQuestRepository.findByIdAndUserIdAndStatus(questId, userId, QuestStatus.COMPLETED)
+                .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_COMPLETED));
+        mainQuest.claimRewardStatus();
+        UserClearMainChapter(userId);
+        return (long) mainQuest.getMainQuestTemplate().getRewardGold();
+    }
 
     public List<MainQuestResponse> getMainQuestList(Long userId) {
         int chapter = userService.getMyInfo(userId).getLevel();
@@ -84,5 +133,12 @@ public class MainQuestServiceImpl implements MainQuestService {
         log.debug("[MainQuest] userMainQuestRepository.findByIdAndUserId 호출 전 - userId={}, questId={}", userId, questId);
         return QuestDetailResponse.userDetailMain(userMainQuestRepository.findByIdAndUserId(questId, userId).orElseThrow(
                 ()-> new BusinessException(ErrorCode.QUEST_NOT_FOUND)));
+    }
+
+    private void UserClearMainChapter(Long userId){
+        MyInfoResponse myInfo = userService.getMyInfo(userId);
+        int mainChapterCnt = mainQuestTemplateRepository.findByChapterNo(myInfo.getLevel()).size();
+        int completeChapterCnt = userMainQuestRepository.findByUserIdAndChapterNoAndStatus(userId, myInfo.getLevel(),QuestStatus.CLAIMED).size();
+        if(mainChapterCnt == completeChapterCnt) userService.levelUp(userId);
     }
 }

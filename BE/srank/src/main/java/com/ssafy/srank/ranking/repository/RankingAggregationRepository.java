@@ -2,14 +2,19 @@ package com.ssafy.srank.ranking.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface RankingAggregationRepository {
 
-    List<GoldRankingAggregate> findTopGoldRankings(int limit);
+    List<GoldRankingAggregate> findGoldRankings();
 
-    List<CardGradeCountRankingAggregate> findTopCardGradeCountRankings(int limit);
+    List<CardGradeCountRankingAggregate> findCardGradeCountRankings();
 
-    List<CardStatTotalRankingAggregate> findTopCardStatTotalRankings(int limit);
+    Optional<CardGradeCountRankingAggregate> findCardGradeCountRanking(Long userId);
+
+    List<CardStatTotalRankingAggregate> findCardStatTotalRankings();
+
+    Optional<CardStatTotalRankingAggregate> findCardStatTotalRanking(Long userId);
 
     record GoldRankingAggregate(
             Long userId,
@@ -27,10 +32,11 @@ public interface RankingAggregationRepository {
     }
 
     record CardStatTotalRankingAggregate(
-            Long userCardId,
-            String cardName,
+            Long userId,
+            String nickname,
             int statTotal,
-            LocalDateTime achievedAt
+            LocalDateTime achievedAt,
+            Long representativeCardId
     ) {
     }
 }

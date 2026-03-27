@@ -17,6 +17,9 @@ public record UserCardFlatResponse(
         PositionType skillType3,
         int skillValue3,
 
+        int enhanceTryCount,
+        int enhanceSuccessCount,
+
         Long specialSkillTemplateId  // Service에서 effects 조회용
 ) {
     public UserCardResponse toResponse(SpecialAbilityResponse specialAbility) {
@@ -28,6 +31,8 @@ public record UserCardFlatResponse(
                 new CardSkillResponse(skillType1, skillValue1),
                 new CardSkillResponse(skillType2, skillValue2),
                 new CardSkillResponse(skillType3, skillValue3),
+                enhanceTryCount,
+                enhanceSuccessCount,
                 specialAbility
         );
     }

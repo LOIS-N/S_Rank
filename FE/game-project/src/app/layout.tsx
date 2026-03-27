@@ -7,6 +7,8 @@ import AuthProvider from "@/components/providers/AuthProvider";
 import BottomNavBar from "@/components/BottomNavBar";
 import GlobalModals from "@/components/GlobalModals";
 import ZoomGuard from "@/components/ZoomGuard";
+import BgmPlayer from "@/components/BgmPlayer";
+import PWAInstallModal from "@/components/PWAInstallModal";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,32 +30,36 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0f172a" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://auth.privy.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: http://localhost:8080 https://auth.privy.io wss://auth.privy.io https://j14e204.p.ssafy.io:8001; frame-src 'self' https://auth.privy.io;"
+          content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://auth.privy.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' https://j14e204.p.ssafy.io:8001 http://localhost:8080; connect-src 'self' https: http://localhost:8080 https://auth.privy.io wss://auth.privy.io https://j14e204.p.ssafy.io:8001; frame-src 'self' https://auth.privy.io;"
         />
         {/* Google Analytics */}
         {gaId && (
           <>
+            {/* 1단계: gtag 스텁 즉시 정의 — 페이지 로드 직후 이벤트도 dataLayer에 큐잉됨 */}
+            <Script id="google-analytics-stub" strategy="beforeInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}`}
+            </Script>
+            {/* 2단계: gtag.js 로드 후 큐 처리 + GA 설정 */}
             <Script
               src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
               strategy="afterInteractive"
             />
             <Script id="google-analytics" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${gaId}');
-              `}
+              {`gtag('js',new Date());gtag('config','${gaId}');`}
             </Script>
           </>
         )}
       </head>
       <body className={inter.className}>
         <ZoomGuard />
+        <BgmPlayer />
+        <PWAInstallModal />
         {/* 세로 모드 회전 안내 — portrait 에서만 CSS로 표시 */}
         <div className="portrait-overlay">
           <span className="rotate-icon">📱</span>
@@ -70,6 +76,8 @@ export default function RootLayout({
               </AuthProvider>
             </PrivyProviderWrapper>
           </div>
+          {/* 포털 루트: game-wrapper transform 영향 없이 position:fixed 사용 가능 */}
+          <div id="portal-root" />
         </div>
       </body>
     </html>

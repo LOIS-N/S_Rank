@@ -1,0 +1,1118 @@
+/* ============================================================
+   Card List Page Styles
+   - 1280x720 (16:9) 기준 레이아웃
+   - Stardust font 적용
+   - pixel-art 에셋 기반 UI
+   ============================================================ */
+
+/* ============================================================
+   강화 애니메이션 모달
+   ============================================================ */
+
+@keyframes enhance-fadein {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes enhance-result-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes code-float {
+  0%   { opacity: 0;   transform: translateY(0px); }
+  20%  { opacity: 0.7; }
+  80%  { opacity: 0.5; }
+  100% { opacity: 0;   transform: translateY(-60px); }
+}
+
+@keyframes progress-glow {
+  0%, 100% { box-shadow: 0 0 6px #00ff41; }
+  50%       { box-shadow: 0 0 16px #00ff41, 0 0 30px #00aa22; }
+}
+
+.enhance-modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.enhance-modal-box {
+  background: #0a0a0a;
+  border: 2px solid #00ff41;
+  border-radius: 6px;
+  padding: 36px 40px;
+  width: 340px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  box-shadow: 0 0 40px rgba(0, 255, 65, 0.25);
+  animation: enhance-fadein 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.enhance-modal-card-img {
+  width: 140px;
+  height: 210px;
+  object-fit: cover;
+  image-rendering: pixelated;
+  border: 2px solid #222;
+  display: block;
+  margin: 0 auto 20px;
+  transition: filter 0.4s;
+}
+
+.enhance-modal-card-img.failed {
+  filter: grayscale(80%) brightness(0.6);
+}
+
+.enhance-modal-compile-label {
+  color: #00ff41;
+  font-size: 18px;
+  margin-bottom: 12px;
+  letter-spacing: 2px;
+}
+
+.enhance-modal-progress-bg {
+  background: #111;
+  border: 1px solid #00ff41;
+  height: 14px;
+  border-radius: 2px;
+  overflow: hidden;
+  animation: progress-glow 1s ease-in-out infinite;
+}
+
+.enhance-modal-progress-bar {
+  background: #00ff41;
+  height: 100%;
+  transition: width 80ms linear;
+}
+
+.enhance-modal-progress-pct {
+  color: #007722;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.enhance-modal-result {
+  animation: enhance-result-in 0.35s ease-out;
+}
+
+.enhance-modal-result-title.success {
+  color: #00ff41;
+  font-size: 30px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+  text-shadow: 0 0 12px rgba(0, 255, 65, 0.6);
+}
+
+.enhance-modal-result-title.failed {
+  color: #ff4444;
+  font-size: 30px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+  text-shadow: 0 0 12px rgba(255, 68, 68, 0.6);
+}
+
+.enhance-modal-result-sub {
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.enhance-modal-result-sub.success { color: #aaffaa; }
+.enhance-modal-result-sub.failed  { color: #ff8888; }
+
+.enhance-code-snippet {
+  position: absolute;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #00ff41;
+  pointer-events: none;
+  animation: code-float linear forwards;
+  white-space: nowrap;
+  opacity: 0;
+}
+
+/* --- 게임 컨테이너: 부모 game-wrapper를 꽉 채움 --- */
+.cardlist-page-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.cardlist-page-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/assets/004/enforceMain_000.webp');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.4;
+  z-index: 0;
+}
+
+.cardlist-page-container>* {
+  position: relative;
+  z-index: 1;
+}
+
+.cardlist-page-title-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.cardlist-page-title {
+  text-align: center;
+  color: #fff;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 34px;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  flex-shrink: 0;
+  margin: 0;
+  padding: 4px 10px;
+}
+
+/* --- 메인 콘텐츠 애니메이션 래퍼 --- */
+/* enhance-page 스코프: card-list.css와 클래스명 충돌 방지 */
+.enhance-page .cardlist-content-padding {
+  display: flex;
+  flex: 1;
+  padding: 0 24px calc(100px + var(--game-clip-y, 0px)) 24px;
+  gap: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* ============================
+   좌측 영역: 필터 + 카드 그리드
+   ============================ */
+.cardlist-left-col {
+  flex: 3.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+
+.cardlist-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  position: absolute;
+  top: -46px;
+  /* Place above the list box */
+  left: 8px;
+  z-index: 10;
+}
+
+.cardlist-select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.cardlist-select {
+  appearance: none;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  padding: 6px 32px 6px 12px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+  outline: none;
+}
+
+.cardlist-select:focus {
+  border-color: #ffd700;
+}
+
+.cardlist-select-wrapper::after {
+  content: "▼";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 10px;
+  color: #111;
+}
+
+/* 스킬 필터 버튼 */
+.cardlist-filter-btn {
+  appearance: none;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  padding: 6px 12px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+  outline: none;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.cardlist-filter-btn:hover {
+  background-color: #d0d0d0;
+  transform: scale(1.05);
+}
+
+.cardlist-filter-btn.active {
+  background-color: #ffd700;
+  border-color: #b8960f;
+  color: #2a2a40;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5), inset 0 0 6px rgba(255, 215, 0, 0.3);
+}
+
+/* 카드 목록 박스 */
+.cardlist-left-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+
+
+/* 좌/우측 메인 박스들을 감싸 같은 높이를 보장하는 부모 */
+.cardlist-main-row {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* 카드 그리드 영역 */
+.cardlist-grid-wrapper {
+  flex: 1;
+  clip-path: inset(0 -15px);
+  /* 상하는 0으로 깎아 테두리 침범 방지, 좌우는 -15px로 두어 호버 효과 잘림 방지 */
+  position: relative;
+  min-height: 0;
+  touch-action: none;
+}
+
+.cardlist-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 4px;
+  padding-bottom: 24px;
+}
+
+/* 카드 아이템 효과 */
+.cardlist-card-item {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  transform-origin: center center;
+  aspect-ratio: 104 / 144;
+  overflow: hidden;
+}
+
+.cardlist-card-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  z-index: 1;
+  position: relative;
+}
+
+.cardlist-card-item:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* 카드 위 능력치 오버레이 (각 칸에 개별 배치) */
+.cardlist-card-stat {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cardlist-card-stat.stat-1 {
+  bottom: 26%;
+}
+
+.cardlist-card-stat.stat-2 {
+  bottom: 16%;
+}
+
+.cardlist-card-stat.stat-3 {
+  bottom: 5%;
+}
+
+/* ============================
+   등급별 선택 테두리 + 회전 애니메이션
+   S=다이아몬드, A=금색, B=은색, C=동색, D=강철색
+   ============================ */
+
+/* 카드 선택 체크 오버레이 (공통) */
+.card-check-overlay {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: #c0392b;
+  border: 2px solid #922b21;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* 회전하는 테두리 (::before) — border 역할 */
+.cardlist-card-item.selected::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 7px;
+  right: 7px;
+  bottom: 0;
+  border-radius: 8px;
+  z-index: -1;
+  animation: borderRotate 2.5s linear infinite;
+  pointer-events: none;
+}
+
+/* --- S등급: 다이아몬드 (시안~화이트 반짝임) --- */
+.cardlist-card-item.selected[data-grade="S"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+      #b9f2ff, #00e5ff, #ffffff, #76d7ff, #00e5ff, #b9f2ff);
+}
+
+.cardlist-card-item.selected[data-grade="S"] {
+  filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.7));
+}
+
+/* --- A등급: 금색 --- */
+.cardlist-card-item.selected[data-grade="A"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+      #ffd700, #ffec80, #b8860b, #fff4b0, #ffd700, #ffd700);
+}
+
+.cardlist-card-item.selected[data-grade="A"] {
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
+}
+
+/* --- B등급: 은색 --- */
+.cardlist-card-item.selected[data-grade="B"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+      #c0c0c0, #e8e8e8, #888888, #f0f0f0, #c0c0c0, #c0c0c0);
+}
+
+.cardlist-card-item.selected[data-grade="B"] {
+  filter: drop-shadow(0 0 8px rgba(192, 192, 192, 0.6));
+}
+
+/* --- C등급: 동색 (브론즈) --- */
+.cardlist-card-item.selected[data-grade="C"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+      #cd7f32, #e8a860, #8b4513, #daa06d, #cd7f32, #cd7f32);
+}
+
+.cardlist-card-item.selected[data-grade="C"] {
+  filter: drop-shadow(0 0 8px rgba(205, 127, 50, 0.5));
+}
+
+/* --- D등급: 진한 파랑색 --- */
+.cardlist-card-item.selected[data-grade="D"]::before {
+  background: conic-gradient(from var(--border-angle, 0deg),
+      #1a3a8a, #2b5fcf, #0d2266, #3a7af0, #1a3a8a, #1a3a8a);
+}
+
+.cardlist-card-item.selected[data-grade="D"] {
+  filter: drop-shadow(0 0 8px rgba(26, 58, 138, 0.6));
+}
+
+/* 테두리 회전 애니메이션 */
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes borderRotate {
+  from {
+    --border-angle: 0deg;
+  }
+
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+/* 스크롤바 컬럼 */
+.cardlist-scrollbar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 120px;
+  flex-shrink: 0;
+  height: 100%;
+  margin: 0px;
+}
+
+.scrollbar-track {
+  width: 80px;
+  flex: 1;
+  min-height: 80px;
+  max-height: none;
+  /* 추가: Phase2와 동일하게 제한 해제 */
+  background-image: url('/assets/003-02/scrollBar_000.webp');
+  /* 008 -> 003-02 */
+  background-size: 518% 108%;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  position: relative;
+  overflow: visible;
+  /* 추가: 썸이 삐져나올 수 있게 */
+}
+
+.scrollbar-thumb {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 100px;
+  background-image: url('/assets/003-02/scrollButton_000.webp');
+  /* 008 -> 003-02 */
+  background-size: 84% 48%;
+  background-position: 50% 49%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  cursor: grab;
+  z-index: 2;
+  touch-action: none;
+  /* 드래그 중 브라우저 스크롤 방지 */
+}
+
+.scrollbar-thumb:active {
+  cursor: grabbing;
+}
+
+
+/* ============================
+   우측 영역: 카드 상세 정보
+   ============================ */
+.cardlist-right-box {
+  flex: 2;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* nineslice-content가 box-sizing: border-box 부모에서 height: 100%를 잘못 해석(H 전체 → padding 포함)하는
+   Safari/iOS 버그 방지: align-self: stretch 기반 크기결정을 사용 */
+.enhance-page .cardlist-right-box .nineslice-content {
+  height: auto !important;
+}
+
+/* 우측 레이아웃 - 좌: 큰카드, 우: 정보패널 */
+.enhance-page .cardlist-detail-split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  gap: 20px;
+  min-width: 0;
+}
+
+.cardlist-big-card-col {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.cardlist-big-card-wrapper {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.cardlist-big-card-wrapper img {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(4px 4px 8px rgba(0, 0, 0, 0.6));
+}
+
+/* 상세 카드 능력치 오버레이 (각 칸에 개별 배치) */
+.cardlist-big-card-stat {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  text-align: center;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #fff;
+  text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  pointer-events: none;
+}
+
+.cardlist-big-card-stat.stat-1 {
+  bottom: 24.5%;
+}
+
+.cardlist-big-card-stat.stat-2 {
+  bottom: 14.5%;
+}
+
+.cardlist-big-card-stat.stat-3 {
+  bottom: 4%;
+}
+
+.enhance-page .cardlist-info-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  justify-content: space-between;
+}
+
+/* --- 재화 정보 표시 (오른쪽 상단) --- */
+.enhance-currency-info-wrapper {
+  position: absolute;
+  top: -6.5cqw; /* 오른쪽 박스 위쪽 외곽으로 이동 (약 5px 여백 확보) */
+  left: -1.2cqw; /* 위치 반응형으로 조정 */
+  z-index: 20;
+  pointer-events: none;
+}
+
+.currency-info-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 4.5cqw; /* 전체적인 크기 키움 */
+  width: 13.5cqw; /* 전체적인 크기 키움 */
+}
+
+.currency-info-blank {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  left: 2cqw;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 1cqw;
+  padding-left: 0.5cqw;
+  background-image: url('/assets/002/upperBlank_002.webp');
+  background-size: 100% 100%;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 1.4cqw; /* 글자 크기 키움 */
+  color: #111;
+  overflow: hidden;
+}
+
+.currency-unit {
+  margin-left: 0.3cqw;
+  font-size: 1.2cqw;
+}
+
+.currency-icon {
+  position: absolute;
+  left: -0.7cqw;
+  top: 0.7cqw;
+  width: 3.2cqw; /* 아이콘 크기 키움 */
+  height: 3.2cqw;
+  image-rendering: pixelated;
+  z-index: 1;
+}
+
+/* 정보 상자 체계 고정 크기 할당 */
+.cardlist-info-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+.enhance-page .cardlist-info-header-box {
+  flex: 0 0 44px;
+  /* 이름, 등급은 고정 높이 */
+}
+
+.enhance-page .cardlist-info-stats-box,
+.enhance-page .enhance-info-box {
+  flex: 0 1 160px;
+  /* 최대 160px, 필요 시 축소 가능 (기존 120px에서 상향) */
+  min-height: 80px;
+  /* 기존 60px에서 상향 */
+}
+
+/* 내부 콘텐츠 중앙 정렬 공통 */
+.enhance-page .cardlist-info-stats-box .nineslice-content,
+.enhance-page .enhance-info-box .nineslice-content {
+  justify-content: center;
+  align-items: center;
+}
+
+.enhance-page .cardlist-info-title {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #111;
+  margin-bottom: 12px;
+}
+
+.enhance-page .cardlist-info-text {
+  font-family: 'Stardust', sans-serif;
+  font-weight: bold;
+  font-size: 16px;
+  color: #111;
+  line-height: 1.4;
+}
+
+/* 강조 텍스트 (이름/등급) */
+.enhance-page .cardlist-info-header-text {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: #111;
+}
+
+/* --- 강화 버튼 스타일 --- */
+.enhance-action-btn {
+  appearance: none;
+  background-image: url('/assets/002/upperBlank_002.webp');
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  border: none;
+  background-color: transparent;
+  color: #111;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  cursor: pointer;
+  height: 82px;
+  width: 100%;
+  flex-shrink: 0;
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.enhance-action-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: scale(1.05);
+}
+
+.enhance-action-btn:disabled {
+  filter: brightness(0.5) grayscale(1);
+  cursor: not-allowed;
+}
+
+/* --- 애니메이션: 상세 정보 등장 효과 --- */
+@keyframes detailAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- 강화 결과 모달 --- */
+.cardlist-right-box {
+  position: relative;
+  /* 오버레이의 기준점이 되도록 설정 */
+}
+
+.enhance-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 15px;
+  /* 약간 여백 */
+  z-index: 100;
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.1);
+  /* 카드 쪽을 가리지 않게 아주 옅은 딤 처리만 */
+  border-radius: 8px;
+}
+
+.enhance-modal-box {
+  background-color: rgba(230, 230, 230, 0.98);
+  border: 4px solid #8e8e8e;
+  border-radius: 12px;
+  padding: 30px 40px;
+  text-align: center;
+  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.6);
+  width: 48%;
+  /* 오른쪽 절반 정도 차지 */
+  min-width: 0;
+  cursor: default;
+  /* 오버레이 클릭 방지 안쪽 영역 */
+}
+
+.enhance-modal-title {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: #111;
+  margin-bottom: 10px;
+}
+
+.enhance-modal-subtitle {
+  font-family: 'Stardust', sans-serif;
+  font-size: 16px;
+  font-weight: bold;
+  color: #444;
+  margin-bottom: 8px;
+}
+
+.enhance-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.enhance-modal-text {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #111;
+}
+
+.enhance-modal-tries {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #111;
+}
+
+/* --- 강화 결과 모달 버튼 (upperBlank_002.webp 에셋) --- */
+.enhance-result-btn {
+  appearance: none;
+  background-image: url('/assets/002/upperBlank_002.webp');
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  border: none;
+  background-color: transparent;
+  color: #111;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  height: 82px;
+  width: 100%;
+  flex-shrink: 0;
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.enhance-result-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: scale(1.02);
+}
+
+.enhance-result-btn:disabled {
+  filter: brightness(0.5) grayscale(1);
+  cursor: not-allowed;
+}
+
+/* 하단 버튼 2개 래퍼 */
+.enhance-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.enhance-modal-btn {
+  appearance: none;
+  background-image: url('/assets/002/lowerButton_001.webp');
+  background-size: 100% 100%;
+  image-rendering: auto;
+  /* Buttons scale better with auto or pixelated depending on source. using auto to ease */
+  border: none;
+  background-color: transparent;
+  color: #111;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  cursor: pointer;
+  height: 44px;
+  width: 140px;
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.enhance-modal-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: scale(1.05);
+}
+
+.enhance-modal-btn:disabled {
+  filter: brightness(0.5) grayscale(1);
+  cursor: not-allowed;
+}
+
+.animate-detail {
+  animation: detailAppear 0.3s ease-out forwards;
+}
+
+/* --- 애니메이션 유틸리티 --- */
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================
+   강화 횟수 배지 (카드 오른쪽 상단 모서리 대각 리본)
+   픽셀아트 스텝 셰이딩 + 미세 밝기 오버레이
+   색상: 카드 등급(data-grade) 기준
+   S=아이스 블루  A=앰버  B=실버  C=브론즈  D=스틸
+   ============================ */
+
+@keyframes badge-pulse {
+  0%, 100% { scale: 1; }
+  50%       { scale: 1.07; }
+}
+
+/* ── 공통 베이스: 45° 대각 리본 (슬림, overflow:hidden으로 양끝 클린컷) ── */
+.card-enhance-badge {
+  position: absolute;
+  top: 10px;
+  right: 4px;
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  line-height: 1;
+
+  rotate: 45deg;
+  animation: badge-pulse 3s ease-in-out infinite;
+
+  width: 48px;
+  height: 14px;
+  border-radius: 1px;
+
+  /* 기본(D급): 스틸
+     레이어1: 상단 1px 하이라이트 → 미세 밝기 오버레이
+     레이어2: 좌(밝음)→중→우(어두움) 3단 스텝 셰이딩 */
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #BDD0E0 0%, #BDD0E0 25%, #7090A8 25%, #7090A8 75%, #3A5068 75%);
+  border: 1px solid #1A2A38;
+  /* 아래 2px 진한 그림자 → 카드 위로 1~2px 떠 있는 입체감 */
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* ── 등급별 색상 ── */
+
+/* S급: 밝은 스카이 블루 / 다이아몬드 실버 톤 */
+.card-enhance-badge[data-grade="S"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.70) 0px, rgba(255,255,255,0.70) 1px,
+      rgba(255,255,255,0.15) 1px, rgba(0,0,0,0.06) 100%),
+    linear-gradient(to right, #EAF6FF 0%, #EAF6FF 25%, #4FB8F0 25%, #4FB8F0 75%, #1870C0 75%);
+  border: 1px solid #0A3870;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* A급: 앰버 오렌지 — 테두리 진한 갈색 */
+.card-enhance-badge[data-grade="A"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.60) 0px, rgba(255,255,255,0.60) 1px,
+      rgba(255,255,255,0.12) 1px, rgba(0,0,0,0.07) 100%),
+    linear-gradient(to right, #FFE098 0%, #FFE098 25%, #E89020 25%, #E89020 75%, #8A4800 75%);
+  border: 1px solid #3A1200;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* B급: 실버 */
+.card-enhance-badge[data-grade="B"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.65) 0px, rgba(255,255,255,0.65) 1px,
+      rgba(255,255,255,0.12) 1px, rgba(0,0,0,0.07) 100%),
+    linear-gradient(to right, #EEF2F6 0%, #EEF2F6 25%, #A0B4C0 25%, #A0B4C0 75%, #506070 75%);
+  border: 1px solid #283840;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* C급: 브론즈 */
+.card-enhance-badge[data-grade="C"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #F0CC88 0%, #F0CC88 25%, #B07830 25%, #B07830 75%, #683808 75%);
+  border: 1px solid #381800;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* D급: 스틸 (기본값 명시) */
+.card-enhance-badge[data-grade="D"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #BDD0E0 0%, #BDD0E0 25%, #7090A8 25%, #7090A8 75%, #3A5068 75%);
+  border: 1px solid #1A2A38;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+/* ── 텍스트: + 기호 ── */
+.badge-plus {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 7px;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.95);
+  line-height: 1;
+  margin-right: 1px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── 텍스트: 숫자 ── */
+.badge-num {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.95);
+  line-height: 1;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.synthesis-toast {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a0000;
+  border: 2px solid #ff4444;
+  border-radius: 6px;
+  padding: 18px 32px;
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff8888;
+  white-space: nowrap;
+  z-index: 20;
+  pointer-events: none;
+  animation: toast-in 0.2s ease-out;
+  text-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
+}
+
+.cardlist-total-cnt {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #555;
+  letter-spacing: 1px;
+  padding: 6px 12px;
+  background-color: #e0e0e0;
+  border: 2px solid #555;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  white-space: nowrap;
+  margin-left: auto;
+}

@@ -54,3 +54,46 @@ dist
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+
+# Dependencies
+node_modules
+/.pnp
+.pnp.js
+
+# Environment variables (가장 중요!)
+.env
+.env.*
+!.env.example
+
+# Hardhat files
+/cache
+/artifacts
+/deployments
+
+### Node.js & Hardhat (Blockchain) ###
+node_modules/
+artifacts/
+cache/
+coverage/
+coverage.json
+typechain/
+typechain-types/
+
+# TypeChain files
+/typechain
+/typechain-types
+
+# solidity-coverage
+/coverage
+/coverage.json
+
+# Ignition
+ignition/deployments/chain-31337
+
+# Logs
+*.log
+
+# Editor/OS
+.DS_Store
+.vscode/
+.idea/

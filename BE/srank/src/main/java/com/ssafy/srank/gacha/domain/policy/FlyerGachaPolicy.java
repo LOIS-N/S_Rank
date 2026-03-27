@@ -3,6 +3,11 @@ package com.ssafy.srank.gacha.domain.policy;
 import com.ssafy.srank.card.domain.enums.CardGrade;
 import org.springframework.stereotype.Component;
 
+/**
+ * 구버전 전단 RNG 정책이다.
+ * 현재 요청 경로에서는 Provably Fair 계산기로 대체되었으므로 보존만 하고 사용하지 않는다.
+ */
+@Deprecated(forRemoval = false)
 @Component
 public class FlyerGachaPolicy {
 

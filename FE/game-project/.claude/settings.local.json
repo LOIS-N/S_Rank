@@ -4,7 +4,15 @@
       "Bash(python3 -c \"from PIL import Image; img=Image.open\\(''public/assets/006/portfolio_000.webp''\\); img=img.resize\\(\\(700,1050\\), Image.LANCZOS\\); img.save\\(''public/assets/006/portfolio_000.webp'', ''WEBP'', quality=90\\); print\\(''Done:'', img.size\\)\")",
       "Bash(python -c \"from PIL import Image; img=Image.open\\(''public/assets/006/portfolio_000.webp''\\); img=img.resize\\(\\(700,1050\\), Image.LANCZOS\\); img.save\\(''public/assets/006/portfolio_000.webp'', ''WEBP'', quality=90\\); print\\(''Done:'', img.size\\)\")",
       "Bash(node -e \"const sharp=require\\(''sharp''\\); sharp\\(''public/assets/006/portfolio_000.webp''\\).metadata\\(\\).then\\(m=>console.log\\(m.width,''x'',m.height\\)\\)\")",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(find \"d:/SSAFY_PJT\\(공통, 특화, 자율\\)/특화\\(enhance, synthesis\\)/S14P21E204/BE/srank/src/main/java/com/ssafy/srank\" -type f -name \"*ServiceImpl.java\" -o -name \"*Controller.java\")",
+      "Bash(find \"d:/SSAFY_PJT\\(공통, 특화, 자율\\)/특화\\(enhance, synthesis\\)/S14P21E204/BE/srank/src/main/java/com/ssafy/srank\" -name \"*.java\" -type f)",
+      "Bash(find \"d:\\\\SSAFY_PJT\\(공통, 특화, 자율\\)\\\\특화\\(enhance, synthesis\\)\\\\S14P21E204\\\\BE\\\\srank\\\\src\\\\main\\\\java\\\\com\\\\ssafy\\\\srank\" -name \"*.java\" -type f)",
+      "Bash(ls -la \"d:\\\\SSAFY_PJT\\(공통, 특화, 자율\\)\\\\특화\\(enhance, synthesis\\)\\\\S14P21E204\\\\FE\\\\game-project\\\\src\\\\app\\\\quest\"\")",
+      "Bash(find \"d:/SSAFY_PJT\\(공통, 특화, 자율\\)/특화\\(enhance, synthesis\\)/S14P21E204/FE/game-project/src/app/quest/\" -type f)",
+      "Bash(ls -la \"PJT/특화\\(enhance, synthesis\\)/S14P21E204/BE/srank/src/main/java/com/ssafy/srank/\")",
+      "Bash(find \"PJT/특화\\(enhance, synthesis\\)/S14P21E204/BE/srank/src/main/java/com/ssafy/srank\" -maxdepth 1 -type d)",
+      "Bash(xargs grep -l \"synthesis\" -i)"
     ]
   }
 }

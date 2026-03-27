@@ -2,14 +2,23 @@ package com.ssafy.srank.user.application.service;
 
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.common.metrics.BusinessExceptionMetrics;
+import com.ssafy.srank.common.metrics.MetricTagValues;
+import com.ssafy.srank.common.metrics.UserMetrics;
 import com.ssafy.srank.log.application.command.AuthLogCommand;
 import com.ssafy.srank.log.application.facade.AuthLogFacade;
 import com.ssafy.srank.log.domain.enums.AuthLogEventType;
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.rabbitmq.log.message.GoldLogMessage;
+import com.ssafy.srank.rabbitmq.log.producer.GoldLogProducer;
+import com.ssafy.srank.ranking.application.event.UserWithdrawnEvent;
 import com.ssafy.srank.user.application.dto.request.UpdateNicknameRequest;
+import com.ssafy.srank.user.application.dto.response.MyGachaInfo;
 import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +34,10 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final AuthLogFacade authLogFacade;
+    private final ApplicationEventPublisher eventPublisher;
+    private final GoldLogProducer producer;
+    private final UserMetrics userMetrics;
+    private final BusinessExceptionMetrics businessExceptionMetrics;
 
     @Override
     public MyInfoResponse getMyInfo(Long userId) {
@@ -32,46 +45,100 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public MyGachaInfo getMyGachaInfo(Long userId) {
+        return MyGachaInfo.from(getActiveUser(userId));
+    }
+
+    @Override
+    public String getWalletAddress(Long userId) {
+        return getActiveUser(userId).getWalletAddress();
+    }
+
+    @Override
     @Transactional
     public void updateNickname(Long userId, UpdateNicknameRequest request) {
-        User user = getActiveUser(userId);
-        validateNickname(request.getNickname());
+        recordUserOperation("update_nickname", () -> {
+            User user = getActiveUser(userId);
+            validateNickname(request.getNickname());
 
-        if (request.getNickname().equals(user.getNickname())) {
-            return;
-        }
+            if (request.getNickname().equals(user.getNickname())) {
+                return MetricTagValues.RESULT_IGNORED;
+            }
 
-        if (userRepository.existsByNicknameAndDeletedAtIsNull(request.getNickname())) {
-            throw new BusinessException(ErrorCode.NICKNAME_DUPLICATE);
-        }
+            if (userRepository.existsByNicknameAndDeletedAtIsNull(request.getNickname())) {
+                throw new BusinessException(ErrorCode.NICKNAME_DUPLICATE);
+            }
 
-        user.updateNickname(request.getNickname());
+            user.updateNickname(request.getNickname());
+            return MetricTagValues.RESULT_SUCCESS;
+        });
     }
 
     @Override
     @Transactional
     public void withdraw(Long userId) {
-        User user = getActiveUser(userId);
-        user.withdraw();
-        authLogFacade.recordWithdraw(new AuthLogCommand(
-                userId,
-                AuthLogEventType.WITHDRAW,
-                LocalDateTime.now()
-        ));
+        recordUserOperation("withdraw", () -> {
+            User user = getActiveUser(userId);
+            user.withdraw();
+            eventPublisher.publishEvent(new UserWithdrawnEvent(userId));
+            authLogFacade.recordWithdraw(new AuthLogCommand(
+                    userId,
+                    AuthLogEventType.WITHDRAW,
+                    LocalDateTime.now()
+            ));
+            return MetricTagValues.RESULT_SUCCESS;
+        });
     }
 
     @Override
-    public long rewardGold(Long userId, Long gold) {
-        User user = getActiveUser(userId);
-        user.increaseGold(gold);
-        return user.getGold();
+    @Transactional
+    public long rewardGold(Long userId, Long gold, GoldLogReason reason) {
+        final long[] balanceAfter = new long[1];
+
+        recordUserOperation("reward_gold", () -> {
+            User user = getActiveUser(userId);
+            user.increaseGold(gold);
+            recordGoldLogIfNeeded(userId, gold, user.getGold(), reason);
+            if (reason != null && gold > 0) {
+                userMetrics.recordGoldReward(MetricTagValues.enumName(reason), gold);
+            }
+            balanceAfter[0] = user.getGold();
+            return MetricTagValues.RESULT_SUCCESS;
+        });
+
+        return balanceAfter[0];
     }
 
     @Override
-    public long spendGold(Long userId, Long gold) {
+    public long spendGold(Long userId, Long gold, GoldLogReason reason) {
         User user = getActiveUser(userId);
         user.decreaseGold(gold);
+        recordGoldLogIfNeeded(userId, -gold, user.getGold(), reason);
         return user.getGold();
+    }
+
+    @Transactional
+    @Override
+    public void levelUp(Long userId) {
+        recordUserOperation("level_up", () -> {
+            User user = getActiveUser(userId);
+            user.levelUp();
+            return MetricTagValues.RESULT_SUCCESS;
+        });
+    }
+
+    private void recordGoldLogIfNeeded(Long userId, Long amount, long balanceAfter, GoldLogReason reason) {
+        if (reason == null) {
+            return;
+        }
+
+        producer.sendGoldLogMessage(new GoldLogMessage(
+                userId,
+                amount,
+                balanceAfter,
+                reason,
+                LocalDateTime.now()
+        ));
     }
 
     private User getActiveUser(Long userId) {
@@ -88,5 +155,32 @@ public class UserServiceImpl implements UserService {
         if (!NICKNAME_PATTERN.matcher(nickname).matches()) {
             throw new BusinessException(ErrorCode.NICKNAME_INVALID);
         }
+    }
+
+    // User mutation 메서드는 이 helper를 통해 동일한 결과 태그와 timer/counter를 남긴다.
+    private void recordUserOperation(String operation, UserOperation action) {
+        long startNanos = System.nanoTime();
+        String result = MetricTagValues.RESULT_SUCCESS;
+        String errorCode = MetricTagValues.ERROR_CODE_NONE;
+
+        try {
+            result = action.run();
+        } catch (BusinessException e) {
+            result = MetricTagValues.RESULT_FAILURE;
+            errorCode = e.getErrorCode().getCode();
+            businessExceptionMetrics.record("user." + operation, e);
+            throw e;
+        } catch (RuntimeException e) {
+            result = MetricTagValues.RESULT_ERROR;
+            errorCode = MetricTagValues.ERROR_CODE_INTERNAL;
+            throw e;
+        } finally {
+            userMetrics.recordOperation(System.nanoTime() - startNanos, operation, result, errorCode);
+        }
+    }
+
+    @FunctionalInterface
+    private interface UserOperation {
+        String run();
     }
 }

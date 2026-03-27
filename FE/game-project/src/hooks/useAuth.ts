@@ -5,14 +5,37 @@ import { usePrivy, useIdentityToken } from '@privy-io/react-auth';
 import { useUserStore } from '@/store/useUserStore';
 import { useGameStore } from '@/store/useGameStore';
 import client from '@/lib/axios';
+import { setTokenRefresher } from '@/lib/axios';
 import { useRouter } from 'next/navigation';
+import { sendGAEvent } from '@/lib/gtag';
 
 export const useAuth = () => {
   const { ready, authenticated, user, getAccessToken } = usePrivy();
   const { identityToken } = useIdentityToken();
-  const { setAuth, setProfile, clearUser, isAuthenticated } = useUserStore();
+  const { setAuth, setProfile, clearUser, updateAccessToken, isAuthenticated } = useUserStore();
   const router = useRouter();
   const isprocessing = useRef(false);
+
+  // Axios 인터셉터에 토큰 갱신 함수 등록
+  useEffect(() => {
+    setTokenRefresher(getAccessToken);
+    return () => setTokenRefresher(null);
+  }, [getAccessToken]);
+
+  // 30분마다 토큰 사전 갱신 (방치형 게임 세션 유지)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const REFRESH_INTERVAL = 30 * 60 * 1000; // 30분
+    const id = setInterval(async () => {
+      try {
+        const newToken = await getAccessToken();
+        if (newToken) updateAccessToken(newToken);
+      } catch {
+        // 갱신 실패 시 인터셉터가 다음 요청에서 처리
+      }
+    }, REFRESH_INTERVAL);
+    return () => clearInterval(id);
+  }, [isAuthenticated, getAccessToken, updateAccessToken]);
 
   // Problem 3: 토큰 준비 상태 디버그 로그
   useEffect(() => {
@@ -57,7 +80,9 @@ export const useAuth = () => {
 
           if (response.data.success) {
             setAuth(accessToken, response.data.data);
-
+            sendGAEvent("login_success", {
+              user_type: response.data.data.isNewUser ? "new" : "returning",
+            });
             if (response.data.data.isNewUser) {
               router.push('/onboarding');
             } else {

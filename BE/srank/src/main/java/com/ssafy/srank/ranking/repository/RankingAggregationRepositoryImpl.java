@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -15,8 +16,7 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
     private final EntityManager entityManager;
 
     @Override
-    public List<GoldRankingAggregate> findTopGoldRankings(int limit) {
-        // 현재 보유 골드가 아니라, 획득 로그(amount > 0)의 누적합으로 랭킹을 계산한다.
+    public List<GoldRankingAggregate> findGoldRankings() {
         String sql = """
                 SELECT
                     u.user_id,
@@ -27,13 +27,10 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
                 WHERE u.deleted_at IS NULL
                 GROUP BY u.user_id, u.nickname
                 ORDER BY gold DESC, u.user_id ASC
-                LIMIT :limit
                 """;
 
         @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery(sql)
-                .setParameter("limit", limit)
-                .getResultList();
+        List<Object[]> rows = entityManager.createNativeQuery(sql).getResultList();
 
         return rows.stream()
                 .map(row -> new GoldRankingAggregate(
@@ -45,9 +42,46 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
     }
 
     @Override
-    public List<CardGradeCountRankingAggregate> findTopCardGradeCountRankings(int limit) {
-        // 탈퇴 유저와 비활성/숨김/삭제 카드 템플릿은 집계 대상에서 제외한다.
-        String sql = """
+    public List<CardGradeCountRankingAggregate> findCardGradeCountRankings() {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(cardGradeRankingSql(false))
+                .getResultList();
+
+        return rows.stream().map(this::toCardGradeAggregate).toList();
+    }
+
+    @Override
+    public Optional<CardGradeCountRankingAggregate> findCardGradeCountRanking(Long userId) {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(cardGradeRankingSql(true))
+                .setParameter("userId", userId)
+                .getResultList();
+
+        return rows.stream().findFirst().map(this::toCardGradeAggregate);
+    }
+
+    @Override
+    public List<CardStatTotalRankingAggregate> findCardStatTotalRankings() {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(cardStatRankingSql(false))
+                .getResultList();
+
+        return rows.stream().map(this::toCardStatAggregate).toList();
+    }
+
+    @Override
+    public Optional<CardStatTotalRankingAggregate> findCardStatTotalRanking(Long userId) {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(cardStatRankingSql(true))
+                .setParameter("userId", userId)
+                .getResultList();
+
+        return rows.stream().findFirst().map(this::toCardStatAggregate);
+    }
+
+    private String cardGradeRankingSql(boolean singleUser) {
+        String filter = singleUser ? "\n    AND u.user_id = :userId\n" : "\n";
+        return """
                 SELECT
                     u.user_id,
                     u.nickname,
@@ -63,77 +97,95 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
                     AND ct.is_active = true
                     AND ct.is_deleted = false
                 WHERE u.deleted_at IS NULL
+                """ + filter + """
                 GROUP BY u.user_id, u.nickname
                 ORDER BY s_count DESC, a_count DESC, u.user_id ASC
-                LIMIT :limit
                 """;
-
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery(sql)
-                .setParameter("limit", limit)
-                .getResultList();
-
-        return rows.stream()
-                .map(row -> new CardGradeCountRankingAggregate(
-                        toLong(row[0]),
-                        (String) row[1],
-                        toLong(row[2]),
-                        toLong(row[3])
-                ))
-                .toList();
     }
 
-    @Override
-    public List<CardStatTotalRankingAggregate> findTopCardStatTotalRankings(int limit) {
-        // 카드 능력치 동점 시, 같은 statTotal에 먼저 도달한 카드가 앞서도록 achieved_at을 계산한다.
-        String sql = """
+    private String cardStatRankingSql(boolean singleUser) {
+        String filter = singleUser ? "\n    AND u.user_id = :userId\n" : "\n";
+        return """
+                WITH valid_cards AS (
+                    SELECT
+                        u.user_id,
+                        u.nickname,
+                        uc.user_card_id,
+                        (uc.base_skill_value_1 + uc.bonus_skill_value_1
+                         + uc.base_skill_value_2 + uc.bonus_skill_value_2
+                         + uc.base_skill_value_3 + uc.bonus_skill_value_3) AS stat_total,
+                        COALESCE(MAX(CASE WHEN el.success = true THEN el.created_at END), uc.created_at) AS achieved_at
+                    FROM user_card uc
+                    JOIN users u
+                        ON u.user_id = uc.user_id
+                    JOIN card_template ct
+                        ON ct.card_template_id = uc.card_template_id
+                    LEFT JOIN enhancement_log el
+                        ON el.user_card_id = uc.user_card_id
+                        AND el.success = true
+                    WHERE uc.is_delete = false
+                        AND u.deleted_at IS NULL
+                        AND ct.is_hidden = false
+                        AND ct.is_active = true
+                        AND ct.is_deleted = false
+                    GROUP BY
+                        u.user_id,
+                        u.nickname,
+                        uc.user_card_id,
+                        uc.created_at,
+                        uc.base_skill_value_1,
+                        uc.bonus_skill_value_1,
+                        uc.base_skill_value_2,
+                        uc.bonus_skill_value_2,
+                        uc.base_skill_value_3,
+                        uc.bonus_skill_value_3
+                ),
+                representative_cards AS (
+                    SELECT
+                        vc.user_id,
+                        vc.nickname,
+                        vc.user_card_id,
+                        vc.stat_total,
+                        vc.achieved_at,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY vc.user_id
+                            ORDER BY vc.stat_total DESC, vc.achieved_at ASC, vc.user_card_id ASC
+                        ) AS representative_rank
+                    FROM valid_cards vc
+                )
                 SELECT
-                    uc.user_card_id,
-                    ct.character_name,
-                    (uc.base_skill_value_1 + uc.bonus_skill_value_1
-                     + uc.base_skill_value_2 + uc.bonus_skill_value_2
-                     + uc.base_skill_value_3 + uc.bonus_skill_value_3) AS stat_total,
-                    COALESCE(MAX(CASE WHEN el.success = true THEN el.created_at END), uc.created_at) AS achieved_at
-                FROM user_card uc
-                JOIN users u
-                    ON u.user_id = uc.user_id
-                JOIN card_template ct
-                    ON ct.card_template_id = uc.card_template_id
-                LEFT JOIN enhancement_log el
-                    ON el.user_card_id = uc.user_card_id
-                    AND el.success = true
-                WHERE uc.is_delete = false
-                    AND u.deleted_at IS NULL
-                    AND ct.is_hidden = false
-                    AND ct.is_active = true
-                    AND ct.is_deleted = false
-                GROUP BY
-                    uc.user_card_id,
-                    ct.character_name,
-                    uc.created_at,
-                    uc.base_skill_value_1,
-                    uc.bonus_skill_value_1,
-                    uc.base_skill_value_2,
-                    uc.bonus_skill_value_2,
-                    uc.base_skill_value_3,
-                    uc.bonus_skill_value_3
-                ORDER BY stat_total DESC, achieved_at ASC, uc.user_card_id ASC
-                LIMIT :limit
+                    u.user_id,
+                    u.nickname,
+                    COALESCE(rc.stat_total, 0) AS stat_total,
+                    COALESCE(rc.achieved_at, u.created_at) AS achieved_at,
+                    rc.user_card_id AS representative_card_id
+                FROM users u
+                LEFT JOIN representative_cards rc
+                    ON rc.user_id = u.user_id
+                    AND rc.representative_rank = 1
+                WHERE u.deleted_at IS NULL
+                """ + filter + """
+                ORDER BY COALESCE(rc.stat_total, 0) DESC, COALESCE(rc.achieved_at, u.created_at) ASC, u.user_id ASC
                 """;
+    }
 
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery(sql)
-                .setParameter("limit", limit)
-                .getResultList();
+    private CardGradeCountRankingAggregate toCardGradeAggregate(Object[] row) {
+        return new CardGradeCountRankingAggregate(
+                toLong(row[0]),
+                (String) row[1],
+                toLong(row[2]),
+                toLong(row[3])
+        );
+    }
 
-        return rows.stream()
-                .map(row -> new CardStatTotalRankingAggregate(
-                        toLong(row[0]),
-                        (String) row[1],
-                        toInt(row[2]),
-                        toLocalDateTime(row[3])
-                ))
-                .toList();
+    private CardStatTotalRankingAggregate toCardStatAggregate(Object[] row) {
+        return new CardStatTotalRankingAggregate(
+                toLong(row[0]),
+                (String) row[1],
+                toInt(row[2]),
+                toLocalDateTime(row[3]),
+                toNullableLong(row[4])
+        );
     }
 
     private long toLong(Object value) {
@@ -142,6 +194,13 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
 
     private int toInt(Object value) {
         return ((Number) value).intValue();
+    }
+
+    private Long toNullableLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return ((Number) value).longValue();
     }
 
     private LocalDateTime toLocalDateTime(Object value) {

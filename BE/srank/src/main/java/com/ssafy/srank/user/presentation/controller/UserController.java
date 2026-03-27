@@ -1,19 +1,17 @@
 package com.ssafy.srank.user.presentation.controller;
 
 import com.ssafy.srank.common.response.ApiResponse;
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.security.SecurityUtil;
+import com.ssafy.srank.user.application.dto.request.GoldBugRequest;
 import com.ssafy.srank.user.application.dto.request.UpdateNicknameRequest;
 import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
 import com.ssafy.srank.user.application.service.UserService;
+import com.ssafy.srank.user.domain.entity.GoldBugType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -38,4 +36,17 @@ public class UserController {
         userService.withdraw(SecurityUtil.getCurrentUserId());
         return ResponseEntity.ok(ApiResponse.success());
     }
+
+    @PostMapping("/goldbug")
+    public ResponseEntity<ApiResponse<Long>> catchGoldBug(@RequestBody GoldBugRequest request){
+        long gold = request.type().equals(GoldBugType.NORMAL) ? GoldBugType.NORMAL.getGoldReward() : GoldBugType.GOLDEN.getGoldReward();
+        return ResponseEntity.ok(ApiResponse.success(userService.rewardGold(SecurityUtil.getCurrentUserId(),gold, GoldLogReason.CATCH_BUG )));
+    }
+
+    @PutMapping("/levelup")
+    public ResponseEntity<ApiResponse<Void>> tutorialLevelUp(){
+        userService.levelUp(SecurityUtil.getCurrentUserId());
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
 }

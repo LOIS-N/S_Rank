@@ -13,21 +13,25 @@ interface GachaAnimationCard {
   skill1: CardSkill;
   skill2: CardSkill;
   skill3: CardSkill;
+  specialAbility?: { name: string } | null;
 }
 
 interface Props {
   cards: GachaAnimationCard[];
   onComplete: () => void;
+  onDone: () => void;
 }
 
 function skillLabel(type: string): string {
   return type?.toUpperCase() === "DEVOPS" ? "DEV" : (type?.toUpperCase() ?? "?");
 }
 
-export function GachaAnimationOverlay({ cards, onComplete }: Props) {
+export function GachaAnimationOverlay({ cards, onComplete, onDone }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -43,14 +47,12 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
       const H = 720;
       const cardCount = cards.length;
 
-      // 더 큰 카드 사이즈로 연출 강화
-      const CARD_W = cardCount === 1 ? 380 : 200;
+      // 결과 화면과 동일한 카드 크기로 연출
+      const CARD_W = cardCount === 1 ? 280 : 130;
       const CARD_H = Math.round(CARD_W * 1.5);
 
-      // 결과 화면 카드 크기로 축소 비율
-      // 1회: result .gacha-single-big-card = 280px → 280/380
-      // 10회: result grid cell ≈ 130px → 130/200
-      const FINAL_SCALE = cardCount === 1 ? 280 / 380 : 130 / 200;
+      // 이미 결과 크기이므로 축소 없음
+      const FINAL_SCALE = 1;
 
       // Layout positions
       const positions: { x: number; y: number }[] = [];
@@ -311,160 +313,36 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
             });
           });
 
+          // 카드 착지 후 A/S 등급 이펙트 발동, 이후 React GachaRevealCard가 플립 담당
           const landedAt = (cardCount - 1) * 100 + 500 + 100;
-          this.scheduleReveals(landedAt);
-        }
-
-        // =============================================
-        // Phase 3 — 등급별 플립 (back → front)
-        // =============================================
-        private scheduleReveals(base: number) {
-          const normals: number[] = [];
-          const aCards: number[] = [];
-          const sCards: number[] = [];
-
-          cardsLocal.forEach((c, i) => {
-            if (c.grade === "S") sCards.push(i);
-            else if (c.grade === "A") aCards.push(i);
-            else normals.push(i);
-          });
-
-          if (normals.length > 0) {
-            this.time.delayedCall(base + 800, () => { this.cameras.main.shake(200, 0.003); });
-            normals.forEach((idx, j) => {
-              this.time.delayedCall(base + 900 + j * 60, () => { this.flipCard(idx, "normal"); });
+          this.time.delayedCall(landedAt + 100, () => {
+            const aCards: number[] = [];
+            const sCards: number[] = [];
+            cardsLocal.forEach((c, i) => {
+              if (c.grade === "S") sCards.push(i);
+              else if (c.grade === "A") aCards.push(i);
             });
-          }
-
-          if (aCards.length > 0) {
-            this.time.delayedCall(base + 1800, () => { this.cameras.main.shake(350, 0.01); });
-            aCards.forEach((idx, j) => {
-              this.time.delayedCall(base + 1900 + j * 120, () => {
-                this.effectA(idx);
-                this.flipCard(idx, "A");
+            if (aCards.length > 0) {
+              this.cameras.main.shake(350, 0.01);
+              aCards.forEach(idx => this.effectA(idx));
+            }
+            if (sCards.length > 0) {
+              const hasSpecial = sCards.some(idx => !!cardsLocal[idx].specialAbility);
+              this.cameras.main.shake(hasSpecial ? 800 : 500, hasSpecial ? 0.035 : 0.02);
+              if (hasSpecial) {
+                this.flash(0xffffff, 0.5);
+                this.time.delayedCall(180, () => this.flash(0xff0080, 0.35));
+                this.time.delayedCall(360, () => this.flash(0x8800ff, 0.3));
+              } else {
+                this.flash(0x00e5ff, 0.4);
+              }
+              sCards.forEach(idx => {
+                if (cardsLocal[idx].specialAbility) this.effectSSpecial(idx);
+                else this.effectS(idx);
               });
-            });
-          }
-
-          if (sCards.length > 0) {
-            this.time.delayedCall(base + 2500, () => { sCards.forEach((idx) => this.preShake(idx)); });
-            this.time.delayedCall(base + 2800, () => {
-              this.cameras.main.shake(500, 0.02);
-              this.flash(0x00e5ff, 0.4);
-            });
-            sCards.forEach((idx, j) => {
-              this.time.delayedCall(base + 3000 + j * 180, () => {
-                this.effectS(idx);
-                this.flipCard(idx, "S");
-              });
-            });
-          }
-
-          let endTime = base + 900 + normals.length * 60 + 400;
-          if (aCards.length > 0) endTime = Math.max(endTime, base + 1900 + aCards.length * 120 + 500);
-          if (sCards.length > 0) endTime = Math.max(endTime, base + 3000 + sCards.length * 180 + 700);
-
-          // Phase 4: 능력치 표시 → Phase 5: 카드 축소 → Phase 6: 결과 화면
-          this.time.delayedCall(endTime + 400, () => this.showStats());
-          this.time.delayedCall(endTime + 2000, () => this.startShrink());
-        }
-
-        // =============================================
-        // Phase 4 — 카드 위에 능력치 텍스트 표시
-        // =============================================
-        private showStats() {
-          cardsLocal.forEach((card, i) => {
-            const c = this.containers[i];
-            const front = this.fronts[i];
-            if (!c || !front?.visible) return;
-
-            const skills = [card.skill1, card.skill2, card.skill3];
-            // CSS .gacha-card-stat: bottom 26%, 16%, 5%
-            // 컨테이너 기준 (0,0)이 카드 중앙 → y: CARD_H*(0.5 - bottomPct)
-            const yOffsets = [
-              CARD_H * 0.24,   // bottom 26%
-              CARD_H * 0.34,   // bottom 16%
-              CARD_H * 0.45,   // bottom 5%
-            ];
-            const fontSize = Math.max(16, Math.round(CARD_H * 0.058));
-
-            skills.forEach((skill, si) => {
-              if (!skill) return;
-              const label = `${skillLabel(skill.skillType)} ${skill.value}`;
-
-              // 텍스트 배경 (가독성)
-              const bgRect = this.add.rectangle(0, yOffsets[si], CARD_W * 0.82, fontSize * 1.5, 0x000000, 0.45);
-              bgRect.setOrigin(0.5, 0.5);
-              bgRect.setAlpha(0);
-              bgRect.setDepth(c.depth + 9);
-              c.add(bgRect);
-
-              const text = this.add.text(0, yOffsets[si], label, {
-                fontFamily: "'StardustS', 'Stardust', Arial, sans-serif",
-                fontSize: `${fontSize}px`,
-                fontStyle: "bold",
-                color: "#ffffff",
-                stroke: "#000000",
-                strokeThickness: 4,
-                align: "center",
-              });
-              text.setOrigin(0.5, 0.5);
-              text.setAlpha(0);
-              text.setDepth(c.depth + 10);
-              c.add(text);
-
-              const delay = si * 180 + 100;
-              this.tweens.add({ targets: bgRect, alpha: 1, duration: 300, delay, ease: "Sine.easeOut" });
-              this.tweens.add({ targets: text, alpha: 1, duration: 300, delay, ease: "Sine.easeOut" });
-            });
+            }
           });
-        }
-
-        // =============================================
-        // Phase 5 — 카드 축소 (결과 화면 크기로)
-        // =============================================
-        private startShrink() {
-          this.containers.forEach((c) => {
-            if (!c) return;
-            this.tweens.killTweensOf(c);
-            this.tweens.add({
-              targets: c,
-              scale: FINAL_SCALE,
-              duration: 600,
-              ease: "Cubic.easeInOut",
-            });
-          });
-          this.time.delayedCall(750, () => this.finish());
-        }
-
-        // =============================================
-        // 플립 애니메이션
-        // =============================================
-        private flipCard(idx: number, grade: string) {
-          const c = this.containers[idx];
-          if (!c) return;
-          const back = this.backs[idx]!;
-          const front = this.fronts[idx]!;
-          const dur = grade === "S" ? 280 : grade === "A" ? 240 : 180;
-
-          this.tweens.add({
-            targets: c, scaleX: 0, duration: dur, ease: "Sine.easeIn",
-            onComplete: () => {
-              back.setVisible(false);
-              front.setVisible(true);
-              this.tweens.add({
-                targets: c, scaleX: 1, duration: dur, ease: "Sine.easeOut",
-                onComplete: () => {
-                  if (grade === "S") this.glow(idx, 0x00e5ff, 0.45);
-                  else if (grade === "A") this.glow(idx, 0xffd700, 0.3);
-                },
-              });
-            },
-          });
-
-          this.tweens.add({
-            targets: c, y: c.y - 12, duration: dur * 0.8, yoyo: true, ease: "Sine.easeOut",
-          });
+          this.time.delayedCall(landedAt + 900, () => this.finish());
         }
 
         // =============================================
@@ -479,58 +357,172 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
           this.flyingObjects.forEach((o) => o.destroy());
           this.flyingObjects = [];
 
-          for (let i = 0; i < cardCount; i++) {
-            if (!this.containers[i]) {
-              const pos = posLocal[i];
-              const back = this.add.sprite(0, 0, "card_back").setDisplaySize(CARD_W, CARD_H).setVisible(false);
-              const front = this.add.sprite(0, 0, `cf_${i}`).setDisplaySize(CARD_W, CARD_H);
-              const shadow = this.add.ellipse(0, CARD_H / 2 + 5, CARD_W * 0.55, 8, 0x000000, 0.25);
-              const cont = this.add.container(pos.x, pos.y, [shadow, back, front]).setDepth(10 + i);
-              this.containers[i] = cont;
-              this.backs[i] = back;
-              this.fronts[i] = front;
-            }
-          }
-
-          cardsLocal.forEach((card, i) => {
-            const c = this.containers[i]!;
-            c.setPosition(posLocal[i].x, posLocal[i].y).setScale(1).setRotation(0);
-            this.backs[i]!.setVisible(false);
-            this.fronts[i]!.setVisible(true);
-            if (card.grade === "S") this.glow(i, 0x00e5ff, 0.45);
-            else if (card.grade === "A") this.glow(i, 0xffd700, 0.3);
-          });
-
-          // 능력치 표시 후 바로 축소
-          this.showStats();
-          this.time.delayedCall(600, () => this.startShrink());
+          this.finish();
         }
 
         // =============================================
-        // 종료 — 페이드 아웃 후 onComplete
+        // 종료 — React 결과 즉시 표시 + Phaser 크로스페이드
         // =============================================
         private finish() {
           if (this.isEnding) return;
           this.isEnding = true;
-          const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0).setDepth(2000);
-          this.tweens.add({
-            targets: overlay, alpha: 0.85, duration: 400, ease: "Sine.easeIn",
-            onComplete: () => onCompleteRef.current(),
-          });
+          onCompleteRef.current();                         // React 결과 화면 즉시 렌더
+          el.style.transition = "opacity 500ms ease-out"; // Phaser 컨테이너 fade-out
+          el.style.opacity = "0";
+          setTimeout(() => onDoneRef.current(), 550);     // fade 완료 후 언마운트
         }
 
         // =============================================
         // 헬퍼 메서드들
         // =============================================
-        private preShake(idx: number) {
-          const c = this.containers[idx];
-          if (!c) return;
-          const ox = c.x;
+        private effectA(idx: number) {
+          const p = posLocal[idx];
+          if (!this.textures.exists("sp_a")) {
+            const g = this.make.graphics({ x: 0, y: 0 });
+            g.fillStyle(0xffd700, 1);
+            g.fillCircle(4, 4, 4);
+            g.generateTexture("sp_a", 8, 8);
+            g.destroy();
+          }
+          this.add.particles(p.x, p.y, "sp_a", {
+            speed: { min: 60, max: 250 }, angle: { min: 0, max: 360 },
+            scale: { start: 1, end: 0 }, alpha: { start: 0.9, end: 0 },
+            lifespan: { min: 350, max: 800 }, quantity: 12,
+            tint: [0xffd700, 0xffec80, 0xffffff], gravityY: 50, duration: 350,
+          }).setDepth(50);
+          const fl = this.add.circle(p.x, p.y, CARD_W * 0.7, 0xffd700, 0.35).setDepth(49);
           this.tweens.add({
-            targets: c, x: { from: ox - 3, to: ox + 3 },
-            duration: 40, yoyo: true, repeat: 10, ease: "Sine.easeInOut",
-            onComplete: () => { c.x = ox; },
+            targets: fl, scaleX: 2.2, scaleY: 2.2, alpha: 0,
+            duration: 450, ease: "Sine.easeOut", onComplete: () => fl.destroy(),
           });
+        }
+
+        private effectS(idx: number) {
+          const p = posLocal[idx];
+          if (!this.textures.exists("sp_s")) {
+            const g = this.make.graphics({ x: 0, y: 0 });
+            g.fillStyle(0x00e5ff, 1);
+            g.fillCircle(4, 4, 4);
+            g.generateTexture("sp_s", 8, 8);
+            g.destroy();
+          }
+          if (!this.textures.exists("ray")) {
+            const g = this.make.graphics({ x: 0, y: 0 });
+            g.fillStyle(0xffffff, 1);
+            g.fillRect(0, 0, 3, 50);
+            g.generateTexture("ray", 3, 50);
+            g.destroy();
+          }
+          this.add.particles(p.x, p.y, "sp_s", {
+            speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 },
+            scale: { start: 1.5, end: 0 }, alpha: { start: 1, end: 0 },
+            lifespan: { min: 500, max: 1200 }, quantity: 25,
+            tint: [0x00e5ff, 0xb9f2ff, 0xffffff], gravityY: 60, duration: 500,
+          }).setDepth(50);
+          this.time.delayedCall(150, () => {
+            this.add.particles(p.x, p.y, "sp_s", {
+              speed: { min: 40, max: 150 }, angle: { min: 0, max: 360 },
+              scale: { start: 0.7, end: 0 }, alpha: { start: 0.6, end: 0 },
+              lifespan: { min: 300, max: 800 }, quantity: 12,
+              tint: [0x00e5ff, 0xffffff], gravityY: 30, duration: 400,
+            }).setDepth(50);
+          });
+          const fl = this.add.circle(p.x, p.y, CARD_W * 0.9, 0x00e5ff, 0.5).setDepth(49);
+          this.tweens.add({
+            targets: fl, scaleX: 2.8, scaleY: 2.8, alpha: 0,
+            duration: 600, ease: "Sine.easeOut", onComplete: () => fl.destroy(),
+          });
+          for (let i = 0; i < 10; i++) {
+            const a = (i / 10) * Math.PI * 2;
+            const ray = this.add.sprite(p.x, p.y, "ray").setDepth(48);
+            ray.setRotation(a).setAlpha(0.7).setScale(1, 0);
+            this.tweens.add({
+              targets: ray, scaleY: 2.5, alpha: 0,
+              duration: 650, delay: i * 25, ease: "Sine.easeOut",
+              onComplete: () => ray.destroy(),
+            });
+          }
+          const ring = this.add.circle(p.x, p.y, CARD_W * 0.4).setDepth(47);
+          ring.setStrokeStyle(2, 0x00e5ff, 0.7);
+          ring.setFillStyle();
+          this.tweens.add({
+            targets: ring, scaleX: 4, scaleY: 4, alpha: 0,
+            duration: 700, ease: "Sine.easeOut", onComplete: () => ring.destroy(),
+          });
+        }
+
+        private effectSSpecial(idx: number) {
+          const p = posLocal[idx];
+          const RAINBOW = [0xff0080, 0xff8800, 0xffff00, 0x00ff88, 0x00e5ff, 0x8800ff];
+          if (!this.textures.exists("sp_rainbow")) {
+            const g = this.make.graphics({ x: 0, y: 0 });
+            g.fillStyle(0xffffff, 1);
+            g.fillCircle(5, 5, 5);
+            g.generateTexture("sp_rainbow", 10, 10);
+            g.destroy();
+          }
+          if (!this.textures.exists("ray")) {
+            const g = this.make.graphics({ x: 0, y: 0 });
+            g.fillStyle(0xffffff, 1);
+            g.fillRect(0, 0, 3, 50);
+            g.generateTexture("ray", 3, 50);
+            g.destroy();
+          }
+          // 파티클 1파: 폭발
+          this.add.particles(p.x, p.y, "sp_rainbow", {
+            speed: { min: 150, max: 500 }, angle: { min: 0, max: 360 },
+            scale: { start: 2, end: 0 }, alpha: { start: 1, end: 0 },
+            lifespan: { min: 600, max: 1400 }, quantity: 40,
+            tint: RAINBOW, gravityY: 80, duration: 600,
+          }).setDepth(52);
+          // 파티클 2파
+          this.time.delayedCall(200, () => {
+            this.add.particles(p.x, p.y, "sp_rainbow", {
+              speed: { min: 80, max: 300 }, angle: { min: 0, max: 360 },
+              scale: { start: 1.2, end: 0 }, alpha: { start: 0.85, end: 0 },
+              lifespan: { min: 400, max: 1000 }, quantity: 25,
+              tint: RAINBOW, gravityY: 40, duration: 500,
+            }).setDepth(52);
+          });
+          // 파티클 3파: 잔여 반짝임
+          this.time.delayedCall(450, () => {
+            this.add.particles(p.x, p.y, "sp_rainbow", {
+              speed: { min: 30, max: 150 }, angle: { min: 0, max: 360 },
+              scale: { start: 0.8, end: 0 }, alpha: { start: 0.6, end: 0 },
+              lifespan: { min: 800, max: 1600 }, quantity: 15,
+              tint: RAINBOW, gravityY: 20, duration: 600,
+            }).setDepth(52);
+          });
+          // 중앙 오라
+          const aura = this.add.circle(p.x, p.y, CARD_W * 1.2, 0xffffff, 0.25).setDepth(46);
+          this.tweens.add({
+            targets: aura, scaleX: 3.5, scaleY: 3.5, alpha: 0,
+            duration: 1000, ease: "Sine.easeOut", onComplete: () => aura.destroy(),
+          });
+          // 다중 링 3개
+          ([[CARD_W * 0.4, 0x00e5ff], [CARD_W * 0.6, 0xff0080], [CARD_W * 0.8, 0xffff00]] as [number, number][]).forEach(([radius, color], ri) => {
+            this.time.delayedCall(ri * 120, () => {
+              const ring = this.add.circle(p.x, p.y, radius).setDepth(47);
+              ring.setStrokeStyle(2, color, 0.9);
+              ring.setFillStyle();
+              this.tweens.add({
+                targets: ring, scaleX: 5, scaleY: 5, alpha: 0,
+                duration: 900, ease: "Sine.easeOut", onComplete: () => ring.destroy(),
+              });
+            });
+          });
+          // 왕관 광선 18개
+          for (let i = 0; i < 18; i++) {
+            const a = (i / 18) * Math.PI * 2;
+            const ray = this.add.sprite(p.x, p.y, "ray").setDepth(48);
+            ray.setTint(RAINBOW[i % RAINBOW.length]);
+            ray.setRotation(a).setAlpha(0.85).setScale(1, 0);
+            this.tweens.add({
+              targets: ray, scaleY: 3.5, alpha: 0,
+              duration: 800, delay: i * 20, ease: "Sine.easeOut",
+              onComplete: () => ray.destroy(),
+            });
+          }
         }
 
         private spawnDust(x: number, y: number) {
@@ -556,99 +548,6 @@ export function GachaAnimationOverlay({ cards, onComplete }: Props) {
           });
         }
 
-        private effectA(idx: number) {
-          const p = posLocal[idx];
-          if (!this.textures.exists("sp_a")) {
-            const g = this.make.graphics({ x: 0, y: 0 });
-            g.fillStyle(0xffd700, 1);
-            g.fillCircle(4, 4, 4);
-            g.generateTexture("sp_a", 8, 8);
-            g.destroy();
-          }
-          this.add.particles(p.x, p.y, "sp_a", {
-            speed: { min: 60, max: 250 }, angle: { min: 0, max: 360 },
-            scale: { start: 1, end: 0 }, alpha: { start: 0.9, end: 0 },
-            lifespan: { min: 350, max: 800 }, quantity: 12,
-            tint: [0xffd700, 0xffec80, 0xffffff], gravityY: 50, duration: 350,
-          }).setDepth(50);
-
-          const fl = this.add.circle(p.x, p.y, CARD_W * 0.7, 0xffd700, 0.35).setDepth(49);
-          this.tweens.add({
-            targets: fl, scaleX: 2.2, scaleY: 2.2, alpha: 0,
-            duration: 450, ease: "Sine.easeOut", onComplete: () => fl.destroy(),
-          });
-        }
-
-        private effectS(idx: number) {
-          const p = posLocal[idx];
-          if (!this.textures.exists("sp_s")) {
-            const g = this.make.graphics({ x: 0, y: 0 });
-            g.fillStyle(0x00e5ff, 1);
-            g.fillCircle(4, 4, 4);
-            g.generateTexture("sp_s", 8, 8);
-            g.destroy();
-          }
-          if (!this.textures.exists("ray")) {
-            const g = this.make.graphics({ x: 0, y: 0 });
-            g.fillStyle(0xffffff, 1);
-            g.fillRect(0, 0, 3, 50);
-            g.generateTexture("ray", 3, 50);
-            g.destroy();
-          }
-
-          this.add.particles(p.x, p.y, "sp_s", {
-            speed: { min: 100, max: 400 }, angle: { min: 0, max: 360 },
-            scale: { start: 1.5, end: 0 }, alpha: { start: 1, end: 0 },
-            lifespan: { min: 500, max: 1200 }, quantity: 25,
-            tint: [0x00e5ff, 0xb9f2ff, 0xffffff], gravityY: 60, duration: 500,
-          }).setDepth(50);
-
-          this.time.delayedCall(150, () => {
-            this.add.particles(p.x, p.y, "sp_s", {
-              speed: { min: 40, max: 150 }, angle: { min: 0, max: 360 },
-              scale: { start: 0.7, end: 0 }, alpha: { start: 0.6, end: 0 },
-              lifespan: { min: 300, max: 800 }, quantity: 12,
-              tint: [0x00e5ff, 0xffffff], gravityY: 30, duration: 400,
-            }).setDepth(50);
-          });
-
-          const fl = this.add.circle(p.x, p.y, CARD_W * 0.9, 0x00e5ff, 0.5).setDepth(49);
-          this.tweens.add({
-            targets: fl, scaleX: 2.8, scaleY: 2.8, alpha: 0,
-            duration: 600, ease: "Sine.easeOut", onComplete: () => fl.destroy(),
-          });
-
-          for (let i = 0; i < 10; i++) {
-            const a = (i / 10) * Math.PI * 2;
-            const ray = this.add.sprite(p.x, p.y, "ray").setDepth(48);
-            ray.setRotation(a).setAlpha(0.7).setScale(1, 0);
-            this.tweens.add({
-              targets: ray, scaleY: 2.5, alpha: 0,
-              duration: 650, delay: i * 25, ease: "Sine.easeOut",
-              onComplete: () => ray.destroy(),
-            });
-          }
-
-          const ring = this.add.circle(p.x, p.y, CARD_W * 0.4).setDepth(47);
-          ring.setStrokeStyle(2, 0x00e5ff, 0.7);
-          ring.setFillStyle();
-          this.tweens.add({
-            targets: ring, scaleX: 4, scaleY: 4, alpha: 0,
-            duration: 700, ease: "Sine.easeOut", onComplete: () => ring.destroy(),
-          });
-        }
-
-        private glow(idx: number, color: number, a: number) {
-          const p = posLocal[idx];
-          const g = this.add.ellipse(p.x, p.y, CARD_W * 1.3, CARD_H * 1.15, color, a * 0.25).setDepth(9);
-          this.tweens.add({
-            targets: g,
-            alpha: { from: a * 0.25, to: a * 0.12 },
-            scaleX: { from: 1, to: 1.06 },
-            scaleY: { from: 1, to: 1.04 },
-            duration: 1400, yoyo: true, repeat: -1, ease: "Sine.easeInOut",
-          });
-        }
       }
 
       game = new Phaser.Game({

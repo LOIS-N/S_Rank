@@ -6,8 +6,7 @@ import java.util.List;
 public record MainQuestRequest (
         Long deskId,
         List<Long> cardIds,
-        LocalDateTime startAt,
-        LocalDateTime endAt
+        Long duration
 ){
 
 }

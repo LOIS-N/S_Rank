@@ -1,8 +1,9 @@
 package com.ssafy.srank.quest.application.dto.response;
 
+import com.ssafy.srank.quest.domain.entity.QuestStatus;
 import com.ssafy.srank.quest.domain.entity.QuestType;
-import com.ssafy.srank.quest.domain.entity.UserDeskQuest;
 import com.ssafy.srank.quest.domain.entity.UserMainQuest;
+import com.ssafy.srank.quest.domain.entity.UserSubQuest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,19 +22,39 @@ public class InProcessQuestResponse {
     private String title;
     private int difficulty;
     private int rewardGold;
+    private QuestStatus status;
     private LocalDateTime startedAt;
     private LocalDateTime endAt;
+    private Long baseDurationSeconds;
 
-    public static InProcessQuestResponse from(UserDeskQuest quest, QuestDetailResponse detail){
+
+    public static InProcessQuestResponse fromUserMainQuest(UserMainQuest quest, Long duration){
         return InProcessQuestResponse.builder()
                 .deskId(quest.getUserDeskId())
-                .title(detail.getTitle())
-                .questId(quest.getQuestId())
-                .questType(quest.getQuestType())
-                .difficulty(detail.getDifficulty())
-                .rewardGold(detail.getRewardGold())
-                .startedAt(detail.getStartedAt())
-                .endAt(detail.getEndAt())
+                .title(quest.getMainQuestTemplate().getTitle())
+                .questId(quest.getId())
+                .questType(QuestType.MAIN)
+                .status(quest.getStatus())
+                .difficulty(quest.getMainQuestTemplate().getDifficulty())
+                .rewardGold(quest.getMainQuestTemplate().getRewardGold())
+                .startedAt(quest.getStartedAt())
+                .endAt(quest.getEndAt())
+                .baseDurationSeconds(duration)
+                .build();
+    }
+
+    public static InProcessQuestResponse fromUserSubQuest(UserSubQuest quest, Long duration){
+        return InProcessQuestResponse.builder()
+                .deskId(quest.getUserDeskId())
+                .title(quest.getSubQuestTemplate().getTitle())
+                .questId(quest.getId())
+                .questType(QuestType.SUB)
+                .status(quest.getStatus())
+                .difficulty(quest.getSubQuestTemplate().getDifficulty())
+                .rewardGold(quest.getSubQuestTemplate().getRewardGold())
+                .startedAt(quest.getStartedAt())
+                .endAt(quest.getEndAt())
+                .baseDurationSeconds(duration)
                 .build();
     }
 }

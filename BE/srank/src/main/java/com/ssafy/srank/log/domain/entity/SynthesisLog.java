@@ -1,6 +1,8 @@
 package com.ssafy.srank.log.domain.entity;
 
 import com.ssafy.srank.card.domain.enums.CardGrade;
+import com.ssafy.srank.common.probablyfair.domain.ProofAlgorithmVersion;
+import com.ssafy.srank.log.domain.enums.BlockchainStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -61,6 +63,37 @@ public class SynthesisLog {
     @Column(name = "source_card_grade", nullable = false, length = 1)
     private CardGrade sourceCardGrade;
 
+    @Column(name = "client_seed", nullable = false, length = 255)
+    private String clientSeed;
+
+    @Column(name = "server_seed", nullable = false, length = 128)
+    private String serverSeed;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "algorithm_version", nullable = false, length = 20)
+    private ProofAlgorithmVersion algorithmVersion;
+
+    @Column(name = "policy_version", nullable = false, length = 50)
+    private String policyVersion;
+
+    @Column(name = "result_roll", nullable = false)
+    private int resultRoll;
+
+    @Column(name = "result_digest", nullable = false, length = 255)
+    private String resultDigest;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "blockchain_status", nullable = false, length = 30)
+    private BlockchainStatus blockchainStatus;
+
+    @Column(name = "blockchain_tx_hash", length = 255)
+    private String blockchainTxHash;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    public void updateBlockchainResult(BlockchainStatus status, String txHash) {
+        this.blockchainStatus = status;
+        this.blockchainTxHash = txHash;
+    }
 }

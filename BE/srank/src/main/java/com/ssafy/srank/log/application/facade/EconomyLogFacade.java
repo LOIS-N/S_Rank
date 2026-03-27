@@ -1,8 +1,8 @@
 package com.ssafy.srank.log.application.facade;
 
-import com.ssafy.srank.log.application.command.GoldLogCommand;
+import com.ssafy.srank.rabbitmq.log.message.GoldLogMessage;
 
 public interface EconomyLogFacade {
 
-    void recordGoldChange(GoldLogCommand command);
+    void recordGoldChange(GoldLogMessage command);
 }

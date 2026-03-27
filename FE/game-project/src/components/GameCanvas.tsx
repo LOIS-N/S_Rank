@@ -2,10 +2,12 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
+import { useUserStore } from "@/store/useUserStore";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-
+
+
 
 export default function GameCanvas() {
   const gameRef = useRef<any>(null);
@@ -26,10 +28,9 @@ export default function GameCanvas() {
         parent: "game-container",
         backgroundColor: "#000000",
         scale: {
-          mode: Phaser.Scale.FIT, // 16:9 래퍼에 맞게 핏 맞춤
+          mode: Phaser.Scale.NONE, // CSS가 캔버스 스케일링을 관리하도록 변경 (기기별 오프셋 버그 방지)
           width: 1920,
           height: 1080,
-          autoCenter: Phaser.Scale.CENTER_BOTH,
         },
         render: {
           pixelArt: true, // 도트가 깨지지 않고 선명하게 출력됨
@@ -106,6 +107,10 @@ export default function GameCanvas() {
                   this.load.image(`people${i}_001`, `${ASSET_BASE}/assets/002/people${i}_001.webp`);
                   this.load.image(`people${i}_002`, `${ASSET_BASE}/assets/002/people${i}_002.webp`);
                 }
+                this.load.image("bug_001", `${ASSET_BASE}/assets/002/bug_001.webp`);
+                this.load.image("bug_002", `${ASSET_BASE}/assets/002/bug_002.webp`);
+                this.load.image("goldBug", `${ASSET_BASE}/assets/002/goldBug.webp`);
+                this.load.image("hammer", `${ASSET_BASE}/assets/002/hammer.png`);
 
                 const sceneRef = this;
                 this.load.once('complete', () => {
@@ -120,10 +125,277 @@ export default function GameCanvas() {
                   ];
 
                   const playBg = sceneRef.add.image(0, 0, bgKey);
-                  const playOfc = sceneRef.add.image(0, 0, ofcKey);
+                  const playOfc = sceneRef.add.image(0, 10, ofcKey);
                   playBg.setDisplaySize(1920, 1080);
                   playOfc.setDisplaySize(1920, 1080);
                   playContainer.add([playBg, playOfc]);
+
+                  // ── 플로팅 캐릭터 ──
+                  const floatScale = 0.0892 * 1.7 * 0.5 * 1.3 * 1.2;
+
+                  // Bug: 오피스 바닥 안에서 랜덤 이동
+                  const BUG_BOUNDS = { xMin: -480, xMax: 480, yMin: -180, yMax: 280 };
+                  // 책상 회피: 각 책상 중심 ±160px(x) / ±90px(y) 타원 영역 제외
+                  const DESK_AVOID_RX = 160;
+                  const DESK_AVOID_RY = 90;
+                  const isNearDesk = (nx: number, ny: number) =>
+                    deskPositions.some(d => {
+                      const ex = (nx - d.x) / DESK_AVOID_RX;
+                      const ey = (ny - d.y) / DESK_AVOID_RY;
+                      return ex * ex + ey * ey < 1;
+                    });
+
+                  // 버그 다음 위치: 현재 위치와 120px 이상 떨어진 완전 랜덤 안전 위치
+                  const getNextBugPos = (cx: number, cy: number) => {
+                    for (let attempt = 0; attempt < 50; attempt++) {
+                      const nx = Phaser.Math.Between(BUG_BOUNDS.xMin + 40, BUG_BOUNDS.xMax - 40);
+                      const ny = Phaser.Math.Between(BUG_BOUNDS.yMin + 40, BUG_BOUNDS.yMax - 40);
+                      const dist = Math.sqrt((nx - cx) ** 2 + (ny - cy) ** 2);
+                      if (dist > 120 && !isNearDesk(nx, ny)) return { x: nx, y: ny };
+                    }
+                    // 거리 조건 완화 fallback
+                    for (let attempt = 0; attempt < 20; attempt++) {
+                      const nx = Phaser.Math.Between(BUG_BOUNDS.xMin + 40, BUG_BOUNDS.xMax - 40);
+                      const ny = Phaser.Math.Between(BUG_BOUNDS.yMin + 40, BUG_BOUNDS.yMax - 40);
+                      if (!isNearDesk(nx, ny)) return { x: nx, y: ny };
+                    }
+                    return { x: -440, y: 250 };
+                  };
+
+                  // bug_001 × 4, bug_002 × 3 — 총 7마리 (책상 회피 위치로 배치)
+                  const bugConfigs = [
+                    { key: 'bug_001', sx: -440, sy:  250, startDelay:    0 },
+                    { key: 'bug_001', sx:  440, sy:  250, startDelay:  900 },
+                    { key: 'bug_001', sx: -440, sy: -150, startDelay: 1800 },
+                    { key: 'bug_001', sx:  440, sy: -150, startDelay: 2700 },
+                    { key: 'bug_002', sx:    0, sy:  270, startDelay:  450 },
+                    { key: 'bug_002', sx: -440, sy:   60, startDelay: 1350 },
+                    { key: 'bug_002', sx:  440, sy:   60, startDelay: 2250 },
+                  ];
+
+                  const bugLayer = sceneRef.add.container(0, 0);
+                  playContainer.add(bugLayer);
+                  sceneRef.registry.set('bugLayer', bugLayer);
+
+                  // 버그 효과음 사전 로드
+                  const bugSfx = new Audio(`${ASSET_BASE}/assets/bug.mp3`);
+                  bugSfx.preload = 'auto';
+                  bugSfx.load();
+                  const playBugSfx = () => { bugSfx.currentTime = 0; bugSfx.play().catch(() => {}); };
+
+                  // 망치 스매시 효과
+                  const spawnHammer = (x: number, y: number) => {
+                    const hammer = sceneRef.add.image(x + 20, y - 20, 'hammer');
+                    hammer.setDisplaySize(70, 70 * (hammer.height / hammer.width));
+                    hammer.setOrigin(0.5, 1);
+                    hammer.setAngle(30);
+                    hammer.setDepth(9999);
+                    bugLayer.add(hammer);
+                    sceneRef.tweens.add({
+                      targets: hammer,
+                      angle: -60,
+                      duration: 128,
+                      ease: 'Cubic.easeIn',
+                      onComplete: () => {
+                        sceneRef.tweens.add({
+                          targets: hammer,
+                          alpha: 0.4,
+                          duration: 320,
+                          ease: 'Sine.easeOut',
+                          onComplete: () => hammer.destroy(),
+                        });
+                      },
+                    });
+                  };
+
+                  bugConfigs.forEach(({ key, sx, sy, startDelay }) => {
+                    const img = sceneRef.add.image(sx, sy, key);
+                    img.setScale(floatScale);
+                    img.setInteractive({ useHandCursor: true });
+                    bugLayer.add(img);
+
+                    let active = true;
+
+                    const crawlNext = () => {
+                      if (!active) return;
+                      const dest = getNextBugPos(img.x, img.y);
+                      img.setFlipX(dest.x < img.x);
+                      const dist = Phaser.Math.Distance.Between(img.x, img.y, dest.x, dest.y);
+                      sceneRef.tweens.add({
+                        targets: img,
+                        x: dest.x,
+                        y: dest.y,
+                        duration: Math.max(900, dist * 5),
+                        ease: 'Sine.easeInOut',
+                        onComplete: () => {
+                          if (!active) return;
+                          const landY = img.y;
+                          sceneRef.tweens.add({
+                            targets: img,
+                            y: landY - 36,
+                            duration: 120,
+                            yoyo: true,
+                            repeat: Phaser.Math.Between(1, 3),
+                            ease: 'Cubic.easeOut',
+                            onComplete: () => { if (active) crawlNext(); },
+                          });
+                        },
+                      });
+                    };
+
+                    img.on('pointerdown', async () => {
+                      if (!active) return;
+                      active = false;
+                      sceneRef.tweens.killTweensOf(img);
+
+                      // 버그 효과음 + 망치 애니메이션
+                      playBugSfx();
+                      spawnHammer(img.x, img.y);
+
+                      // API 호출 (NORMAL 버그 = +50)
+                      try {
+                        const token = useUserStore.getState().accessToken;
+                        const res = await fetch(`${ASSET_BASE}/api/v1/users/goldbug`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                          body: JSON.stringify({ type: 'NORMAL' }),
+                        });
+                        const json = await res.json();
+                        if (json.success) {
+                          useGameStore.getState().setResources(json.data, useGameStore.getState().coffee);
+                        }
+                      } catch {
+                        useGameStore.getState().increaseGold(50);
+                      }
+
+                      const floatText = sceneRef.add.text(img.x, img.y - 30, '+50', {
+                        fontFamily: 'Stardust, sans-serif', fontSize: '32px',
+                        color: '#ffdd00', stroke: '#000000', strokeThickness: 3,
+                      }).setOrigin(0.5);
+                      bugLayer.add(floatText);
+                      sceneRef.tweens.add({
+                        targets: floatText, y: floatText.y - 70, alpha: 0,
+                        duration: 900, ease: 'Sine.easeOut',
+                        onComplete: () => floatText.destroy(),
+                      });
+
+                      sceneRef.tweens.add({
+                        targets: img, y: img.y - 52, duration: 140, ease: 'Back.easeOut',
+                        onComplete: () => {
+                          img.setVisible(false);
+                          sceneRef.time.delayedCall(10000, () => {
+                            active = true;
+                            img.setPosition(sx, sy);
+                            img.setVisible(true);
+                            crawlNext();
+                          });
+                        },
+                      });
+                    });
+
+                    sceneRef.time.delayedCall(startDelay, crawlNext);
+                  });
+
+                  // ── 황금 버그: 첫 등장 10초 후, 이후 클릭/자동소멸 후 60초 리젠 ──
+                  const scheduleGoldenBug = (delay = 60000) => {
+                    sceneRef.time.delayedCall(delay, spawnGoldenBug);
+                  };
+
+                  function spawnGoldenBug() {
+                    const startPos = getNextBugPos(0, 0);
+                    const goldImg = sceneRef.add.image(startPos.x, startPos.y, 'goldBug');
+                    goldImg.setScale(floatScale * (2 / 3));
+                    goldImg.setInteractive({ useHandCursor: true });
+                    bugLayer.add(goldImg);
+
+                    let goldActive = true;
+
+                    // 일반 버그처럼 여기저기 돌아다님
+                    const crawlGolden = () => {
+                      if (!goldActive) return;
+                      const dest = getNextBugPos(goldImg.x, goldImg.y);
+                      goldImg.setFlipX(dest.x < goldImg.x);
+                      const dist = Phaser.Math.Distance.Between(goldImg.x, goldImg.y, dest.x, dest.y);
+                      sceneRef.tweens.add({
+                        targets: goldImg,
+                        x: dest.x,
+                        y: dest.y,
+                        duration: Math.max(1200, dist * 6),
+                        ease: 'Sine.easeInOut',
+                        onComplete: () => {
+                          if (!goldActive) return;
+                          const landY = goldImg.y;
+                          sceneRef.tweens.add({
+                            targets: goldImg,
+                            y: landY - 30,
+                            duration: 100,
+                            yoyo: true,
+                            repeat: Phaser.Math.Between(1, 3),
+                            ease: 'Cubic.easeOut',
+                            onComplete: () => { if (goldActive) crawlGolden(); },
+                          });
+                        },
+                      });
+                    };
+                    crawlGolden();
+
+                    // 15초 뒤 미클릭 시 자동 사라짐 → 60초 후 리젠
+                    const autoHide = sceneRef.time.delayedCall(15000, () => {
+                      if (!goldActive) return;
+                      goldActive = false;
+                      sceneRef.tweens.killTweensOf(goldImg);
+                      sceneRef.tweens.add({
+                        targets: goldImg, alpha: 0, duration: 500,
+                        onComplete: () => { goldImg.destroy(); scheduleGoldenBug(); },
+                      });
+                    });
+
+                    goldImg.on('pointerdown', async () => {
+                      if (!goldActive) return;
+                      goldActive = false;
+                      autoHide.remove(false);
+                      sceneRef.tweens.killTweensOf(goldImg);
+
+                      // 버그 효과음 + 망치 애니메이션
+                      playBugSfx();
+                      spawnHammer(goldImg.x, goldImg.y);
+
+                      // API 호출 (GOLDEN 버그 = +100)
+                      try {
+                        const token = useUserStore.getState().accessToken;
+                        const res = await fetch(`${ASSET_BASE}/api/v1/users/goldbug`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                          body: JSON.stringify({ type: 'GOLDEN' }),
+                        });
+                        const json = await res.json();
+                        if (json.success) {
+                          useGameStore.getState().setResources(json.data, useGameStore.getState().coffee);
+                        }
+                      } catch {
+                        useGameStore.getState().increaseGold(100);
+                      }
+
+                      const floatText = sceneRef.add.text(goldImg.x, goldImg.y - 30, '+100', {
+                        fontFamily: 'Stardust, sans-serif', fontSize: '36px',
+                        color: '#ffd700', stroke: '#000000', strokeThickness: 4,
+                      }).setOrigin(0.5);
+                      playContainer.add(floatText);
+                      sceneRef.tweens.add({
+                        targets: floatText, y: floatText.y - 80, alpha: 0,
+                        duration: 1000, ease: 'Sine.easeOut',
+                        onComplete: () => floatText.destroy(),
+                      });
+
+                      sceneRef.tweens.add({
+                        targets: goldImg, y: goldImg.y - 60, alpha: 0,
+                        duration: 200, ease: 'Back.easeOut',
+                        onComplete: () => { goldImg.destroy(); scheduleGoldenBug(); },
+                      });
+                    });
+                  }
+
+                  scheduleGoldenBug(10000); // 첫 등장: 10초 후
 
                   const isAnyModalOpen = () => {
                     const s = useGameStore.getState();
@@ -132,7 +404,9 @@ export default function GameCanvas() {
                       s.activeRewardModal?.isOpen ||
                       s.activeUnlockConfirm?.isOpen ||
                       s.questInfoModal ||
-                      s.isHUDModalOpen
+                      s.isHUDModalOpen ||
+                      s.showTutorialGoldModal ||
+                      s.tutorialQuestStep !== null  // 튜토리얼 진행 중 desk 클릭 차단
                     );
                   };
 
@@ -165,9 +439,21 @@ export default function GameCanvas() {
                     resultIcon.setVisible(false);
                     resultIcon.setInteractive({ useHandCursor: true });
                     resultIcon.on('pointerdown', () => {
-                      if (isAnyModalOpen()) return;
                       const state = useGameStore.getState();
                       const q = state.quests[index];
+                      const tStep = state.tutorialQuestStep;
+
+                      // 튜토리얼 퀘스트 (questId < 0): isAnyModalOpen 체크 없이 별도 처리
+                      if (tStep !== null && q && typeof q.questId === 'number' && q.questId < 0) {
+                        if (q.reward > 0) state.increaseGold(q.reward);
+                        state.completeQuestSilent(index);
+                        if (tStep === 2) state.setTutorialScriptId('step2_done');
+                        else if (tStep === 32) state.setTutorialScriptId('step32_done');
+                        else if (tStep === 42) state.setTutorialQuestStep(99);
+                        return;
+                      }
+
+                      if (isAnyModalOpen()) return;
                       if (q && q.questId && q.questType) {
                         state.setCompleteQuestTrigger({
                           deskId: index,
@@ -248,6 +534,13 @@ export default function GameCanvas() {
                 cityBg.setVisible(false);
                 playContainer.setVisible(true);
 
+                // 버그 레이어 visibility 동기화
+                const bugLayer = this.registry.get('bugLayer');
+                if (bugLayer) {
+                  const bugsEnabled = useGameStore.getState().bugsEnabled;
+                  bugLayer.setVisible(bugsEnabled);
+                }
+
                 // 퀘스트 상태 동기화
                 if (deskDataList) {
                   const quests = useGameStore.getState().quests;
@@ -279,6 +572,23 @@ export default function GameCanvas() {
                       const endTime = quest.endAt ? new Date(quest.endAt).getTime() : (quest.endTime || now);
                       const remainMs = endTime - now;
 
+                      // SSE fallback: 타이머가 0이 됐지만 SSE quest-complete 이벤트를 못 받은 경우
+                      if (quest.status === 'IN_PROGRESS' && remainMs <= 0) {
+                        const store = useGameStore.getState();
+                        store.finishQuestTimer(quest.id);
+
+                        const notifTitle = "S급 개발자들이 나를 따르는 이유";
+                        const notifBody = `${quest.title || '퀘스트'}가 완료됐어요! 지금 바로 보상을 수령하세요!`;
+                        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                          new Notification(notifTitle, {
+                            body: notifBody,
+                            icon: `${ASSET_BASE}/assets/icons/icon-192.webp`,
+                          });
+                        } else {
+                          store.pushNotification(notifTitle, notifBody);
+                        }
+                      }
+
                       const animFrame = Math.floor(now / 200) % 2 + 1;
                       deskData.charImage.setTexture(`people${deskData.peopleNum}_00${animFrame}`);
                       deskData.charImage.displayWidth = deskData.desk.displayWidth * 0.721;
@@ -288,27 +598,22 @@ export default function GameCanvas() {
                       deskData.desk.setVisible(false);
                       deskData.newIcon.setVisible(false);
 
-                      // result 표기는 실제 종료 1분 후에 표시 (서버 처리 여유)
-                      const RESULT_DELAY_MS = 60 * 1000;
-                      const displayRemainMs = remainMs + RESULT_DELAY_MS;
-
-                      if (displayRemainMs <= 0) {
+                      // result는 SSE 알림으로 COMPLETED 상태가 됐을 때만 표시
+                      if (quest.status === 'COMPLETED') {
                         deskData.resultIcon.setVisible(true);
                         deskData.timerBg.setVisible(false);
                         deskData.timerText.setVisible(false);
-                        if (quest.status === 'IN_PROGRESS') {
-                          useGameStore.getState().finishQuestTimer(quest.id);
-                        }
                       } else {
                         deskData.resultIcon.setVisible(false);
                         deskData.timerText.setVisible(true);
-                        // 남는 초를 올림하여 분 단위로 표시 (시간:분 형태)
-                        const totalMin = Math.ceil(displayRemainMs / 60000);
-                        const h = Math.floor(totalMin / 60).toString().padStart(2, '0');
-                        const m = (totalMin % 60).toString().padStart(2, '0');
-                        deskData.timerText.setText(`${h}:${m}`);
-                        // 시간에 따라 박스 색상 변경: 1h+ 초록, 10m+ 노랑, 10m 미만 빨강 (모두 뮤트톤)
-                        const bgColor = displayRemainMs > 3600000 ? 0x80c880 : displayRemainMs > 600000 ? 0xe0cc50 : 0xe07878;
+                        // 1시간 미만: MM:SS, 1시간 이상: H:MM:SS
+                        const totalSec = Math.max(0, Math.ceil(remainMs / 1000));
+                        const hh = Math.floor(totalSec / 3600);
+                        const mm = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
+                        const ss = (totalSec % 60).toString().padStart(2, '0');
+                        deskData.timerText.setText(hh > 0 ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`);
+                        // 10분+ 초록, 1분+ 노랑, 1분 미만 빨강
+                        const bgColor = remainMs > 600000 ? 0x80c880 : remainMs > 60000 ? 0xe0cc50 : 0xe07878;
                         deskData.timerBg.clear();
                         deskData.timerBg.fillStyle(bgColor, 0.88);
                         deskData.timerBg.fillRoundedRect(-60, -19, 120, 36, 6);
@@ -318,6 +623,7 @@ export default function GameCanvas() {
                       }
                     }
                   });
+
                 }
               }
             } else {
@@ -350,13 +656,18 @@ export default function GameCanvas() {
     <div
       id="game-container"
       style={{
-        // game-wrapper(1280×720)를 그대로 채움.
-        // transform 없이 inset:0 으로 단순화해야
-        // Phaser의 getBoundingClientRect()가 중첩 transform 때문에
-        // 일부 모바일 브라우저에서 (0,0)을 잘못 반환하는 문제를 방지한다.
         position: 'absolute',
-        inset: 0,
+        // 상단 토글바와 하단 네비게이션바를 피해서 정중앙 배치
+        top: 'calc(5.8cqw + 3px)', 
+        bottom: 'calc(5.9cqw + 6px + env(safe-area-inset-bottom, 0px))', 
+        left: 0,
+        right: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#000000',
         touchAction: 'none',
+        overflow: 'hidden',
       }}
     />
   );
