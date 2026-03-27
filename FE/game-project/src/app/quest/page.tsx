@@ -402,6 +402,11 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   // selectingDeskId (0-based FE index) → BE deskTemplateId 변환
   useEffect(() => {
     const fetchDeskId = async () => {
+      // 튜토리얼 모드: BE 호출 없이 FE 인덱스 + 1을 deskTemplateId로 사용
+      if (tStep !== null) {
+        setBeDeskTemplateId((selectingDeskId ?? 0) + 1);
+        return;
+      }
       try {
         const token = await getAuthToken();
         const { data: json } = await api.get('/api/v1/desks', {
@@ -481,6 +486,8 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
   useEffect(() => {
     const fetchUsedCards = async () => {
+      // 튜토리얼 모드: 사용 중인 카드 없음
+      if (tStep !== null) return;
       try {
         const token = await getAuthToken();
         const { data: json } = await api.get('/api/v1/cards/used', {
@@ -1368,6 +1375,8 @@ export default function QuestPage() {
       return;
     }
     const init = async () => {
+      // Zustand persist 수화가 effect 실행보다 늦을 수 있으므로 최신 상태로 재확인
+      if (useGameStore.getState().tutorialQuestStep !== null) return;
       setIsLoading(true);
       await Promise.all([fetchMainQuest(chapterNumber), fetchSubQuests()]);
       setIsLoading(false);
