@@ -2,6 +2,7 @@ package com.ssafy.srank.log.application.facade.impl;
 
 import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.domain.entity.UserGoldLog;
+import com.ssafy.srank.log.domain.enums.GoldLogReason;
 import com.ssafy.srank.log.repository.UserGoldLogRepository;
 import com.ssafy.srank.rabbitmq.log.message.GoldLogMessage;
 import com.ssafy.srank.ranking.application.event.GoldEarnedEvent;
@@ -28,7 +29,7 @@ public class EconomyLogFacadeImpl implements EconomyLogFacade {
                 .createdAt(command.createdAt())
                 .build());
 
-        if (command.amount() > 0) {
+        if (command.amount() > 0 && command.reason() != GoldLogReason.SIGNUP_BONUS) {
             eventPublisher.publishEvent(new GoldEarnedEvent(command.userId(), command.amount()));
         }
     }
