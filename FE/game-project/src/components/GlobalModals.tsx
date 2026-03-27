@@ -353,7 +353,6 @@ export default function GlobalModals() {
             <TutorialCompleteOverlay onComplete={() => {
               stopTutorialBgm();
               resetTutorialState();
-              increaseGold(300000);
               setShowTutorialGoldModal(true);
             }} />
           </div>
