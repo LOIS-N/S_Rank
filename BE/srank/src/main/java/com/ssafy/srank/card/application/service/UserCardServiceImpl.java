@@ -102,7 +102,7 @@ public class UserCardServiceImpl implements UserCardService {
         List<UserCard> cards =
                 userCardRepository.findByUserIdAndMarketStatusAndIsDeletedFalse(userId, MarketStatus.OWNED);
 
-        LocalDateTime now = LocalDateTime.now();
+
 
         return cards.stream()
                 .map(card -> new SellableCardResponse(
@@ -116,9 +116,7 @@ public class UserCardServiceImpl implements UserCardService {
                         card.getSpecialSkillTemplate() == null ? null : card.getSpecialSkillTemplate().getSkillName(),
                         card.getEnhanceTryCount(),
                         card.getEnhanceSuccessCount(),
-                        card.getCardTemplate().getGrade().toString(),
-                        card.getCreatedAt(),
-                        now.plusHours(24)
+                        card.getCardTemplate().getGrade().toString()
                 ))
                 .toList();
     }

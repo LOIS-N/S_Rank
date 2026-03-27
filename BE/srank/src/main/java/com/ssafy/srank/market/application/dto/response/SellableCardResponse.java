@@ -13,8 +13,8 @@ public record SellableCardResponse(
         String specialAbility,
         Integer enhanceTryCount,
         Integer enhanceSuccessCount,
-        String grade,
-        LocalDateTime createdAt,
-        LocalDateTime expiresAt
+        String grade
+//        LocalDateTime createdAt,
+//        LocalDateTime expiresAt
 ) {
 }
