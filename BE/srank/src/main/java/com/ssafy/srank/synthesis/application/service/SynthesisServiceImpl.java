@@ -20,6 +20,8 @@ import com.ssafy.srank.common.probablyfair.domain.ProbablyFairContext;
 import com.ssafy.srank.common.probablyfair.domain.ProbablyFairPurpose;
 import com.ssafy.srank.log.application.facade.EconomyLogFacade;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.mission.application.service.MissionService;
+import com.ssafy.srank.mission.domain.enums.MissionCategory;
 import com.ssafy.srank.quest.application.service.UserQuestCardService;
 import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.rabbitmq.log.message.GoldLogMessage;
@@ -76,6 +78,7 @@ public class SynthesisServiceImpl implements SynthesisService {
     private final BusinessExceptionMetrics businessExceptionMetrics;
     private final BlockchainRequestDispatchService blockchainRequestDispatchService;
     private final ApplicationEventPublisher eventPublisher;
+    private final MissionService missionService;
     private final GoldLogProducer goldProducer;
     private final SynthesisLogProducer synthesisLogProducer;
 
@@ -177,6 +180,7 @@ public class SynthesisServiceImpl implements SynthesisService {
                     context.serverSeed(),
                     cardIds
             ));
+            missionService.recordActivity(userId, MissionCategory.SYNTHESIS, 1);
 
             log.info("synthesis completed userId={} sourceGrade={} cardCount={} success={}", userId, sourceGrade, cardIds.size(), success);
 

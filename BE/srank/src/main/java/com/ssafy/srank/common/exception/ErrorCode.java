@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
  *   G  : Global / 공통
  *   AU : Auth (인증/인가)
  *   U  : User (유저)
+ *   DM : Daily Mission (데일리 미션)
  *   D  : Desk (책상)
  *   C  : Card (카드)
  *   Q  : Quest (퀘스트)
@@ -53,6 +54,11 @@ public enum ErrorCode {
     INSUFFICIENT_TOKEN(HttpStatus.BAD_REQUEST,          "U004", "토큰이 부족합니다."),
     WALLET_NOT_FOUND(HttpStatus.NOT_FOUND,              "U005", "지갑 정보를 찾을 수 없습니다."),
     WALLET_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "U006", "지갑 생성에 실패했습니다."),
+
+    // ======================== DM : Daily Mission ========================
+    MISSION_NOT_FOUND(HttpStatus.NOT_FOUND,             "DM001", "미션을 찾을 수 없습니다."),
+    MISSION_NOT_COMPLETED(HttpStatus.BAD_REQUEST,       "DM002", "아직 달성되지 않은 미션입니다."),
+    MISSION_REWARD_ALREADY_CLAIMED(HttpStatus.CONFLICT, "DM003", "이미 보상을 수령한 미션입니다."),
 
     // ======================== D : Desk (책상) ========================
     DESK_NOT_FOUND(HttpStatus.NOT_FOUND,                "D001", "책상을 찾을 수 없습니다."),

@@ -23,6 +23,8 @@ import com.ssafy.srank.gacha.domain.enums.GachaType;
 import com.ssafy.srank.gacha.domain.policy.GachaPolicyRegistry;
 import com.ssafy.srank.log.domain.enums.BlockchainStatus;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.mission.application.service.MissionService;
+import com.ssafy.srank.mission.domain.enums.MissionCategory;
 import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.rabbitmq.log.message.GachaLogMessage;
 import com.ssafy.srank.rabbitmq.log.producer.GachaLogProducer;
@@ -56,6 +58,7 @@ public class GachaServiceImpl implements GachaService {
     private final BusinessExceptionMetrics businessExceptionMetrics;
     private final BlockchainRequestDispatchService blockchainRequestDispatchService;
     private final ApplicationEventPublisher eventPublisher;
+    private final MissionService missionService;
 
     @Override
     @Transactional
@@ -92,6 +95,7 @@ public class GachaServiceImpl implements GachaService {
             );
 
             recordDrawLog(context, savedCards, preparedDraws, proofMaterial);
+            missionService.recordActivity(userId, MissionCategory.DRAW, context.count());
             GachaDrawResponse response = buildDrawResponse(context, savedCards);
             gachaMetrics.recordGoldSpent(gachaType, drawCount, context.cost());
             gachaMetrics.recordCardsCreated(gachaType, drawCount, savedCards.size());
