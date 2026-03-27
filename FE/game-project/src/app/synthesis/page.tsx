@@ -347,6 +347,7 @@ export default function SynthesisPage() {
         success: isSuccess,
         cost: cost,
         card_count: selectedCards.length,
+        auto: false,
       });
       setIsAnimating(true);
     } catch (err: any) {
@@ -405,6 +406,14 @@ export default function SynthesisPage() {
       const isSuccess: boolean = resData.success;
       const resultCard: CardListItem = resData.resultCard;
 
+      sendGAEvent("synthesis_result", {
+        source_grade: autoGrade,
+        result_grade: resultCard.grade,
+        success: isSuccess,
+        cost: getSynthesisCost(autoGrade),
+        card_count: clampedCount,
+        auto: true,
+      });
       setSelectedCards([]);
       setSynthesisResult(null);
       setPendingResult({ isSuccess, resultCard, sourceGrade: autoGrade, cost, selectedCardIds: pickedIds });

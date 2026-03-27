@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useUserStore } from "@/store/useUserStore";
 import api from "@/lib/axios";
+import { sendGAEvent } from "@/lib/gtag";
 import "./card-list.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -260,6 +261,23 @@ export default function CardListPage() {
       await api.delete('/api/v1/cards', {
         data: { cards: ids },
         headers: { Authorization: `Bearer ${token}` },
+      });
+      const batchSize = fireSelectedIds.size;
+      cards.filter(c => fireSelectedIds.has(c.cardId)).forEach(card => {
+        sendGAEvent("card_dismissed", {
+          card_grade: card.grade,
+          card_name: card.name,
+          skill_total: card.skill1.value + card.skill2.value + card.skill3.value,
+          skill1_type: card.skill1.skillType,
+          skill1_value: card.skill1.value,
+          skill2_type: card.skill2.skillType,
+          skill2_value: card.skill2.value,
+          skill3_type: card.skill3.skillType,
+          skill3_value: card.skill3.value,
+          enhanced: card.enhanceSuccessCount > 0,
+          enhance_level: card.enhanceSuccessCount,
+          batch_size: batchSize,
+        });
       });
       setCards(prev => prev.filter(c => !fireSelectedIds.has(c.cardId)));
       setTotalCnt(prev => prev !== null ? prev - ids.length : null);
