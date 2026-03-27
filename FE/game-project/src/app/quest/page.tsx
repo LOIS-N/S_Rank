@@ -530,7 +530,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
   // --- 선택된 카드 객체 목록 ---
   const selectedCardData = useMemo(() => {
-    return selectedCards.map(id => sortedCards.find(c => c.cardId === id)).filter(Boolean) as CardListItem[];
+    return selectedCards.map(id => sortedCards.find(c => c.cardId === id) ?? cardCacheRef.current.get(id)).filter(Boolean) as CardListItem[];
   }, [selectedCards, sortedCards]);
 
   // --- 특정 스킬타입에 대한 선택된 카드들의 총합 스탯 ---
