@@ -6,6 +6,7 @@ import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
 import { EnhanceResult, getEnhanceData } from "@/lib/enhanceLogic";
 import { EnhanceAnimationOverlay } from "./EnhanceAnimationOverlay";
+import { sendGAEvent } from "@/lib/gtag";
 import "./enhance.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -499,6 +500,13 @@ export default function EnhancePage() {
         ...result,
         previousStats: { skill1: displaySkill1, skill2: displaySkill2, skill3: displaySkill3 },
       });
+      sendGAEvent("enhance_result", {
+        card_grade: selectedListCard.grade,
+        enhance_success_count: displayEnhanceLevel,
+        remaining_enhances: 7 - displayEnhanceTries,
+        success: isSuccess,
+        cost: cost,
+      });
       setIsAnimating(true);
     } catch (err: any) {
       const errCode = err?.response?.data?.error?.code ?? err?.response?.data?.code;
@@ -778,8 +786,8 @@ export default function EnhancePage() {
                       <div className="cardlist-info-text">
                         {(() => {
                           const baseProb = getEnhanceData(selectedListCard.grade).prob;
-                          const bonus = getEnhanceRateBonus(selectedListCard.specialAbility?.effects);
-                          const totalProb = baseProb + bonus;
+                          const totalProb = effectiveEnhanceData?.prob ?? baseProb;
+                          const bonus = totalProb - baseProb;
                           return bonus > 0 ? (
                             <>
                               강화 성공 확률 :{' '}
@@ -794,7 +802,7 @@ export default function EnhancePage() {
                           ) : `강화 성공 확률 : ${baseProb}%`;
                         })()}
                       </div>
-                      <div className="cardlist-info-text">강화 비용 : {getEnhanceData(selectedListCard.grade).cost.toLocaleString()}G</div>
+                      <div className="cardlist-info-text">강화 비용 : {(effectiveEnhanceData?.cost ?? getEnhanceData(selectedListCard.grade).cost).toLocaleString()}G</div>
                       <div className="cardlist-info-text">성공 시 능력치 분배량 : +{getEnhanceData(selectedListCard.grade).statIncrease}</div>
                     </NineSliceBox>
 

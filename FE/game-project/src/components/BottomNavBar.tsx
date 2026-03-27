@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useGameStore } from "@/store/useGameStore";
+import { sendGAEvent } from "@/lib/gtag";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -49,9 +50,14 @@ export default function BottomNavBar() {
     if (tutorialQuestScriptVisible) return;
     if (disabled) {
       const msg = tutorialAllowedName !== null ? "튜토리얼 진행 후 이용 가능합니다." : undefined;
+      sendGAEvent("coming_soon_accessed", {
+        feature: item,
+        reason: tutorialAllowedName !== null ? "tutorial_lock" : "not_implemented",
+      });
       openComingSoonModal(msg);
       return;
     }
+    sendGAEvent("nav_click", { destination: item, from: pathname });
     switch (item) {
       case "카드 목록": router.push("/card-list"); break;
       case "퀘스트":   router.push("/quest");     break;
@@ -59,7 +65,10 @@ export default function BottomNavBar() {
       case "강화":     router.push("/enhance");   break;
       case "합성":     router.push("/synthesis"); break;
       case "메인":     router.push("/");           break;
-      case "거래":     openComingSoonModal(); break;
+      case "거래":
+        sendGAEvent("coming_soon_accessed", { feature: "거래", reason: "not_implemented" });
+        openComingSoonModal();
+        break;
       default: break;
     }
   };

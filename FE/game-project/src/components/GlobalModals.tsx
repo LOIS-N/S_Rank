@@ -6,6 +6,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import client from "@/lib/axios";
+import { sendGAEvent } from "@/lib/gtag";
 import { stopTutorialBgm } from "./BgmPlayer";
 import TutorialQuestScript from "./TutorialQuestScript";
 import TutorialQuestTimer from "./TutorialQuestTimer";
@@ -145,6 +146,14 @@ export default function GlobalModals() {
           return;
         }
       }
+      // 퀘스트 완료 API 성공 직후 GA 이벤트 발송 (profile 조회 성공 여부와 무관)
+      const storeQ = useGameStore.getState().quests.find(q => q.id === deskId);
+      sendGAEvent("quest_complete", {
+        quest_type: questType,
+        quest_id: questId,
+        reward_gold: storeQ?.reward ?? 0,
+      });
+
       // 골드는 BE에서 받아서 갱신 (로컬 계산 제거 → 중복 지급 방지)
       try {
         const token = useUserStore.getState().accessToken;
@@ -189,6 +198,7 @@ export default function GlobalModals() {
     const deskId = activeUnlockConfirm.deskId;
     const deskTemplateId = deskId + 1;
 
+    sendGAEvent("desk_unlock_attempt", { desk_id: deskId });
     setIsUnlocking(true);
     setUnlockError(null);
     try {
@@ -196,9 +206,11 @@ export default function GlobalModals() {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       unlockQuestSlot(deskId);
+      sendGAEvent("desk_unlock_success", { desk_id: deskId });
     } catch (error: any) {
       const message = error?.response?.data?.error?.message ?? '해금 중 오류가 발생했습니다.';
       setUnlockError(message);
+      sendGAEvent("desk_unlock_error", { desk_id: deskId, error: message });
       console.error('[Desks] Unlock error:', error);
     } finally {
       setIsUnlocking(false);
