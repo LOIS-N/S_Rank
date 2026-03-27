@@ -134,11 +134,6 @@ export default function TutorialStory({ onComplete }: Props) {
     }
   }, [fading, isLastStep, lineIdx, currentScene.lines.length, sceneIdx, onComplete, showNextLine, goToScene]);
 
-  const skip = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onComplete();
-  }, [onComplete]);
-
   // 스토리 BGM: 마운트 시 awake.mp3 재생, 언마운트 시 퀘스트 BGM(tutorial.mp3)으로 전환
   useEffect(() => {
     pauseGameBgm();
@@ -414,22 +409,6 @@ export default function TutorialStory({ onComplete }: Props) {
         }}
       />
 
-      {/* ── 스킵 버튼 ── */}
-      {!isLastStep && (
-        <button
-          className="absolute top-0 right-0 text-white/50 hover:text-white border border-white/20 hover:border-white/50 transition-colors font-dot"
-          style={{
-            zIndex: 20,
-            fontSize: '1.1cqw',
-            padding: '0.5cqw 1.0cqw',
-            margin: '1.2cqw',
-            background: 'rgba(0,0,0,0.55)',
-          }}
-          onClick={skip}
-        >
-          스킵 ▶▶
-        </button>
-      )}
 
       {/* ── 대화창 ── */}
       <div
