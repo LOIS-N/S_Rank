@@ -71,7 +71,7 @@ public class UserCard extends SoftDeleteEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "market_status")
-    private MarketStatus marketStatus;
+    private MarketStatus marketStatus = MarketStatus.OWNED;
 
     public int getEnhanceLevel() {
         return enhanceSuccessCount;

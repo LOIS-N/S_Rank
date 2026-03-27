@@ -15,14 +15,18 @@ import com.ssafy.srank.market.domain.entity.MarketTradeHistory;
 import com.ssafy.srank.market.domain.enums.MarketItemStatus;
 import com.ssafy.srank.market.repository.MarketItemRepository;
 import com.ssafy.srank.market.repository.MarketTradeHistoryRepository;
+import com.ssafy.srank.quest.application.service.QuestFacadeService;
 import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.rabbitmq.blockchain.producer.BlockchainRequestProducer;
+import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +36,8 @@ public class MarketServiceImpl implements MarketService {
     private final MarketItemRepository marketItemRepository;
     private final MarketTradeHistoryRepository marketTradeHistoryRepository;
     private final BlockchainRequestProducer blockchainRequestProducer;
+    private final QuestFacadeService questFacadeService;
+    private final UserService userService;
 
     // ─────────────────────────────────────────────────────────────────────────
     // 조회
@@ -49,10 +55,13 @@ public class MarketServiceImpl implements MarketService {
     @Override
     @Transactional(readOnly = true)
     public List<SellableCardResponse> getSellableCards(Long userId) {
-        LocalDateTime now = LocalDateTime.now();
+        //사용중인 카드 조회
+        Set<Long> usedUserCardList = new HashSet<>(questFacadeService.getUsedUserCardList(userId));
+
         return userCardService.getSellableUserCard(userId)
                 .stream()
-                .filter(card -> card.expiresAt() == null || card.expiresAt().isAfter(now))
+                .filter((card)->!usedUserCardList.contains(card.userCardId()))
+                .filter((card)->card.grade().equals("S"))
                 .toList();
     }
 
@@ -101,8 +110,7 @@ public class MarketServiceImpl implements MarketService {
 
         // 7. RabbitMQ로 NFT_MINT 이벤트 발행
         //    → Consumer가 블록체인 처리 후 ON_SALE 전환 + SSE 알림
-        // TODO: UserService.getWalletAddress(userId) 로 실제 지갑 주소 조회
-        String sellerWallet = "TODO_WALLET_" + userId;
+        String sellerWallet = userService.getWalletAddress(userId);
         blockchainRequestProducer.send(
                 BlockchainRequestMessage.forNftMint(item.getMarketItemId(), userCard.getId(), sellerWallet)
         );

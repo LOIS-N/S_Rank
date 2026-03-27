@@ -59,9 +59,9 @@ public class BlockchainRequestConsumer {
                         message.clientSeed()
                 );
                 case NFT_MINT -> {
-                    // TODO: 블록체인 서비스 연동 시 실제 NFT 발급 로직으로 교체
                     // 지금은 marketItemId = consumedCardIds.get(0), userCardId = consumedCardIds.get(1)
                     Long marketItemId = message.consumedCardIds().get(0);
+
                     log.info("[Market] NFT_MINT 요청 수신 marketItemId={}", marketItemId);
 
                     // market_item 상태 ON_SALE로 업데이트
