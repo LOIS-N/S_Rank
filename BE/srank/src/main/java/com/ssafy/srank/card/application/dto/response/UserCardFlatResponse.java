@@ -1,5 +1,6 @@
 package com.ssafy.srank.card.application.dto.response;
 
+import com.ssafy.srank.card.domain.enums.MarketStatus;
 import com.ssafy.srank.card.domain.enums.PositionType;
 
 public record UserCardFlatResponse(
@@ -20,7 +21,8 @@ public record UserCardFlatResponse(
         int enhanceTryCount,
         int enhanceSuccessCount,
 
-        Long specialSkillTemplateId  // Service에서 effects 조회용
+        Long specialSkillTemplateId,  // Service에서 effects 조회용
+        MarketStatus status
 ) {
     public UserCardResponse toResponse(SpecialAbilityResponse specialAbility) {
         return new UserCardResponse(
@@ -33,7 +35,8 @@ public record UserCardFlatResponse(
                 new CardSkillResponse(skillType3, skillValue3),
                 enhanceTryCount,
                 enhanceSuccessCount,
-                specialAbility
+                specialAbility,
+                status
         );
     }
 }

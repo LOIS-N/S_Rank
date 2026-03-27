@@ -1,6 +1,11 @@
 package com.ssafy.srank.blockchain.config;
 
 import com.ssafy.srank.blockchain.application.service.LedgerWriteService;
+import com.ssafy.srank.blockchain.application.service.NftWriteService;
+import com.ssafy.srank.blockchain.application.service.TokenWriteService;
+import com.ssafy.srank.blockchain.contracts.CardMarket;
+import com.ssafy.srank.blockchain.contracts.CardNFT;
+import com.ssafy.srank.blockchain.contracts.GameToken;
 import com.ssafy.srank.blockchain.contracts.Ledger;
 import com.ssafy.srank.common.metrics.BlockchainMetrics;
 import java.math.BigInteger;
@@ -19,7 +24,7 @@ public class BlockchainConfig {
     @Bean
     @ConditionalOnProperty(
             prefix = "app.blockchain",
-            name = {"rpc-url", "private-key", "ledger-address"}
+            name = {"rpc-url", "private-key"}
     )
     public Web3j web3j(BlockchainProperties properties) {
         return Web3j.build(new HttpService(properties.getRpcUrl()));
@@ -28,7 +33,7 @@ public class BlockchainConfig {
     @Bean
     @ConditionalOnProperty(
             prefix = "app.blockchain",
-            name = {"rpc-url", "private-key", "ledger-address"}
+            name = {"rpc-url", "private-key"}
     )
     public Credentials blockchainCredentials(BlockchainProperties properties) {
         return Credentials.create(properties.getPrivateKey());
@@ -37,7 +42,7 @@ public class BlockchainConfig {
     @Bean
     @ConditionalOnProperty(
             prefix = "app.blockchain",
-            name = {"rpc-url", "private-key", "ledger-address"}
+            name = {"rpc-url", "private-key"}
     )
     public ContractGasProvider blockchainGasProvider() {
         return new StaticGasProvider(
@@ -72,5 +77,87 @@ public class BlockchainConfig {
     )
     public LedgerWriteService ledgerWriteService(Ledger ledger, BlockchainMetrics blockchainMetrics) {
         return new LedgerWriteService(ledger, blockchainMetrics);
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "app.blockchain",
+            name = {"rpc-url", "private-key", "card-nft-address"}
+    )
+    public CardNFT cardNft(
+            BlockchainProperties properties,
+            Web3j web3j,
+            Credentials blockchainCredentials,
+            ContractGasProvider blockchainGasProvider
+    ) {
+        return CardNFT.load(
+                properties.getCardNftAddress(),
+                web3j,
+                blockchainCredentials,
+                blockchainGasProvider
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "app.blockchain",
+            name = {"rpc-url", "private-key", "card-market-address"}
+    )
+    public CardMarket cardMarket(
+            BlockchainProperties properties,
+            Web3j web3j,
+            Credentials blockchainCredentials,
+            ContractGasProvider blockchainGasProvider
+    ) {
+        return CardMarket.load(
+                properties.getCardMarketAddress(),
+                web3j,
+                blockchainCredentials,
+                blockchainGasProvider
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "app.blockchain",
+            name = {"rpc-url", "private-key", "game-token-address"}
+    )
+    public GameToken gameToken(
+            BlockchainProperties properties,
+            Web3j web3j,
+            Credentials blockchainCredentials,
+            ContractGasProvider blockchainGasProvider
+    ) {
+        return GameToken.load(
+                properties.getGameTokenAddress(),
+                web3j,
+                blockchainCredentials,
+                blockchainGasProvider
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "app.blockchain",
+            name = {"rpc-url", "private-key", "card-nft-address", "card-market-address"}
+    )
+    public NftWriteService nftWriteService(
+            CardNFT cardNft,
+            CardMarket cardMarket,
+            BlockchainMetrics blockchainMetrics
+    ) {
+        return new NftWriteService(cardNft, cardMarket, blockchainMetrics);
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "app.blockchain",
+            name = {"rpc-url", "private-key", "game-token-address"}
+    )
+    public TokenWriteService tokenWriteService(
+            GameToken gameToken,
+            BlockchainMetrics blockchainMetrics
+    ) {
+        return new TokenWriteService(gameToken, blockchainMetrics);
     }
 }

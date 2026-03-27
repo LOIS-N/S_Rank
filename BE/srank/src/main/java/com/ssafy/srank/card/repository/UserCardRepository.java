@@ -1,6 +1,7 @@
 package com.ssafy.srank.card.repository;
 
 import com.ssafy.srank.card.domain.entity.UserCard;
+import com.ssafy.srank.card.domain.enums.MarketStatus;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -38,4 +39,5 @@ public interface UserCardRepository extends JpaRepository<UserCard, Long> {
     long countActiveByUserId(@Param("userId") Long userId);
     int countByUserIdAndIsDeletedFalse(Long userId);
     int countByUserIdAndIsDeletedFalseAndEnhanceTryCountLessThan(Long userId, int enhanceTryCount);
+    List<UserCard> findByUserIdAndMarketStatusAndIsDeletedFalse(Long userId, MarketStatus status);
 }
