@@ -8,6 +8,7 @@ import com.ssafy.srank.ranking.application.event.GoldEarnedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +18,7 @@ public class EconomyLogFacadeImpl implements EconomyLogFacade {
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
+    @Transactional
     public void recordGoldChange(GoldLogMessage command) {
         userGoldLogRepository.save(UserGoldLog.builder()
                 .userId(command.userId())

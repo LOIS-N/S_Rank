@@ -344,10 +344,10 @@ export default function SynthesisPage() {
       sendGAEvent("synthesis_result", {
         source_grade: selectedGrade,
         result_grade: resultCard.grade,
-        success: isSuccess,
+        success: isSuccess ? "success" : "fail",
         cost: cost,
         card_count: selectedCards.length,
-        auto: false,
+        auto: "manual",
       });
       setIsAnimating(true);
     } catch (err: any) {
@@ -409,10 +409,10 @@ export default function SynthesisPage() {
       sendGAEvent("synthesis_result", {
         source_grade: autoGrade,
         result_grade: resultCard.grade,
-        success: isSuccess,
+        success: isSuccess ? "success" : "fail",
         cost: getSynthesisCost(autoGrade),
         card_count: clampedCount,
-        auto: true,
+        auto: "auto",
       });
       setSelectedCards([]);
       setSynthesisResult(null);
