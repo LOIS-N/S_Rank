@@ -502,6 +502,8 @@ export default function EnhancePage() {
       });
       sendGAEvent("enhance_result", {
         card_grade: selectedListCard.grade,
+        enhance_success_count: displayEnhanceLevel,
+        remaining_enhances: 7 - displayEnhanceTries,
         success: isSuccess,
         cost: cost,
       });

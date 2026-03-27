@@ -7,6 +7,7 @@ import { useGameStore } from '@/store/useGameStore';
 import client from '@/lib/axios';
 import { setTokenRefresher } from '@/lib/axios';
 import { useRouter } from 'next/navigation';
+import { sendGAEvent } from '@/lib/gtag';
 
 export const useAuth = () => {
   const { ready, authenticated, user, getAccessToken } = usePrivy();
@@ -79,6 +80,9 @@ export const useAuth = () => {
 
           if (response.data.success) {
             setAuth(accessToken, response.data.data);
+            sendGAEvent("login_success", {
+              user_type: response.data.data.isNewUser ? "new" : "returning",
+            });
             if (response.data.data.isNewUser) {
               router.push('/onboarding');
             } else {

@@ -198,6 +198,7 @@ export default function GlobalModals() {
     const deskId = activeUnlockConfirm.deskId;
     const deskTemplateId = deskId + 1;
 
+    sendGAEvent("desk_unlock_attempt", { desk_id: deskId });
     setIsUnlocking(true);
     setUnlockError(null);
     try {
@@ -205,9 +206,11 @@ export default function GlobalModals() {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       unlockQuestSlot(deskId);
+      sendGAEvent("desk_unlock_success", { desk_id: deskId });
     } catch (error: any) {
       const message = error?.response?.data?.error?.message ?? '해금 중 오류가 발생했습니다.';
       setUnlockError(message);
+      sendGAEvent("desk_unlock_error", { desk_id: deskId, error: message });
       console.error('[Desks] Unlock error:', error);
     } finally {
       setIsUnlocking(false);
