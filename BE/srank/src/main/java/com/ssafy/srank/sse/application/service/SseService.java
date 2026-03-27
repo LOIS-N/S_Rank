@@ -29,24 +29,32 @@ public class SseService {
     public SseEmitter connect(Long userId) {
         log.debug("[SSE] connect request userId={} connections={}", userId, emitters.size());
 
+        // 재연결 시 구 emitter를 먼저 맵에서 제거하고 complete() — 구 emitter의 콜백이
+        // 나중에 실행되더라도 새 emitter를 건드리지 못하도록 선제 처리
+        SseEmitter old = emitters.remove(userId);
+        if (old != null) {
+            try { old.complete(); } catch (Exception ignored) {}
+        }
+
         SseEmitter emitter = new SseEmitter(60L * 60 * 1000);
         emitters.put(userId, emitter);
         sseMetrics.recordConnection("connect", MetricTagValues.RESULT_SUCCESS);
 
+        // 콜백에서 remove(userId, emitter) 를 사용해 현재 등록된 emitter가 자신인 경우에만 제거
         emitter.onCompletion(() -> {
-            emitters.remove(userId);
+            emitters.remove(userId, emitter);
             sseMetrics.recordConnection("completion", MetricTagValues.RESULT_SUCCESS);
             log.debug("[SSE] completion userId={}", userId);
         });
 
         emitter.onTimeout(() -> {
-            emitters.remove(userId);
+            emitters.remove(userId, emitter);
             sseMetrics.recordConnection("timeout", MetricTagValues.RESULT_SUCCESS);
             log.debug("[SSE] timeout userId={}", userId);
         });
 
         emitter.onError(e -> {
-            emitters.remove(userId);
+            emitters.remove(userId, emitter);
             sseMetrics.recordConnection("error", MetricTagValues.RESULT_ERROR);
             log.debug("[SSE] error userId={} error={}", userId, e.getMessage());
         });
@@ -57,7 +65,7 @@ public class SseService {
             sseMetrics.recordSend("connect", MetricTagValues.RESULT_SUCCESS, System.nanoTime() - startNanos);
             log.debug("[SSE] initial connect event sent userId={}", userId);
         } catch (IOException e) {
-            emitters.remove(userId);
+            emitters.remove(userId, emitter);
             sseMetrics.recordSend("connect", MetricTagValues.RESULT_ERROR, System.nanoTime() - startNanos);
             log.warn("[SSE] initial connect event failed userId={} error={}", userId, e.getMessage());
         }
@@ -79,7 +87,7 @@ public class SseService {
             sseMetrics.recordSend(eventName, MetricTagValues.RESULT_SUCCESS, System.nanoTime() - startNanos);
             log.debug("[SSE] event sent userId={} event={}", userId, eventName);
         } catch (IOException e) {
-            emitters.remove(userId);
+            emitters.remove(userId, emitter);
             sseMetrics.recordSend(eventName, MetricTagValues.RESULT_ERROR, System.nanoTime() - startNanos);
             log.warn("[SSE] event send failed userId={} event={} error={}", userId, eventName, e.getMessage());
         }

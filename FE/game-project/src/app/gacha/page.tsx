@@ -216,6 +216,13 @@ export default function GachaPage() {
 
     setIsPulling(true);
 
+    // GA: 뽑기 시작 (API 호출 직전 — gacha_result와 비교해 이탈률 측정 가능)
+    sendGAEvent("gacha_start", {
+      gacha_type: currentTab,
+      pull_count: count,
+      cost: cost,
+    });
+
     try {
       const token = await getAuthToken();
       const { data: resData } = await api.post(

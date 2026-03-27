@@ -6,6 +6,7 @@ import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
 import { getSynthesisProb, getSynthesisCost, getNextGrade, getRequiredCardCount } from "@/lib/synthesisLogic";
 import { SynthesisAnimationOverlay } from "./SynthesisAnimationOverlay";
+import { sendGAEvent } from "@/lib/gtag";
 import "./synthesis.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -340,6 +341,14 @@ export default function SynthesisPage() {
 
       // 애니메이션 시작 (실제 UI 업데이트는 onShowResult에서)
       setPendingResult({ isSuccess, resultCard, sourceGrade: selectedGrade, cost, selectedCardIds: [...selectedCards] });
+      sendGAEvent("synthesis_result", {
+        source_grade: selectedGrade,
+        result_grade: resultCard.grade,
+        success: isSuccess ? "success" : "fail",
+        cost: cost,
+        card_count: selectedCards.length,
+        auto: "manual",
+      });
       setIsAnimating(true);
     } catch (err: any) {
       const errCode = err?.response?.data?.error?.code;
@@ -397,6 +406,14 @@ export default function SynthesisPage() {
       const isSuccess: boolean = resData.success;
       const resultCard: CardListItem = resData.resultCard;
 
+      sendGAEvent("synthesis_result", {
+        source_grade: autoGrade,
+        result_grade: resultCard.grade,
+        success: isSuccess ? "success" : "fail",
+        cost: getSynthesisCost(autoGrade),
+        card_count: clampedCount,
+        auto: "auto",
+      });
       setSelectedCards([]);
       setSynthesisResult(null);
       setPendingResult({ isSuccess, resultCard, sourceGrade: autoGrade, cost, selectedCardIds: pickedIds });

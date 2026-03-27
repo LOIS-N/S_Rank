@@ -21,7 +21,10 @@ public class RankingAggregationRepositoryImpl implements RankingAggregationRepos
                 SELECT
                     u.user_id,
                     u.nickname,
-                    COALESCE(SUM(CASE WHEN ugl.amount > 0 THEN ugl.amount ELSE 0 END), 0) AS gold
+                    COALESCE(SUM(CASE
+                        WHEN ugl.amount > 0 AND ugl.reason <> 'SIGNUP_BONUS' THEN ugl.amount
+                        ELSE 0
+                    END), 0) AS gold
                 FROM users u
                 LEFT JOIN user_gold_log ugl ON ugl.user_id = u.user_id
                 WHERE u.deleted_at IS NULL
