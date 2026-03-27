@@ -193,7 +193,7 @@ export const useGameStore = create<GameState>()(
     const updated = state.quests.map(q => {
       if (q.id === id) {
         rewardAcc = q.reward;
-        return { ...q, status: 'IDLE' as QuestStatus, endTime: null, endAt: null, title: '' };
+        return { ...q, status: 'IDLE' as QuestStatus, endTime: null, endAt: null, title: '', questId: null, questType: null };
       }
       return q;
     });
@@ -213,7 +213,7 @@ export const useGameStore = create<GameState>()(
     const quest = state.quests.find(q => q.id === id);
     const rewardAcc = quest?.reward ?? 0;
     const updated = state.quests.map(q =>
-      q.id === id ? { ...q, status: 'IDLE' as QuestStatus, endTime: null, endAt: null, title: '' } : q
+      q.id === id ? { ...q, status: 'IDLE' as QuestStatus, endTime: null, endAt: null, title: '', questId: null, questType: null } : q
     );
     return {
       quests: updated,
@@ -377,6 +377,7 @@ export const useGameStore = create<GameState>()(
         questId: q.questId,
         questType: q.questType,
         requiredLevel: q.requiredLevel,
+      unlockCostGold: q.unlockCostGold,
       })),
       tutorialActive: state.tutorialActive,
       tutorialQuestStep: state.tutorialQuestStep,

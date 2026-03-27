@@ -34,7 +34,7 @@ export const useUserStore = create<UserState>()(
       // BE 응답에 accessToken 없으므로 Privy access token을 그대로 사용
       setAuth: (accessToken, data) => set({
         accessToken: accessToken,
-        isNewUser: data.isNewUser,
+        isNewUser: data.isNewUser ?? null,
         nickname: data.nickname || null,
         isAuthenticated: true,
       }),
