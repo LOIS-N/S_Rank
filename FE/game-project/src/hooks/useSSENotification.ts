@@ -146,7 +146,7 @@ export function useSSENotification(accessToken: string | null) {
 
               // 튜토리얼 퀘스트 중에는 stepNo3 제외하고 알림 억제
               const tutorialStep = useGameStore.getState().tutorialQuestStep;
-              if (tutorialStep !== null && tutorialStep !== 3) break;
+              if (tutorialStep !== null && tutorialStep !== 3) continue;
 
               const nickname = useGameStore.getState().nickname;
               const title = "S급 개발자들이 나를 따르는 이유";
@@ -180,11 +180,15 @@ export function useSSENotification(accessToken: string | null) {
 
     connect();
 
-    // 탭이 포그라운드로 돌아올 때 즉시 재연결 시도
+    // 탭이 포그라운드로 돌아올 때 재연결 시도
+    // abort 후 짧은 딜레이를 두어 BE의 onError 콜백이 먼저 실행될 시간을 확보
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         abortRef.current?.abort();
-        connect();
+        clearRetry();
+        retryTimerRef.current = setTimeout(() => {
+          if (active) connect();
+        }, 500);
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
