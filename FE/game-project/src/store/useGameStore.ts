@@ -109,6 +109,8 @@ interface GameState {
   setMailModalOpen: (v: boolean) => void;
   dailyMissionModalOpen: boolean;
   setDailyMissionModalOpen: (v: boolean) => void;
+  marketRefreshSignal: number;
+  triggerMarketRefresh: () => void;
   pushNotification: (title: string, body: string) => void;
   markNotificationRead: (id: number) => void;
 }
@@ -284,6 +286,8 @@ export const useGameStore = create<GameState>()(
   setMailModalOpen: (v) => set({ mailModalOpen: v }),
   dailyMissionModalOpen: false,
   setDailyMissionModalOpen: (v) => set({ dailyMissionModalOpen: v }),
+  marketRefreshSignal: 0,
+  triggerMarketRefresh: () => set((state) => ({ marketRefreshSignal: state.marketRefreshSignal + 1 })),
   resetTutorialState: () => set({
     tutorialActive: false,
     tutorialQuestStep: null,
