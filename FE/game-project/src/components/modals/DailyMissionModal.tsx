@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useUserStore } from "@/store/useUserStore";
+import { useTokenBalance } from "@/hooks/useTokenBalance";
 import api from "@/lib/axios";
 
 interface DailyMissionModalProps {
@@ -44,6 +45,7 @@ const CATEGORY_LABEL: Record<MissionCategory, string> = {
 export default function DailyMissionModal({ onClose }: DailyMissionModalProps) {
   const { getAccessToken } = usePrivy();
   const { accessToken } = useUserStore();
+  const { refetch: refetchCff } = useTokenBalance();
 
   const [status, setStatus] = useState<DailyMissionStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -92,10 +94,10 @@ export default function DailyMissionModal({ onClose }: DailyMissionModalProps) {
       } : prev);
 
       const rewardToken = data?.data?.rewardToken ?? mission.rewardToken;
-      // 블록체인 미구현 안내 포함
       setResultMsg(
-        `미션 완료 기록이 저장되었습니다.\n보상 ${rewardToken} CFF는 블록체인 연동 완료 후 지급됩니다.`
+        `${rewardToken} CFF 보상이 신청되었습니다.\n블록체인 처리 후 우편함으로 지급됩니다.`
       );
+      refetchCff();
     } catch (e: any) {
       const code = e?.response?.data?.error?.code;
       if (code === "DM002") {

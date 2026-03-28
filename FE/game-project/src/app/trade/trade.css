@@ -284,6 +284,13 @@
   border-color: #c8920a;
 }
 
+.trade-item-thumb-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 66px;
+}
+
 .trade-item-thumb {
   width: 48px;
   height: 66px;
@@ -311,7 +318,7 @@
 .trade-item-stats {
   font-family: 'Stardust', sans-serif;
   font-weight: bold;
-  font-size: 12px;
+  font-size: 14.5px;
   color: #334;
   line-height: 1.5;
 }
@@ -512,16 +519,17 @@
 /* 판매 그리드 카드 능력치 (카드목록 페이지 동일 방식) */
 .trade-card-stat {
   position: absolute;
-  left: 8%;
-  right: 8%;
+  left: 4%;
+  right: 4%;
   text-align: center;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 11px;
+  font-size: clamp(9px, 1.2cqw, 14px);
   color: #fff;
   text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
   z-index: 2;
   pointer-events: none;
+  white-space: nowrap;
 }
 
 .trade-card-stat.stat-1 { bottom: 26%; }
@@ -781,3 +789,198 @@
 }
 
 .trade-modal-btn-cancel:active { border-bottom-width: 0; border-right-width: 0; transform: translate(2px, 2px); }
+
+/* ══════════════════════════════════════════
+   강화 배지 (enhance 페이지와 동일 스타일)
+   ══════════════════════════════════════════ */
+@keyframes badge-pulse {
+  0%, 100% { scale: 1; }
+  50%       { scale: 1.07; }
+}
+
+.card-enhance-badge {
+  position: absolute;
+  top: 8px;
+  right: -6px;
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  line-height: 1;
+  rotate: 45deg;
+  animation: badge-pulse 3s ease-in-out infinite;
+  width: 48px;
+  height: 14px;
+  border-radius: 1px;
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #BDD0E0 0%, #BDD0E0 25%, #7090A8 25%, #7090A8 75%, #3A5068 75%);
+  border: 1px solid #1A2A38;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+.card-enhance-badge[data-grade="S"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.70) 0px, rgba(255,255,255,0.70) 1px,
+      rgba(255,255,255,0.15) 1px, rgba(0,0,0,0.06) 100%),
+    linear-gradient(to right, #EAF6FF 0%, #EAF6FF 25%, #4FB8F0 25%, #4FB8F0 75%, #1870C0 75%);
+  border: 1px solid #0A3870;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+.card-enhance-badge[data-grade="A"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.60) 0px, rgba(255,255,255,0.60) 1px,
+      rgba(255,255,255,0.12) 1px, rgba(0,0,0,0.07) 100%),
+    linear-gradient(to right, #FFE098 0%, #FFE098 25%, #E89020 25%, #E89020 75%, #8A4800 75%);
+  border: 1px solid #3A1200;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+.card-enhance-badge[data-grade="B"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.65) 0px, rgba(255,255,255,0.65) 1px,
+      rgba(255,255,255,0.12) 1px, rgba(0,0,0,0.07) 100%),
+    linear-gradient(to right, #EEF2F6 0%, #EEF2F6 25%, #A0B4C0 25%, #A0B4C0 75%, #506070 75%);
+  border: 1px solid #283840;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+.card-enhance-badge[data-grade="C"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #F0CC88 0%, #F0CC88 25%, #B07830 25%, #B07830 75%, #683808 75%);
+  border: 1px solid #381800;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+.card-enhance-badge[data-grade="D"] {
+  background:
+    linear-gradient(to bottom,
+      rgba(255,255,255,0.55) 0px, rgba(255,255,255,0.55) 1px,
+      rgba(255,255,255,0.10) 1px, rgba(0,0,0,0.08) 100%),
+    linear-gradient(to right, #BDD0E0 0%, #BDD0E0 25%, #7090A8 25%, #7090A8 75%, #3A5068 75%);
+  border: 1px solid #1A2A38;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.60), 0 3px 5px rgba(0,0,0,0.45);
+}
+
+.badge-plus {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 7px;
+  color: rgba(255,255,255,0.92);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.95);
+  line-height: 1;
+  margin-right: 1px;
+  position: relative;
+  z-index: 2;
+}
+
+.badge-num {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.95);
+  line-height: 1;
+  position: relative;
+  z-index: 2;
+}
+
+/* 소형 썸네일(48×66px)용 축소 배지 */
+.trade-thumb-badge {
+  width: 34px;
+  height: 10px;
+  top: 6px;
+  right: 2px;
+}
+.trade-thumb-badge .badge-plus { font-size: 5px; }
+.trade-thumb-badge .badge-num  { font-size: 8px; }
+
+/* ── 판매 안내 박스 ── */
+.trade-sell-notice-box {
+  flex-shrink: 0;
+  margin-top: 8px;
+}
+
+.trade-sell-notice-text {
+  font-family: 'Stardust', sans-serif;
+  font-weight: bold;
+  font-size: 12px;
+  color: #334;
+  line-height: 1.9;
+  text-align: left;
+}
+
+.trade-sell-notice-fee {
+  color: #c85000;
+  font-weight: 800;
+}
+
+/* 판매 등록 시 예상 수령 금액 미리보기 */
+.trade-sell-payout-preview {
+  font-family: 'Stardust', sans-serif;
+  font-size: 12px;
+  color: #334;
+  text-align: center;
+}
+
+.trade-sell-fee-note {
+  color: #aa6030;
+  font-size: 11px;
+}
+
+/* ── 구매 확인 모달 상세 내역 ── */
+.trade-modal-detail {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trade-modal-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.trade-modal-detail-label {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 12px;
+  color: #556;
+  flex-shrink: 0;
+}
+
+.trade-modal-detail-value {
+  font-family: 'StardustS', 'Stardust', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  text-align: right;
+}
+
+.trade-modal-detail-free {
+  color: #2d7a44;
+  font-size: 11px;
+}
+
+.trade-modal-detail-after {
+  color: #b06000;
+}
+
+.trade-modal-detail-warn {
+  color: #c02020;
+}
+
+.trade-modal-divider {
+  border: none;
+  border-top: 1px dashed #8ea4b8;
+  margin: 2px 0;
+  width: 100%;
+}

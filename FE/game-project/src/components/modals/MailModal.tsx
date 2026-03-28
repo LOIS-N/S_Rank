@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useUserStore } from "@/store/useUserStore";
+import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
 
 interface MailModalProps {
@@ -40,7 +41,13 @@ const MAIL_TYPE_COLOR: Record<MailType, string> = {
 };
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
+  // BE LocalDateTime은 타임존 없이 옴 ("2026-03-28T10:00:00" 또는 "2026-03-28 10:00:00")
+  // syncActiveQuests와 동일하게 UTC로 정규화 후 로컬 시간으로 표시
+  const normalized = dateStr.includes("Z") || dateStr.includes("+")
+    ? dateStr
+    : dateStr.replace(" ", "T") + "Z";
+  const d = new Date(normalized);
+  if (isNaN(d.getTime())) return dateStr;
   return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
@@ -104,9 +111,11 @@ export default function MailModal({ onClose }: MailModalProps) {
           gold: me.gold,
           coin: me.coin,
         });
+        // BE coin = useGameStore.coffee (HUD 커피 아이콘에 표시되는 인게임 재화)
+        useGameStore.getState().setResources(me.gold, me.coin);
       }
 
-      setResultMsg(`${(mail.reward ?? 0).toLocaleString()} 코인을 획득했습니다!`);
+      setResultMsg(`${(mail.reward ?? 0).toLocaleString()} 커피를 획득했습니다!`);
     } catch (e: any) {
       const code = e?.response?.data?.error?.code;
       if (code === "M002") {
@@ -171,7 +180,7 @@ export default function MailModal({ onClose }: MailModalProps) {
                   </div>
                   <div className="text-right flex flex-col items-end gap-2 ml-3 shrink-0">
                     {mail.reward != null && !mail.isClaimed && (
-                      <div className="text-sm text-blue-700 font-bold">보상: {mail.reward.toLocaleString()} 코인</div>
+                      <div className="text-sm text-blue-700 font-bold">보상: {mail.reward.toLocaleString()} 커피</div>
                     )}
                     {mail.isClaimed && <div className="text-slate-500 text-sm">수령 완료</div>}
                     {canClaim && (
