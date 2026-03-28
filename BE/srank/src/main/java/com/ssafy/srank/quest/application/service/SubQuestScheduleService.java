@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class SubQuestScheduleService {
     private final ObjectMapper objectMapper;
     private final QuestMetrics questMetrics;
 
-    public void generateAndSave(int difficulty) throws JsonProcessingException {
+    public void generateAndSave(int difficulty, LocalDateTime questDate) throws JsonProcessingException {
         log.info("[SubQuestSchedule] OpenAI 서브 퀘스트 생성 시작 - difficulty={}", difficulty);
 
         long openAiStartNanos = System.nanoTime();
@@ -58,7 +59,7 @@ public class SubQuestScheduleService {
             throw e;
         }
 
-        listContent.getQuests().forEach(quest -> subQuestRepository.save(quest.toEntity()));
+        listContent.getQuests().forEach(quest -> subQuestRepository.save(quest.toEntity(questDate)));
         questMetrics.recordSavedSubquests(MetricTagValues.number(difficulty), listContent.getQuests().size());
 
         log.info("[SubQuestSchedule] 서브 퀘스트 생성 완료 - difficulty={}, savedCount={}", difficulty, listContent.getQuests().size());
@@ -83,12 +84,12 @@ public class SubQuestScheduleService {
             - JSON 외 다른 텍스트는 절대 출력하지 마세요.
                         
             난이도별 스탯 기준:
-            - 난이도 1: 포지션 3개, 포지션당 스탯 범위 15~25, 스탯 총합 범위 45~75, 기준시간 30초, 보상 2700G
-            - 난이도 2: 포지션 3개, 포지션당 스탯 범위 45~60, 스탯 총합 범위 135~180, 기준시간 60초, 보상 7000G
-            - 난이도 3: 포지션 4개, 포지션당 스탯 범위 90~120, 스탯 총합 범위 270~360, 기준시간 180초, 보상 25000G
-            - 난이도 4: 포지션 4개, 포지션당 스탯 범위 120~160, 스탯 총합 범위 360~480, 기준시간 600초, 보상 120000G
-            - 난이도 5: 포지션 5개, 포지션당 스탯 범위 150~200, 스탯 총합 범위 450~600, 기준시간 1800초, 보상 600000G
-            - 난이도 6: 포지션 5개, 포지션당 스탯 범위 175~225, 스탯 총합 범위 525~675, 기준시간 5400초, 보상 3000000G
+            - 난이도 1: 카드슬롯 3개, 포지션당 스탯 범위 15~25, 스탯 총합 범위 45~75, 기준시간 30초, 보상 2700G
+            - 난이도 2: 카드슬롯 3개, 포지션당 스탯 범위 45~60, 스탯 총합 범위 135~180, 기준시간 60초, 보상 7000G
+            - 난이도 3: 카드슬롯 4개, 포지션당 스탯 범위 90~120, 스탯 총합 범위 270~360, 기준시간 180초, 보상 25000G
+            - 난이도 4: 카드슬롯 4개, 포지션당 스탯 범위 140~180, 스탯 총합 범위 420~540, 기준시간 600초, 보상 120000G
+            - 난이도 5: 카드슬롯 5개, 포지션당 스탯 범위 190~240, 스탯 총합 범위 570~720, 기준시간 1800초, 보상 600000G
+            - 난이도 6: 카드슬롯 5개, 포지션당 스탯 범위 235~285, 스탯 총합 범위 705~855, 기준시간 5400초, 보상 3000000G
                         
             출력 형식:
             {
@@ -99,6 +100,7 @@ public class SubQuestScheduleService {
                   "difficulty": 난이도(1~6),
                   "durationMinutes": 기준시간(초),
                   "rewardGold": 보상골드,
+                  "card_slot_count" : 카드슬롯
                   "requiredSkills": [
                     {"skillType": "BE", "skillValue": 숫자},
                     {"skillType": "FE", "skillValue": 숫자},
