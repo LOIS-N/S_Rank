@@ -65,10 +65,7 @@ export default function BottomNavBar() {
       case "강화":     router.push("/enhance");   break;
       case "합성":     router.push("/synthesis"); break;
       case "메인":     router.push("/");           break;
-      case "거래":
-        sendGAEvent("coming_soon_accessed", { feature: "거래", reason: "not_implemented" });
-        openComingSoonModal();
-        break;
+      case "거래":     router.push("/trade");    break;
       default: break;
     }
   };
