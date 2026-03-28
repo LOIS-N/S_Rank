@@ -176,6 +176,8 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
           </button>
         </div>
 
+        {/* === [테스트/관리자용] Privy 지갑 개인키(Private Key) 추출 버튼 === */}
+        {/* 추후 필요 시 아래 주석을 해제하여 사용하세요. */}
         <div className="flex justify-center mt-3">
           <button
             onClick={exportWallet}
@@ -185,6 +187,7 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
           </button>
         </div>
       </div>
+
 
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#8ea4b8]/80 font-dot pointer-events-auto">
