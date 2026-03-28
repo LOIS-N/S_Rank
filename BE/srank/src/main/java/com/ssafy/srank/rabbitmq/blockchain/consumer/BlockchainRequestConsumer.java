@@ -10,10 +10,14 @@ import com.ssafy.srank.card.application.service.UserCardService;
 import com.ssafy.srank.common.metrics.BlockchainMetrics;
 import com.ssafy.srank.common.metrics.MetricTagValues;
 import com.ssafy.srank.common.metrics.RabbitMqMetrics;
+import com.ssafy.srank.mail.application.dto.request.MailRequest;
+import com.ssafy.srank.mail.application.service.MailService;
+import com.ssafy.srank.mail.domain.enums.MailType;
 import com.ssafy.srank.market.domain.entity.MarketItem;
 import com.ssafy.srank.market.domain.entity.MarketTradeHistory;
 import com.ssafy.srank.market.repository.MarketItemRepository;
 import com.ssafy.srank.market.repository.MarketTradeHistoryRepository;
+import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainEventType;
 import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.rabbitmq.blockchain.producer.BlockchainRequestProducer;
 import com.ssafy.srank.rabbitmq.config.RabbitMqConfig;
@@ -46,6 +50,7 @@ public class BlockchainRequestConsumer {
     private final UserService userService;
     private final UserCardService userCardService;
     private final SseService sseService;
+    private final MailService mailService;
 
     @RabbitListener(queues = RabbitMqConfig.BLOCKCHAIN_QUEUE)
     public void handle(BlockchainRequestMessage message) {
@@ -86,6 +91,22 @@ public class BlockchainRequestConsumer {
                 // ── NFT / Market 컨트랙트 (NFT_MINT / P2P_TRANSFER) ────────────
                 case NFT_MINT -> handleNftMint(message);
                 case P2P_TRANSFER -> handleP2pTransfer(message);
+                case MISSION_REWARD -> {
+                    TokenWriteService svc = requireTokenWriteService();
+                    String missionTxHash = svc.mintReward(  // ← txHash → missionTxHash
+                            message.walletAddress(),
+                            BigInteger.valueOf(message.priceCoin())
+                    );
+
+                    mailService.postMail(new MailRequest(
+                            message.userId(),
+                            MailType.REWARD,
+                            "업적 보상이 도착했습니다.",
+                            message.priceCoin()
+                    ));
+
+                    yield missionTxHash;  // ← txHash → missionTxHash
+                }
             };
 
             markSuccess(message, txHash);
@@ -108,7 +129,6 @@ public class BlockchainRequestConsumer {
     // NFT_MINT: grantMintRight → tokenId 추출 → listCard → markOnSale → SSE
     // ─────────────────────────────────────────────────────────────────────────
 
-    @Transactional
     public String handleNftMint(BlockchainRequestMessage message) {
         Long marketItemId = message.marketItemId();
         Long userCardId = message.userCardId();
@@ -116,24 +136,6 @@ public class BlockchainRequestConsumer {
         MarketItem item = getMarketItem(marketItemId);
 
         Long sellerUserId = item.getSellerUserId();
-
-        // 개발용 임시 처리
-        boolean mockBlockchain = true;
-        if (mockBlockchain) {
-            String mockTokenId = "999999";
-            String mockTxHash = "MOCK_TX_" + System.currentTimeMillis();
-
-            item.markOnSale(mockTokenId);
-            marketItemRepository.save(item);
-
-            sseService.sendToUser(
-                    sellerUserId,
-                    "market.sell.ready",
-                    "판매 등록이 완료되었습니다."
-            );
-
-            return mockTxHash;
-        }
 
         NftWriteService nftWriteService = requireNftWriteService();
         String sellerWallet = userService.getWalletAddress(sellerUserId);
@@ -157,10 +159,22 @@ public class BlockchainRequestConsumer {
         item.markOnSale(mintResult.tokenId().toString());
         marketItemRepository.save(item);
 
+        // 민팅 완료 이력 저장 (txHash 포함)
+        marketTradeHistoryRepository.save(
+                MarketTradeHistory.ofSellCompleted(item, mintResult.txHash())
+        );
+
+        mailService.postMail(new MailRequest(
+                sellerUserId,
+                MailType.NFT_COMPLETE,
+                "[판매등록] 이직선청이 완료되었습니다.",
+                null
+        ));
+
         sseService.sendToUser(
                 sellerUserId,
                 "market.sell.ready",
-                "판매 등록이 완료되었습니다."
+                "[판매등록] 이직선청이 완료되었습니다."
         );
 
         return mintResult.txHash();
@@ -170,7 +184,6 @@ public class BlockchainRequestConsumer {
     // P2P_TRANSFER: buyCard → markSold → changeOwner → 이력 저장 → SSE
     // ─────────────────────────────────────────────────────────────────────────
 
-    @Transactional
     public String handleP2pTransfer(BlockchainRequestMessage message) {
         log.info("[P2P_TRANSFER] 시작 marketItemId={} userCardId={}",
                 message.marketItemId(), message.userCardId());
@@ -185,35 +198,37 @@ public class BlockchainRequestConsumer {
         Long buyerUserId = item.getBuyerUserId();
         Long sellerUserId = item.getSellerUserId();
 
-        // 개발용 mock 처리
-        boolean mockBlockchain = true;
-        if (mockBlockchain) {
-            String mockTxHash = "MOCK_BUY_TX_" + System.currentTimeMillis();
-
-            item.markSold();
-            marketItemRepository.save(item);
-
-            userCardService.changeOwner(message.userCardId(), buyerUserId);
-
-            marketTradeHistoryRepository.save(
-                    MarketTradeHistory.ofSellCompleted(item, mockTxHash)
-            );
-
-            sseService.sendToUser(sellerUserId, "market.sell.completed", item.getMarketItemId());
-            sseService.sendToUser(buyerUserId, "market.buy.completed", item.getMarketItemId());
-
-            return mockTxHash;
-        }
-
         if (item.getNftTokenId() == null) {
             throw new IllegalStateException(
                     "nftTokenId가 없습니다. NFT_MINT가 완료되지 않은 상태입니다. marketItemId=" + message.marketItemId());
         }
 
+        TokenWriteService tokenWriteService = requireTokenWriteService(); // 이미 있는 헬퍼
         NftWriteService nftWriteService = requireNftWriteService();
-        BigInteger tokenId = new BigInteger(item.getNftTokenId());
 
-        String txHash = nftWriteService.executeBuy(tokenId);
+        try {
+            tokenWriteService.transfer(
+                    message.buyerWallet(),
+                    message.sellerWallet(),
+                    BigInteger.valueOf(item.getPriceCoin())
+            );
+        } catch (RuntimeException e) {
+            log.error("[P2P_TRANSFER] 토큰 전송 실패 즉시 롤백 marketItemId={}", message.marketItemId(), e);
+            marketItemRepository.findById(message.marketItemId()).ifPresent(i -> {
+                i.rollbackToOnSale();
+                marketItemRepository.save(i);
+            });
+
+            // 구매자 코인 복구
+            userService.rewardCoin(item.getBuyerUserId(), Long.valueOf(item.getPriceCoin()));
+            throw e;
+        }
+
+        // NFT 이동 (CardMarket → 구매자)
+        BigInteger tokenId = new BigInteger(item.getNftTokenId());
+        String txHash = nftWriteService.executeBuy(tokenId, message.buyerWallet());
+
+        userService.rewardCoin(sellerUserId, Long.valueOf(item.getPriceCoin()));
 
         log.info("[P2P_TRANSFER] 체인 처리 완료 txHash={}", txHash);
 
@@ -226,6 +241,22 @@ public class BlockchainRequestConsumer {
 
         sseService.sendToUser(sellerUserId, "market.sell.completed", item.getMarketItemId());
         sseService.sendToUser(buyerUserId, "market.buy.completed", item.getMarketItemId());
+
+        // 구매자에게 영입 완료 우편 발송
+        mailService.postMail(new MailRequest(
+                buyerUserId,
+                MailType.BUY_COMPLETE,
+                "[구매 완료] " + item.getUserCard().getCardTemplate().getCharacterName() + "의 영입을 완료했습니다.",
+                null
+        ));
+
+        // 판매자에게 판매 완료 우편 발송
+        mailService.postMail(new MailRequest(
+                sellerUserId,
+                MailType.SALE_COMPLETE,
+                "[판매 완료] " + item.getUserCard().getCardTemplate().getCharacterName() + "이(가) 이직에 성공했습니다.",
+                null
+        ));
 
         return txHash;
     }
@@ -305,9 +336,18 @@ public class BlockchainRequestConsumer {
         // 마켓 이벤트 실패 시 item 상태를 FAILED로 전환
         if (message.marketItemId() != null) {
             marketItemRepository.findById(message.marketItemId()).ifPresent(item -> {
-                item.markFailed();
+
+                // P2P_TRANSFER 실패: ON_SALE로 롤백 (buyerUserId 초기화)
+                // NFT_MINT 실패: FAILED로 전환 (판매 자체가 불가능한 상태)
+                if (message.eventType() == BlockchainEventType.P2P_TRANSFER) {
+                    item.rollbackToOnSale();
+                    log.warn("[BlockchainConsumer] market_item ON_SALE 롤백 marketItemId={}", item.getMarketItemId());
+                } else {
+                    item.markFailed();
+                    log.warn("[BlockchainConsumer] market_item FAILED 처리 marketItemId={}", item.getMarketItemId());
+                }
+
                 marketItemRepository.save(item);
-                log.warn("[BlockchainConsumer] market_item FAILED 처리 marketItemId={}", item.getMarketItemId());
             });
         }
     }

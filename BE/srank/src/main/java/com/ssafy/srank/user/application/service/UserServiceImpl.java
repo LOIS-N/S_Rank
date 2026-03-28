@@ -149,6 +149,14 @@ public class UserServiceImpl implements UserService {
         user.increaseCoin(coin);
     }
 
+    @Transactional
+    @Override
+    public void spendCoin(Long userId, Long coin) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        user.decreaseCoin(coin); // 잔액 부족 시 내부에서 COIN_INSUFFICIENT 예외 발생
+    }
+
     @Override
     public List<Long> getUserIds() {
         return userRepository.findAll().stream().map(User::getUserId).toList();

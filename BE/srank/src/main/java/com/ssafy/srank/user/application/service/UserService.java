@@ -27,6 +27,8 @@ public interface UserService {
 
     void rewardCoin(Long userId, Long coin);
 
+    void spendCoin(Long userId, Long coin);
+
     //귀찮아서 전부 들고옴
     List<Long> getUserIds();
 }

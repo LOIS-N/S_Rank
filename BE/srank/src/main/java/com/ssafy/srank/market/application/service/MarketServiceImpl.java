@@ -1,5 +1,6 @@
 package com.ssafy.srank.market.application.service;
 
+import com.ssafy.srank.blockchain.application.service.BlockchainRequestDispatchService;
 import com.ssafy.srank.card.application.dto.response.UserCardResponse;
 import com.ssafy.srank.card.application.service.UserCardService;
 import com.ssafy.srank.card.domain.entity.UserCard;
@@ -36,6 +37,7 @@ public class MarketServiceImpl implements MarketService {
     private final MarketItemRepository marketItemRepository;
     private final MarketTradeHistoryRepository marketTradeHistoryRepository;
     private final BlockchainRequestProducer blockchainRequestProducer;
+    private final BlockchainRequestDispatchService blockchainRequestDispatchService;
     private final QuestFacadeService questFacadeService;
     private final UserService userService;
 
@@ -68,9 +70,9 @@ public class MarketServiceImpl implements MarketService {
     @Override
     @Transactional(readOnly = true)
     public List<TradeHistoryResponse> getMyTradeHistories(Long userId) {
-        return marketTradeHistoryRepository.findMyHistoriesWithCard(userId)
+        return marketItemRepository.findMyTradeItemsWithCard(userId)
                 .stream()
-                .map(TradeHistoryResponse::from)
+                .map(item -> TradeHistoryResponse.from(item, userId))
                 .toList();
     }
 
@@ -126,7 +128,7 @@ public class MarketServiceImpl implements MarketService {
         //    (트랜잭션 안에서 발행하면 커밋 전 Consumer가 DB를 조회해 item을 못 찾을 수 있으므로
         //     BlockchainRequestDispatchService.dispatchAfterCommit 사용을 권장하나,
         //     현재 구조상 Producer를 직접 호출해도 Consumer는 큐에서 꺼내므로 타이밍 이슈 낮음)
-        blockchainRequestProducer.send(
+        blockchainRequestDispatchService.dispatchAfterCommit(
                 BlockchainRequestMessage.forNftMint(
                         item.getMarketItemId(),
                         userCard.getId(),
@@ -159,11 +161,12 @@ public class MarketServiceImpl implements MarketService {
         if (item.getStatus() != MarketItemStatus.ON_SALE) {
             throw new BusinessException(ErrorCode.TRADE_ALREADY_SOLD);
         }
-
         // 3. 본인 카드 구매 불가 (필요 시 주석 해제)
          if (item.getSellerUserId().equals(buyerUserId)) {
-//             throw new BusinessException(ErrorCode.TRADE_SELF_PURCHASE);
+             throw new BusinessException(ErrorCode.TRADE_SELF_PURCHASE);
          }
+
+        userService.spendCoin(buyerUserId, Long.valueOf(item.getPriceCoin()));
 
         // 4. 상태를 BUY_PENDING으로 전환 (동시 구매 요청 차단)
         item.markBuyPending(buyerUserId);
@@ -177,7 +180,7 @@ public class MarketServiceImpl implements MarketService {
 
         // 7. 트랜잭션 커밋 후 RabbitMQ로 P2P_TRANSFER 이벤트 발행
         //    Consumer가 체인 처리 완료 시 SOLD 전환 + user_card 소유자 변경 + SSE 알림
-        blockchainRequestProducer.send(
+        blockchainRequestDispatchService.dispatchAfterCommit(
                 BlockchainRequestMessage.forP2pTransfer(
                         item.getMarketItemId(),
                         item.getUserCard().getId(),

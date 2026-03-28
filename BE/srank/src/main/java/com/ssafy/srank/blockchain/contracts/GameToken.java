@@ -298,10 +298,10 @@ public class GameToken extends Contract {
 
     public RemoteFunctionCall<TransactionReceipt> transferOnBehalf(String from, String to, BigInteger amount) {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
-                FUNC_TRANSFERONBEHALF, 
-                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from), 
-                new org.web3j.abi.datatypes.Address(160, to), 
-                new org.web3j.abi.datatypes.generated.Uint256(amount)), 
+                FUNC_TRANSFERONBEHALF,
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from),
+                new org.web3j.abi.datatypes.Address(160, to),
+                new org.web3j.abi.datatypes.generated.Uint256(amount)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }

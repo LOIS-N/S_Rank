@@ -9,5 +9,6 @@ public enum BlockchainEventType {
     NFT_MINT,
 
     /** 구매 시 NFT 소유권 이전 + 토큰 P2P 이전 요청 */
-    P2P_TRANSFER
+    P2P_TRANSFER,
+    MISSION_REWARD
 }
