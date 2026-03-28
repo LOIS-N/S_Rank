@@ -144,9 +144,10 @@ public class BlockchainConfig {
     public NftWriteService nftWriteService(
             CardNFT cardNft,
             CardMarket cardMarket,
+            Credentials blockchainCredentials,  // ← 추가
             BlockchainMetrics blockchainMetrics
     ) {
-        return new NftWriteService(cardNft, cardMarket, blockchainMetrics);
+        return new NftWriteService(cardNft, cardMarket, blockchainMetrics, blockchainCredentials);
     }
 
     @Bean

@@ -70,4 +70,9 @@ public class MarketItem extends BaseEntity {
     public void markFailed() {
         this.status = MarketItemStatus.FAILED;
     }
+
+    public void rollbackToOnSale() {
+        this.buyerUserId = null;
+        this.status = MarketItemStatus.ON_SALE;
+    }
 }

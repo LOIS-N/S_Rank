@@ -4,6 +4,7 @@ import com.ssafy.srank.blockchain.application.dto.NftMintResult;
 import com.ssafy.srank.blockchain.contracts.CardMarket;
 import com.ssafy.srank.blockchain.contracts.CardNFT;
 import com.ssafy.srank.common.metrics.BlockchainMetrics;
+import org.web3j.crypto.Credentials;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -11,7 +12,6 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.math.BigInteger;
 import java.util.List;
-@Service
 @RequiredArgsConstructor
 @Slf4j
 public class NftWriteService {
@@ -19,40 +19,40 @@ public class NftWriteService {
     private final CardNFT cardNFT;
     private final CardMarket cardMarket;
     private final BlockchainMetrics metrics;
+    private final Credentials blockchainCredentials;
 
     public NftMintResult mintNft(String userWallet, Long dbCardId, String tokenUri) {
         long start = System.nanoTime();
+        String dbCardIdStr = String.valueOf(dbCardId);
 
         try {
-            TransactionReceipt receipt = cardNFT.mint(String.valueOf(dbCardId)).send();
+            // 1단계: 서버 지갑에 민팅 권한 부여
+            // approvedMints[서버지갑][dbCardId] = tokenUri 저장
+            cardNFT.grantMintRight(
+                    blockchainCredentials.getAddress(),
+                    dbCardIdStr,
+                    tokenUri
+            ).send();
 
-            List<CardNFT.CardMintedEventResponse> events = cardNFT.getCardMintedEvents(receipt);
+            // 2단계: 서버 지갑으로 NFT 민팅 (msg.sender = 서버지갑 = NFT 소유자)
+            TransactionReceipt mintReceipt = cardNFT.mint(dbCardIdStr).send();
+
+            List<CardNFT.CardMintedEventResponse> events = cardNFT.getCardMintedEvents(mintReceipt);
             if (events == null || events.isEmpty()) {
-                throw new IllegalStateException("CardMinted 이벤트 없음");
+                throw new IllegalStateException("CardMinted 이벤트 없음 dbCardId=" + dbCardIdStr);
             }
-
             BigInteger tokenId = events.get(0).tokenId;
 
-            metrics.recordWrite(
-                    System.nanoTime() - start,
-                    "NFT_MINT",
-                    "1",
-                    "SUCCESS",
-                    "NONE"
-            );
+            // 3단계: CardMarket이 transferFrom 할 수 있도록 approve
+            // listCard() 내부에서 nftContract.transferFrom(msg.sender, address(this), tokenId) 호출하기 때문
+            cardNFT.approve(cardMarket.getContractAddress(), tokenId).send();
 
-            return new NftMintResult(receipt.getTransactionHash(), tokenId);
+            metrics.recordWrite(System.nanoTime() - start, "NFT_MINT", "1", "SUCCESS", "NONE");
+            return new NftMintResult(mintReceipt.getTransactionHash(), tokenId);
 
         } catch (Exception e) {
-            metrics.recordWrite(
-                    System.nanoTime() - start,
-                    "NFT_MINT",
-                    "1",
-                    "FAIL",
-                    e.getClass().getSimpleName()
-            );
-
-            throw new RuntimeException("NFT 민팅 실패", e);
+            metrics.recordWrite(System.nanoTime() - start, "NFT_MINT", "1", "FAIL", e.getClass().getSimpleName());
+            throw new RuntimeException("NFT 민팅 실패 dbCardId=" + dbCardIdStr, e);
         }
     }
 
@@ -85,11 +85,11 @@ public class NftWriteService {
         }
     }
 
-    public String executeBuy(BigInteger tokenId) {
+    public String executeBuy(BigInteger tokenId, String buyerWallet) {
         long start = System.nanoTime();
 
         try {
-            TransactionReceipt receipt = cardMarket.buyCard(tokenId).send();
+            TransactionReceipt receipt = cardMarket.buyCardFor(tokenId, buyerWallet).send();
 
             metrics.recordWrite(
                     System.nanoTime() - start,

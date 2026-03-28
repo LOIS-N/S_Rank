@@ -57,11 +57,7 @@ public class TokenWriteService {
         long start = System.nanoTime();
 
         try {
-            TransactionReceipt receipt = gameToken.transferFrom(
-                    fromWallet,
-                    toWallet,
-                    amount
-            ).send();
+            TransactionReceipt receipt = gameToken.transferOnBehalf(fromWallet, toWallet, amount).send();
 
             metrics.recordWrite(
                     System.nanoTime() - start,

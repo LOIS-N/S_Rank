@@ -47,7 +47,7 @@ public class MailServiceImpl implements MailService{
         mailBox.claimReward();
         mailBox.markAsRead();
 
-        return Long.valueOf(mailBox.getReward() == null ? 0 : mailBox.getReward());
+        return mailBox.getReward();
     }
 
     @Override
@@ -58,7 +58,7 @@ public class MailServiceImpl implements MailService{
                         .message(request.message())
                         .isRead(false)
                         .isClaimed(false)
-                        .reward(Long.valueOf(request.reward()))
+                        .reward(request.reward())
                         .build());
     }
 

@@ -19,8 +19,8 @@ public record BlockchainRequestMessage(
         String sellerWallet,
         String buyerWallet,
         Long priceCoin,
-        // 공통
-        int retryCount
+        int retryCount,
+        Long userId
 ) {
 
     public static BlockchainRequestMessage forGacha(
@@ -34,7 +34,7 @@ public record BlockchainRequestMessage(
                 BlockchainEventType.GACHA,
                 walletAddress, clientSeed, serverSeed, count, gachaType, List.of(),
                 null, null, null, null, null,
-                0
+                0,null
         );
     }
 
@@ -48,7 +48,7 @@ public record BlockchainRequestMessage(
                 BlockchainEventType.SYNTHESIS,
                 walletAddress, clientSeed, serverSeed, null, null, consumedCardIds,
                 null, null, null, null, null,
-                0
+                0,null
         );
     }
 
@@ -62,7 +62,7 @@ public record BlockchainRequestMessage(
                 BlockchainEventType.ENHANCE,
                 walletAddress, clientSeed, serverSeed, null, null, consumedCardIds,
                 null, null, null, null, null,
-                0
+                0,null
         );
     }
 
@@ -76,7 +76,7 @@ public record BlockchainRequestMessage(
                 BlockchainEventType.NFT_MINT,
                 null, null, null, null, null, List.of(),
                 marketItemId, userCardId, sellerWallet, null, null,
-                0
+                0,null
         );
     }
 
@@ -92,7 +92,21 @@ public record BlockchainRequestMessage(
                 BlockchainEventType.P2P_TRANSFER,
                 null, null, null, null, null, List.of(),
                 marketItemId, userCardId, sellerWallet, buyerWallet, priceCoin,
-                0
+                0,null
+        );
+    }
+
+    /** 미션 보상 토큰 지급 이벤트 생성 */
+    public static BlockchainRequestMessage forMissionReward(
+            String walletAddress,
+            Long amount,
+            Long userId
+    ) {
+        return new BlockchainRequestMessage(
+                BlockchainEventType.MISSION_REWARD,
+                walletAddress, null, null, null, null, List.of(),
+                null, null, null, null, amount,
+                0,userId
         );
     }
 
@@ -101,7 +115,7 @@ public record BlockchainRequestMessage(
                 eventType,
                 walletAddress, clientSeed, serverSeed, count, gachaType, consumedCardIds,
                 marketItemId, userCardId, sellerWallet, buyerWallet, priceCoin,
-                retryCount + 1
+                retryCount + 1, userId
         );
     }
 }

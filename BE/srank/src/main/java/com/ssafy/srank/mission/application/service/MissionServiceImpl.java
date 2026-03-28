@@ -1,5 +1,6 @@
 package com.ssafy.srank.mission.application.service;
 
+import com.ssafy.srank.blockchain.application.service.BlockchainRequestDispatchService;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.mission.application.dto.response.DailyMissionItemResponse;
@@ -12,6 +13,8 @@ import com.ssafy.srank.mission.domain.enums.MissionCategory;
 import com.ssafy.srank.mission.repository.MissionTemplateRepository;
 import com.ssafy.srank.mission.repository.UserActivityLogRepository;
 import com.ssafy.srank.mission.repository.UserRewardClaimedRepository;
+import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
+import com.ssafy.srank.user.application.service.UserService;
 import com.ssafy.srank.user.domain.entity.User;
 import com.ssafy.srank.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +38,8 @@ public class MissionServiceImpl implements MissionService {
     private final UserActivityLogRepository userActivityLogRepository;
     private final UserRewardClaimedRepository userRewardClaimedRepository;
     private final UserRepository userRepository;
+    private final BlockchainRequestDispatchService blockchainRequestDispatchService;
+    private final UserService userService;
 
     @Override
     public DailyMissionStatusResponse getTodayMissions(Long userId) {
@@ -93,6 +98,16 @@ public class MissionServiceImpl implements MissionService {
 
         try {
             UserRewardClaimed saved = userRewardClaimedRepository.save(rewardClaimed);
+
+            String walletAddress = userService.getWalletAddress(userId);
+            blockchainRequestDispatchService.dispatchAfterCommit(
+                    BlockchainRequestMessage.forMissionReward(
+                            walletAddress,
+                            (long) missionTemplate.getRewardToken(),
+                            userId
+                    )
+            );
+
             return MissionRewardClaimResponse.of(
                     missionTemplate,
                     saved.getClaimedDate(),

@@ -30,4 +30,13 @@ public interface MarketItemRepository extends JpaRepository<MarketItem, Long> {
         where mi.marketItemId = :marketItemId
     """)
     Optional<MarketItem> findByIdWithUserCardAndTemplate(Long marketItemId);
+
+    @Query("""
+        SELECT mi FROM MarketItem mi
+        JOIN FETCH mi.userCard uc
+        JOIN FETCH uc.cardTemplate
+        WHERE mi.sellerUserId = :userId OR mi.buyerUserId = :userId
+        ORDER BY mi.createdAt DESC
+    """)
+    List<MarketItem> findMyTradeItemsWithCard(@Param("userId") Long userId);
 }
