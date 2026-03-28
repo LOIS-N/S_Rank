@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.regex.Pattern;
 
 @Service
@@ -146,6 +147,11 @@ public class UserServiceImpl implements UserService {
     public void rewardCoin(Long userId, Long coin) {
         User user = userRepository.findById(userId).orElseThrow(()->new BusinessException(ErrorCode.USER_NOT_FOUND));
         user.increaseCoin(coin);
+    }
+
+    @Override
+    public List<Long> getUserIds() {
+        return userRepository.findAll().stream().map(User::getUserId).toList();
     }
 
     private User getActiveUser(Long userId) {

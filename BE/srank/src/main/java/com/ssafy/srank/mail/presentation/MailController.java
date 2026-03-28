@@ -1,6 +1,8 @@
 package com.ssafy.srank.mail.presentation;
 
 import com.ssafy.srank.common.response.ApiResponse;
+import com.ssafy.srank.mail.application.dto.request.MailRequest;
+import com.ssafy.srank.mail.application.dto.request.SystemMailRequest;
 import com.ssafy.srank.mail.application.dto.response.MailResponse;
 import com.ssafy.srank.mail.application.service.MailService;
 import com.ssafy.srank.security.SecurityUtil;
@@ -32,5 +34,11 @@ public class MailController {
     @PutMapping("/{mailId}/read")
     public ResponseEntity<ApiResponse<Long>> claimMailReward(@PathVariable Long mailId) {
         return ResponseEntity.ok(ApiResponse.success(mailService.claimMailRead(SecurityUtil.getCurrentUserId(), mailId)));
+    }
+
+    @PostMapping("/system")
+    public ResponseEntity<ApiResponse<Void>> postSystemMail(@RequestBody SystemMailRequest request) {
+        mailService.postSystemMail(request);
+        return ResponseEntity.ok(ApiResponse.success());
     }
 }

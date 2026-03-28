@@ -11,7 +11,7 @@ public record MailResponse(
         boolean isRead,
         boolean isClaimed,
         String message,
-        Integer reward,
+        Long reward,
         LocalDateTime createdAt
 ) {
 

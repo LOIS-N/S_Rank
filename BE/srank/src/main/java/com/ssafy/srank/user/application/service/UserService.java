@@ -5,6 +5,8 @@ import com.ssafy.srank.user.application.dto.request.UpdateNicknameRequest;
 import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
 import com.ssafy.srank.user.application.dto.response.MyGachaInfo;
 
+import java.util.List;
+
 public interface UserService {
 
     MyInfoResponse getMyInfo(Long userId);
@@ -24,4 +26,7 @@ public interface UserService {
     void levelUp(Long userId);
 
     void rewardCoin(Long userId, Long coin);
+
+    //귀찮아서 전부 들고옴
+    List<Long> getUserIds();
 }

@@ -33,7 +33,7 @@ public class MailBox extends BaseEntity {
     private String message;
 
     @Column()
-    private Integer reward;
+    private Long reward;
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
@@ -41,9 +41,6 @@ public class MailBox extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "mail_type", nullable = false)
     private MailType mailType;
-
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
 
     // ===== 상태 변경 메서드 =====
 
