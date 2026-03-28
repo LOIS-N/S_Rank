@@ -8,6 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -16,15 +19,17 @@ public class SubQuestScheduler {
     private final SubQuestScheduleService subQuestScheduleService;
     private final QuestMetrics questMetrics;
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 50 23 * * *")
     public void generateDailySubQuests() {
         long startNanos = System.nanoTime();
         boolean hasFailure = false;
         log.info("sub quest daily generation started");
 
+        LocalDateTime questDate  = LocalDate.now().plusDays(1).atStartOfDay();
+
         for (int difficulty = 1; difficulty <= 6; difficulty++) {
             try {
-                subQuestScheduleService.generateAndSave(difficulty);
+                subQuestScheduleService.generateAndSave(difficulty, questDate);
             } catch (Exception e) {
                 hasFailure = true;
                 log.error("sub quest generation failed difficulty={}", difficulty, e);

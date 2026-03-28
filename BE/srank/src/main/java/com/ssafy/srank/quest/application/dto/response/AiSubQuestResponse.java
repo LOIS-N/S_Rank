@@ -32,9 +32,17 @@ public class AiSubQuestResponse {
         private int difficulty;
         private int durationMinutes;
         private int rewardGold;
+        private int cardSlotCount;
         private List<RequiredSkill> requiredSkills;
 
-        public SubQuestTemplate toEntity() {
+        public SubQuestTemplate toEntity(LocalDateTime questDate) {
+
+            int slotCount = switch (this.difficulty) {
+                case 1, 2 -> 3;
+                case 3, 4 -> 4;
+                case 5, 6 -> 5;
+                default -> this.cardSlotCount > 0 ? this.cardSlotCount : 3;
+            };
             return SubQuestTemplate.builder()
                     .title(this.title)
                     .description(this.description)
@@ -46,9 +54,9 @@ public class AiSubQuestResponse {
                     .requiredSkillType3(this.requiredSkills.get(2).getSkillType())
                     .requiredSkillValue3(this.requiredSkills.get(2).getSkillValue())
                     .durationMinutes(this.durationMinutes)
-                    .cardSlotCount(this.requiredSkills.size())
+                    .cardSlotCount(slotCount)
                     .rewardGold(this.rewardGold)
-                    .questDate(LocalDateTime.now())
+                    .questDate(questDate)
                     .build();
         }
     }
