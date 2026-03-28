@@ -23,4 +23,5 @@ public interface UserService {
 
     void levelUp(Long userId);
 
+    void rewardCoin(Long userId, Long coin);
 }

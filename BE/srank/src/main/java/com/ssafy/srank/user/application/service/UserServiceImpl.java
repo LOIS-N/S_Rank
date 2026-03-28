@@ -141,6 +141,13 @@ public class UserServiceImpl implements UserService {
         )));
     }
 
+    @Transactional
+    @Override
+    public void rewardCoin(Long userId, Long coin) {
+        User user = userRepository.findById(userId).orElseThrow(()->new BusinessException(ErrorCode.USER_NOT_FOUND));
+        user.increaseCoin(coin);
+    }
+
     private User getActiveUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));

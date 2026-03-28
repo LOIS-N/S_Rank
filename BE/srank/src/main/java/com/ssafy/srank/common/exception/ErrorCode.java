@@ -23,6 +23,8 @@ import org.springframework.http.HttpStatus;
  *   RK : Ranking (랭킹)
  *   AC : Achievement (업적)
  *   GD : GOLD (골드 재화)
+ *   CN : COIN (코인 재화)
+ *   M : MAIL (우편)
  */
 @Getter
 @RequiredArgsConstructor
@@ -134,7 +136,17 @@ public enum ErrorCode {
 
     // ======================== GD : Gold (골드-재화) ========================
     GOLD_INVALID_AMOUNT(HttpStatus.BAD_REQUEST,      "GD001", "잘못된 골드(재화) 입니다."),
-    GOLD_INSUFFICIENT(HttpStatus.BAD_REQUEST,      "GD002", "보유 골드가 부족합니다.");
+    GOLD_INSUFFICIENT(HttpStatus.BAD_REQUEST,      "GD002", "보유 골드가 부족합니다."),
+
+    // ======================== CN : COIN (코인 재화) ========================
+    COIN_INVALID_AMOUNT(HttpStatus.BAD_REQUEST,      "CN001", "잘못된 코인(재화) 입니다."),
+    COIN_INSUFFICIENT(HttpStatus.BAD_REQUEST,      "CN002", "보유 코인이 부족합니다."),
+
+
+    // ======================== M : MAIL (우편함) ========================
+    MAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "존재하지 않는 우편입니다."),
+    MAIL_REWARD_ALREADY_CLAIMED(HttpStatus.BAD_REQUEST, "M002", "이미 보상을 수령한 우편입니다.");
+
 
     private final HttpStatus httpStatus;
     private final String code;
