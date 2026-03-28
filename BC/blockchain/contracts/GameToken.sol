@@ -14,4 +14,8 @@ contract GameToken is ERC20, Ownable (msg.sender) {
     function mintReward(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
     }
+
+    function transferOnBehalf(address from, address to, uint256 amount) external onlyOwner {
+    _transfer(from, to, amount);
+}
 }

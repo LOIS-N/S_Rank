@@ -57,6 +57,15 @@ contract CardMarket is Ownable {
         emit CardSold(msg.sender, item.seller, tokenId, item.price);
     }
 
+    function buyCardFor(uint256 tokenId, address buyer) external onlyOwner {
+    Listing memory item = listings[tokenId];
+    require(item.isActive, "Item is not for sale");
+    require(block.timestamp <= item.expiresAt, "Listing has expired");
+    delete listings[tokenId];
+    nftContract.safeTransferFrom(address(this), buyer, tokenId);
+    emit CardSold(buyer, item.seller, tokenId, item.price);
+}
+
     // 3️⃣ 유찰 카드 회수: 24시간 지나야만 본인이 찾아갈 수 있음 (변경 없음)
     function reclaimExpiredCard(uint256 tokenId) external {
         Listing memory item = listings[tokenId];
