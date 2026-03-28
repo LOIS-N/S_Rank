@@ -15,7 +15,7 @@ interface MyPageModalProps {
 export default function MyPageModal({ onClose, isOnboarding = false }: MyPageModalProps) {
   const { nickname, setNickname, logout } = useGameStore();
   const { accessToken, setNickname: setUserStoreNickname, setProfile, finalizeOnboarding, clearUser } = useUserStore();
-  const { logout: privyLogout } = usePrivy();
+  const { logout: privyLogout, exportWallet } = usePrivy();
   const router = useRouter();
 
   const [inputValue, setInputValue] = useState(nickname || "");
@@ -175,7 +175,19 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
             회원 탈퇴
           </button>
         </div>
+
+        {/* === [테스트/관리자용] Privy 지갑 개인키(Private Key) 추출 버튼 === */}
+        {/* 추후 필요 시 아래 주석을 해제하여 사용하세요. */}
+        <div className="flex justify-center mt-3">
+          <button
+            onClick={exportWallet}
+            className="w-full py-3 text-lg font-bold bg-yellow-400 text-slate-900 border-b-4 border-r-4 border-yellow-600 active:border-0 active:translate-y-1 transition-all"
+          >
+            내 Privy 지갑 개인키 보기
+          </button>
+        </div>
       </div>
+
 
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#8ea4b8]/80 font-dot pointer-events-auto">
