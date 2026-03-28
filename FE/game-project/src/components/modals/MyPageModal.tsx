@@ -15,7 +15,7 @@ interface MyPageModalProps {
 export default function MyPageModal({ onClose, isOnboarding = false }: MyPageModalProps) {
   const { nickname, setNickname, logout } = useGameStore();
   const { accessToken, setNickname: setUserStoreNickname, setProfile, finalizeOnboarding, clearUser } = useUserStore();
-  const { logout: privyLogout } = usePrivy();
+  const { logout: privyLogout, exportWallet } = usePrivy();
   const router = useRouter();
 
   const [inputValue, setInputValue] = useState(nickname || "");
@@ -173,6 +173,15 @@ export default function MyPageModal({ onClose, isOnboarding = false }: MyPageMod
             className="flex-1 py-3 text-lg font-bold bg-red-600 text-white border-b-4 border-r-4 border-red-800 active:border-0 active:translate-y-1 transition-all"
           >
             회원 탈퇴
+          </button>
+        </div>
+
+        <div className="flex justify-center mt-3">
+          <button
+            onClick={exportWallet}
+            className="w-full py-3 text-lg font-bold bg-yellow-400 text-slate-900 border-b-4 border-r-4 border-yellow-600 active:border-0 active:translate-y-1 transition-all"
+          >
+            내 Privy 지갑 개인키 보기
           </button>
         </div>
       </div>
