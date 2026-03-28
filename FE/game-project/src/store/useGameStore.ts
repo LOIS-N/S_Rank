@@ -105,6 +105,10 @@ interface GameState {
   resetTutorialState: () => void;
   showTutorialGoldModal: boolean;
   setShowTutorialGoldModal: (v: boolean) => void;
+  mailModalOpen: boolean;
+  setMailModalOpen: (v: boolean) => void;
+  dailyMissionModalOpen: boolean;
+  setDailyMissionModalOpen: (v: boolean) => void;
   pushNotification: (title: string, body: string) => void;
   markNotificationRead: (id: number) => void;
 }
@@ -276,6 +280,10 @@ export const useGameStore = create<GameState>()(
   stopTutorialQuestTimer: () => set({ tutorialQuestTimerActive: false, tutorialQuestTimerSec: 0, tutorialQuestTimerReward: 0 }),
   showTutorialGoldModal: false,
   setShowTutorialGoldModal: (v) => set({ showTutorialGoldModal: v }),
+  mailModalOpen: false,
+  setMailModalOpen: (v) => set({ mailModalOpen: v }),
+  dailyMissionModalOpen: false,
+  setDailyMissionModalOpen: (v) => set({ dailyMissionModalOpen: v }),
   resetTutorialState: () => set({
     tutorialActive: false,
     tutorialQuestStep: null,

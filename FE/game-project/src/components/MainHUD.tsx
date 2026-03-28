@@ -50,6 +50,8 @@ export default function MainHUD() {
     tutorialQuestStep, setTutorialQuestStep,
     setTutorialGachaCount, setTutorialScriptId,
     quests,
+    setMailModalOpen,
+    setDailyMissionModalOpen,
   } = useGameStore();
   const { accessToken, level: userLevel } = useUserStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -212,13 +214,13 @@ export default function MainHUD() {
           </div>
 
           {/* 오른쪽: 아이콘 버튼들 */}
-          <div className="flex" style={{ gap: "1.0cqw", paddingRight: "1.0cqw" }}>
+          <div className="flex" style={{ gap: "0.5cqw", paddingRight: "1.0cqw" }}>
             {[
-              { id: "mypage", icon: `${ASSET_BASE}/assets/002/mypage_002.webp`, label: "마이페이지", comingSoon: false },
-              { id: "ranking", icon: `${ASSET_BASE}/assets/002/ranking_002.webp`, label: "랭킹", comingSoon: false },
-              { id: "discord", icon: `${ASSET_BASE}/assets/002/discord_002.webp`, label: "디스코드", comingSoon: false },
-              { id: "notification", icon: `${ASSET_BASE}/assets/002/message_002.webp`, label: "알림", comingSoon: true },
-              { id: "achievement", icon: `${ASSET_BASE}/assets/002/awards_002.webp`, label: "업적", comingSoon: true },
+              { id: "mypage",       icon: `${ASSET_BASE}/assets/002/mypage_002.webp`,   label: "마이페이지",  comingSoon: false },
+              { id: "ranking",      icon: `${ASSET_BASE}/assets/002/ranking_002.webp`,  label: "랭킹",       comingSoon: false },
+              { id: "discord",      icon: `${ASSET_BASE}/assets/002/discord_002.webp`,  label: "디스코드",   comingSoon: false },
+              { id: "mail",         icon: `${ASSET_BASE}/assets/002/message_002.webp`,  label: "우편함",     comingSoon: false },
+              { id: "achievement",  icon: `${ASSET_BASE}/assets/002/awards_002.webp`,   label: "업적",       comingSoon: false },
             ].map((item) => {
               const isTutorialDisabled = tutorialQuestStep !== null;
               const isDisabled = item.comingSoon || isTutorialDisabled;
@@ -227,6 +229,8 @@ export default function MainHUD() {
                   key={item.id}
                   onClick={isTutorialDisabled
                     ? () => openComingSoonModal("튜토리얼 진행 후 이용 가능합니다.")
+                    : item.id === "mail" ? () => setMailModalOpen(true)
+                    : item.id === "achievement" ? () => setDailyMissionModalOpen(true)
                     : item.comingSoon ? () => openComingSoonModal() : () => openModal(item.id)
                   }
                   className="relative flex items-center justify-center transition-all"

@@ -6,6 +6,8 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
 import { useUserStore } from "@/store/useUserStore";
 import client from "@/lib/axios";
+import MailModal from "./modals/MailModal";
+import DailyMissionModal from "./modals/DailyMissionModal";
 import { sendGAEvent } from "@/lib/gtag";
 import { stopTutorialBgm } from "./BgmPlayer";
 import TutorialQuestScript from "./TutorialQuestScript";
@@ -53,6 +55,8 @@ export default function GlobalModals() {
     resetTutorialState,
     tutorialIsNewUser,
     showTutorialGoldModal, setShowTutorialGoldModal,
+    mailModalOpen, setMailModalOpen,
+    dailyMissionModalOpen, setDailyMissionModalOpen,
   } = useGameStore();
   const { clearUser, accessToken } = useUserStore();
 
@@ -555,6 +559,9 @@ export default function GlobalModals() {
         </div>
         );
       })()}
+
+      {mailModalOpen && <MailModal onClose={() => setMailModalOpen(false)} />}
+      {dailyMissionModalOpen && <DailyMissionModal onClose={() => setDailyMissionModalOpen(false)} />}
     </>
   );
 }

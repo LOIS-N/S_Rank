@@ -5,7 +5,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useUserStore } from "@/store/useUserStore";
 import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
-import { useTrade } from "@/hooks/useTrade";
+// useTrade (직접 온체인 호출) 제거 — BE가 비동기로 블록체인 처리
 import { sendGAEvent } from "@/lib/gtag";
 import "./trade.css";
 
@@ -70,67 +70,33 @@ function formatDate(dateStr: string | null): string {
   return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-// ── 샘플 데이터 ──
-const SAMPLE_LISTINGS: TradeListing[] = [
-  {
-    // tokenId: BE API 연동 시 실제 온체인 tokenId가 채워짐. 현재는 테스트용 임시값.
-    listingId: 1, cardId: 1, grade: "S", name: "싸피생1", tokenId: undefined,
-    imageUrl: "/assets/008/SCardImage_000.webp",
-    skill1: { skillType: "BE", value: 99 }, skill2: { skillType: "FE", value: 99 }, skill3: { skillType: "AI", value: 80 },
-    price: 150000, sellerNickname: "판매자A", enhanceLevel: 2, remainEnhanceCount: 3,
-  },
-  {
-    listingId: 2, cardId: 2, grade: "A", name: "싸피생2", tokenId: undefined,
-    imageUrl: "/assets/008/SCardImage_001.webp",
-    skill1: { skillType: "BE", value: 99 }, skill2: { skillType: "FE", value: 80 }, skill3: { skillType: "AI", value: 99 },
-    price: 200000, sellerNickname: "판매자B", enhanceLevel: 0, remainEnhanceCount: 5,
-  },
-  {
-    listingId: 3, cardId: 3, grade: "A", name: "싸피생3", tokenId: undefined,
-    imageUrl: "/assets/008/SCardImage_002.webp",
-    skill1: { skillType: "BE", value: 80 }, skill2: { skillType: "FE", value: 99 }, skill3: { skillType: "AI", value: 99 },
-    price: 300000, sellerNickname: "판매자C", enhanceLevel: 1, remainEnhanceCount: 4,
-  },
-];
-
-const SAMPLE_HISTORY: HistoryItem[] = [
-  {
-    historyId: 1, status: "판매중",
-    cardName: "싸피생1", grade: "S", imageUrl: "/assets/008/SCardImage_000.webp",
-    skill1: { skillType: "BE", value: 99 }, skill2: { skillType: "FE", value: 99 }, skill3: { skillType: "AI", value: 80 },
-    enhanceLevel: 2, remainEnhanceCount: 3, price: 150000,
-    completedAt: null, expiresAt: "2026-04-01T00:00:00Z", registeredAt: "2026-03-20T10:00:00Z",
-  },
-  {
-    historyId: 2, status: "판매완료",
-    cardName: "싸피생2", grade: "A", imageUrl: "/assets/008/SCardImage_001.webp",
-    skill1: { skillType: "BE", value: 99 }, skill2: { skillType: "FE", value: 80 }, skill3: { skillType: "AI", value: 99 },
-    enhanceLevel: 0, remainEnhanceCount: 5, price: 200000,
-    completedAt: "2026-03-21T15:30:00Z", expiresAt: "2026-03-25T00:00:00Z", registeredAt: "2026-03-19T09:00:00Z",
-  },
-  {
-    historyId: 3, status: "구매완료",
-    cardName: "싸피생3", grade: "A", imageUrl: "/assets/008/SCardImage_002.webp",
-    skill1: { skillType: "BE", value: 80 }, skill2: { skillType: "FE", value: 99 }, skill3: { skillType: "AI", value: 99 },
-    enhanceLevel: 1, remainEnhanceCount: 4, price: 300000,
-    completedAt: "2026-03-20T12:00:00Z", expiresAt: null, registeredAt: "2026-03-18T08:00:00Z",
-  },
-];
-
 // ── 타입 정의 ──
 interface TradeCardSkill { skillType: string; value: number; }
 interface TradeListing {
   listingId: number; cardId: number; grade: string; name: string; imageUrl: string;
   skill1: TradeCardSkill; skill2: TradeCardSkill; skill3: TradeCardSkill;
-  price: number; sellerNickname: string; enhanceLevel: number; remainEnhanceCount: number;
-  tokenId?: number; // BE mint 완료 후 채워짐
+  price: number; sellerNickname?: string; enhanceLevel: number; remainEnhanceCount: number;
+  tokenId?: number;
 }
 interface MyCardItem {
-  cardId: number; grade: string; name: string; imageUrl: string;
+  userCardId: number; cardId?: number; grade: string; name: string; imageUrl: string;
   skill1: TradeCardSkill; skill2: TradeCardSkill; skill3: TradeCardSkill;
   enhanceLevel: number; remainEnhanceCount: number;
 }
 type HistoryStatus = "판매중" | "판매완료" | "기간종료" | "구매완료";
+
+// BE MarketItemStatus(영문) → FE 한글 표시 변환
+function mapHistoryStatus(beStatus: string): HistoryStatus {
+  const s = (beStatus ?? "").toUpperCase();
+  if (s === "SALE_PENDING" || s === "ON_SALE") return "판매중";
+  if (s === "SOLD" || s === "SELL_COMPLETED" || s === "SALE_COMPLETE") return "판매완료";
+  if (s === "EXPIRED" || s === "SALE_EXPIRED") return "기간종료";
+  if (s === "BUY_PENDING" || s === "BUY_COMPLETED" || s === "BUY_COMPLETE") return "구매완료";
+  // historyType 기반 fallback
+  if (s === "SELL_REGISTERED") return "판매중";
+  return "판매중"; // 알 수 없는 값은 기본값
+}
+
 interface HistoryItem {
   historyId: number; status: HistoryStatus; cardName: string; grade: string; imageUrl: string;
   skill1: TradeCardSkill; skill2: TradeCardSkill; skill3: TradeCardSkill;
@@ -298,21 +264,6 @@ export default function TradePage() {
   const histScroll = useCustomScroll(histListHeight, histWrapHeight);
 
   const getToken = useCallback(async () => accessToken || await getAccessToken(), [accessToken, getAccessToken]);
-  const { listOnChain, buyOnChain, checkAndApproveAll } = useTrade();
-
-  // 샘플 데이터 클라이언트 필터링
-  const filterSampleListings = useCallback((items: TradeListing[]) => {
-    return items.filter(item => {
-      if (skillFilter === "ALL") return true;
-      const matchingSkill = [item.skill1, item.skill2, item.skill3].find(s =>
-        displaySkillType(s.skillType) === skillFilter || s.skillType.toUpperCase() === skillFilter
-      );
-      if (!matchingSkill) return false;
-      const min = minStat ? parseInt(minStat) : 0;
-      const max = maxStat ? parseInt(maxStat) : 9999;
-      return matchingSkill.value >= min && matchingSkill.value <= max;
-    });
-  }, [skillFilter, minStat, maxStat]);
 
   // ── 구매 목록 fetch ──
   const fetchListings = useCallback(async () => {
@@ -323,36 +274,59 @@ export default function TradePage() {
       if (skillFilter !== "ALL") params.skillType = skillFilter === 'DEV' ? 'DEVOPS' : skillFilter;
       if (minStat) params.minStat = minStat;
       if (maxStat) params.maxStat = maxStat;
-      const { data } = await api.get("/api/v1/trade/listings", {
+      const { data } = await api.get("/api/v1/market/items", {
         headers: { Authorization: `Bearer ${token}` },
         params,
       });
       if (data.success) {
-        const result: TradeListing[] = data.data ?? [];
-        const final = result.length > 0 ? result : filterSampleListings(SAMPLE_LISTINGS);
-        setListings(final);
-        setSelectedListing(prev => prev ?? (final[0] ?? null));
+        // BE 응답 필드 매핑: marketItemId→listingId, cardName→name, priceCoin→price
+        const raw: any[] = data.data?.items ?? data.data ?? [];
+        const result: TradeListing[] = raw.map(item => ({
+          listingId: item.marketItemId ?? item.listingId,
+          cardId: item.userCardId ?? item.cardId,
+          grade: item.grade,
+          name: item.cardName ?? item.name,
+          imageUrl: item.imageUrl,
+          skill1: { skillType: item.skill1?.skillType, value: item.skill1?.value },
+          skill2: { skillType: item.skill2?.skillType, value: item.skill2?.value },
+          skill3: { skillType: item.skill3?.skillType, value: item.skill3?.value },
+          price: item.priceCoin ?? item.price,
+          enhanceLevel: item.enhanceSuccessCount ?? item.enhanceLevel ?? 0,
+          remainEnhanceCount: item.enhanceTryCount ?? item.remainEnhanceCount ?? 0,
+        }));
+        setListings(result);
+        setSelectedListing(prev => prev ?? (result[0] ?? null));
       }
     } catch {
-      const filtered = filterSampleListings(SAMPLE_LISTINGS);
-      setListings(filtered);
-      setSelectedListing(prev => prev ?? (filtered[0] ?? null));
+      setListings([]);
+      setSelectedListing(null);
     } finally {
       setIsBuyLoading(false);
     }
-  }, [getToken, skillFilter, minStat, maxStat, filterSampleListings]);
+  }, [getToken, skillFilter, minStat, maxStat]);
 
   // ── 내 카드 목록 fetch ──
   const fetchMyCards = useCallback(async () => {
     setIsSellLoading(true);
     try {
       const token = await getToken();
-      const { data } = await api.get("/api/v1/cards", {
+      const { data } = await api.get("/api/v1/market/my/sellable-cards", {
         headers: { Authorization: `Bearer ${token}` },
-        params: { limit: "100" },
       });
       if (data.success) {
-        const cards: MyCardItem[] = data.data?.cards ?? [];
+        const raw: any[] = data.data?.items ?? data.data ?? [];
+        const cards: MyCardItem[] = raw.map(item => ({
+          userCardId: item.userCardId,
+          cardId: item.cardTemplateId,
+          grade: item.grade,
+          name: item.cardName ?? item.name,
+          imageUrl: item.imageUrl,
+          skill1: { skillType: item.skill1?.skillType, value: item.skill1?.value },
+          skill2: { skillType: item.skill2?.skillType, value: item.skill2?.value },
+          skill3: { skillType: item.skill3?.skillType, value: item.skill3?.value },
+          enhanceLevel: item.enhanceSuccessCount ?? 0,
+          remainEnhanceCount: item.enhanceTryCount ?? 0,
+        }));
         setMyCards(cards);
         setSelectedMyCard(cards[0] ?? null);
       }
@@ -370,19 +344,34 @@ export default function TradePage() {
       const token = await getToken();
       const params: Record<string, string> = {};
       if (histStatusFilter !== "ALL") params.status = histStatusFilter;
-      const { data } = await api.get("/api/v1/trade/history", {
+      const { data } = await api.get("/api/v1/market/my/histories", {
         headers: { Authorization: `Bearer ${token}` },
         params,
       });
       if (data.success) {
-        const result: HistoryItem[] = data.data ?? [];
-        const final = result.length > 0 ? result : SAMPLE_HISTORY;
-        setHistory(final);
-        setSelectedHistItem(prev => prev ?? (final[0] ?? null));
+        const raw: any[] = data.data?.histories ?? data.data ?? [];
+        const result: HistoryItem[] = raw.map(item => ({
+          historyId: item.marketTradeHistoryId ?? item.historyId,
+          grade: item.grade,
+          cardName: item.cardName,
+          imageUrl: item.imageUrl,
+          skill1: { skillType: item.skill1?.skillType, value: item.skill1?.value },
+          skill2: { skillType: item.skill2?.skillType, value: item.skill2?.value },
+          skill3: { skillType: item.skill3?.skillType, value: item.skill3?.value },
+          price: item.priceCoin ?? item.price,
+          status: mapHistoryStatus(item.status ?? item.historyType ?? ""),
+          enhanceLevel: item.enhanceSuccessCount ?? item.enhanceLevel ?? 0,
+          remainEnhanceCount: item.enhanceTryCount ?? item.remainEnhanceCount ?? 0,
+          completedAt: item.completedAt ?? null,
+          expiresAt: item.expiresAt ?? null,
+          registeredAt: item.eventAt ?? item.createdAt ?? item.registeredAt,
+        }));
+        setHistory(result);
+        setSelectedHistItem(prev => prev ?? (result[0] ?? null));
       }
     } catch {
-      setHistory(SAMPLE_HISTORY);
-      setSelectedHistItem(prev => prev ?? (SAMPLE_HISTORY[0] ?? null));
+      setHistory([]);
+      setSelectedHistItem(null);
     } finally {
       setIsHistoryLoading(false);
     }
@@ -395,7 +384,7 @@ export default function TradePage() {
     setSelectedListing(null);
     setSelectedMyCard(null);
     setSelectedHistItem(null);
-  }, [tab]);
+  }, [tab, fetchListings, fetchMyCards, fetchHistory]);
 
   // DOM 높이 측정
   useEffect(() => {
@@ -445,13 +434,9 @@ export default function TradePage() {
     if (!selectedListing) return;
     setIsBuying(true);
     try {
-      // 1. 온체인 구매 (token.approve → market.buyCard)
-      if (selectedListing.tokenId != null) {
-        await buyOnChain(selectedListing.tokenId, selectedListing.price, setBuyStep);
-      }
-      // 2. BE에 구매 완료 기록
+      // BE API 호출 (BE가 비동기로 블록체인 처리)
       const token = await getToken();
-      await api.post(`/api/v1/trade/listings/${selectedListing.listingId}/buy`, {}, {
+      await api.post(`/api/v1/market/items/${selectedListing.listingId}/buy`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSelectedListing(null);
@@ -472,36 +457,18 @@ export default function TradePage() {
     if (isNaN(price) || price <= 0) { useGameStore.getState().openComingSoonModal("올바른 가격을 입력해주세요."); return; }
     setIsSelling(true);
     try {
-      // 0. setApprovalForAll 미승인 시 자동 처리 (최초 1회만 서명 발생)
-      setSellStep("거래 활성화 확인 중...");
-      await checkAndApproveAll(setSellStep);
-
-      // 1. BE에 민팅 요청 → tokenId 수령
-      setSellStep("");
+      // BE API 호출 (BE가 비동기로 블록체인 처리)
       const token = await getToken();
-      const { data } = await api.post("/api/v1/trade/listings", {
-        cardId: selectedMyCard.cardId, price,
+      await api.post("/api/v1/market/items", {
+        userCardId: selectedMyCard.userCardId,
+        priceCoin: price,
       }, { headers: { Authorization: `Bearer ${token}` } });
-      const tokenId: number | undefined = data?.data?.tokenId;
-
-      // 2. 온체인 판매 등록 (nft.approve → market.listCard)
-      if (tokenId != null) {
-        await listOnChain(tokenId, price, setSellStep);
-        // GA: NFT 민팅(온체인 등록) 완료
-        sendGAEvent("nft_mint", {
-          card_id: selectedMyCard.cardId,
-          card_name: selectedMyCard.name,
-          card_grade: selectedMyCard.grade,
-          token_id: tokenId,
-          price_cff: price,
-          success: true,
-        });
-      }
 
       setSellStep("");
       setSellPrice("");
       setSelectedMyCard(null);
       fetchMyCards();
+      useGameStore.getState().openComingSoonModal("판매 등록 중입니다. 처리 완료 후 목록에 표시됩니다.");
     } catch (e: any) {
       setSellStep("");
       useGameStore.getState().openComingSoonModal((e as any)?.response?.data?.error?.message ?? "판매 등록 중 오류가 발생했습니다.");
@@ -510,9 +477,8 @@ export default function TradePage() {
     }
   };
 
-  // 판매 탭 필터링된 카드 (A/S 등급만, 스킬 필터 추가)
+  // 판매 탭 필터링된 카드 — BE가 /sellable-cards에서 이미 판매 가능 카드만 리턴하므로 등급 필터 불필요
   const filteredMyCards = myCards.filter(card => {
-    if (card.grade !== "A" && card.grade !== "S") return false;
     if (sellSkillFilter === "ALL") return true;
     return [card.skill1, card.skill2, card.skill3].some(s =>
       displaySkillType(s.skillType) === sellSkillFilter || s.skillType.toUpperCase() === sellSkillFilter
