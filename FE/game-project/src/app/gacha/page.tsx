@@ -25,7 +25,7 @@ const TAB_TO_TYPE_ID: Record<TabType, string> = {
 };
 
 const GACHA_COSTS: Record<TabType, { single: number; ten: number }> = {
-  flyer: { single: 10000, ten: 90000 },
+  flyer: { single: 10000, ten: 70000 },
   fair: { single: 15000, ten: 135000 },
   public: { single: 40000, ten: 360000 },
 };

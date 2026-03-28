@@ -89,14 +89,14 @@ interface TradeListing {
   listingId: number; cardId: number; grade: string; name: string; imageUrl: string;
   skill1: TradeCardSkill; skill2: TradeCardSkill; skill3: TradeCardSkill;
   price: number; sellerNickname?: string; enhanceLevel: number; remainEnhanceCount: number;
-  tokenId?: number;
+  tokenId?: number; registeredAt: string;
 }
 interface MyCardItem {
   userCardId: number; cardId?: number; grade: string; name: string; imageUrl: string;
   skill1: TradeCardSkill; skill2: TradeCardSkill; skill3: TradeCardSkill;
   enhanceLevel: number; remainEnhanceCount: number;
 }
-type HistoryStatus = "판매중" | "판매완료" | "구매완료" | "기간종료" | "판매취소" | "처리중" | "블록체인오류";
+type HistoryStatus = "판매중" | "판매완료" | "판매실패" | "구매완료" | "처리중";
 
 // BE MarketItemStatus + role → FE 한글 상태
 // role: "SELLER" | "BUYER" (BE TradeHistoryResponse 필드)
@@ -105,9 +105,8 @@ function mapHistoryStatus(beStatus: string, role?: string): HistoryStatus {
   if (s === "SALE_PENDING" || s === "ON_SALE" || s === "REGISTER") return "판매중";
   if (s === "BUY_PENDING") return "처리중";
   if (s === "SOLD" || s === "TRADE") return role === "BUYER" ? "구매완료" : "판매완료";
-  if (s === "EXPIRED" || s === "EXPIRE") return "기간종료";
-  if (s === "CANCELED" || s === "CANCEL" || s === "CANCELLED") return "판매취소";
-  if (s === "FAILED") return "블록체인오류";
+  // 실패 관련 상태들을 모두 "판매실패"로 통합
+  if (s === "EXPIRED" || s === "EXPIRE" || s === "CANCELED" || s === "CANCEL" || s === "CANCELLED" || s === "FAILED") return "판매실패";
   return "판매중";
 }
 
@@ -235,7 +234,7 @@ function useCustomScroll(contentHeight: number, wrapperHeight: number) {
 export default function TradePage() {
   const { getAccessToken } = usePrivy();
   const { accessToken } = useUserStore();
-  const { coffee, marketRefreshSignal } = useGameStore();
+  const { coffee, usedCardIds, setUsedCardIds, setListedCardIds, marketRefreshSignal } = useGameStore();
   const [tab, setTab] = useState<TabType>("BUY");
 
   // ── 구매 탭 상태 ──
@@ -304,6 +303,7 @@ export default function TradePage() {
           price: item.priceCoin ?? item.price ?? 0,
           enhanceLevel: item.enhanceSuccessCount ?? item.enhanceLevel ?? 0,
           remainEnhanceCount: Math.max(0, 7 - (item.enhanceTryCount ?? 0)),
+          registeredAt: item.eventAt ?? item.createdAt ?? item.registeredAt ?? "",
         }));
         setListings(result);
         setSelectedListing(prev => prev ?? (result[0] ?? null));
@@ -372,7 +372,7 @@ export default function TradePage() {
           status: mapHistoryStatus(item.status ?? item.historyType ?? "", item.role),
           enhanceLevel: item.enhanceSuccessCount ?? item.enhanceLevel ?? 0,
           remainEnhanceCount: Math.max(0, 7 - (item.enhanceTryCount ?? 0)),
-          completedAt: item.completedAt ?? null,
+          completedAt: item.eventAt ?? item.completedAt ?? null,
           expiresAt: item.expiresAt ?? null,
           registeredAt: item.eventAt ?? item.createdAt ?? item.registeredAt ?? "",
         }));
@@ -391,6 +391,20 @@ export default function TradePage() {
   // ── 내가 판매 등록한 marketItemId 세트 (구매 탭에서 자신의 카드 숨기기용) ──
   const [myListedIds, setMyListedIds] = useState<Set<number>>(new Set());
 
+  const fetchUsedCards = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const { data } = await api.get("/api/v1/cards/used", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data.success && Array.isArray(data.data)) {
+        setUsedCardIds(data.data);
+      }
+    } catch (err) {
+      console.error("사용 중인 카드 조회 실패:", err);
+    }
+  }, [getToken, setUsedCardIds]);
+
   const fetchMyListedIds = useCallback(async () => {
     try {
       const token = await getToken();
@@ -399,27 +413,31 @@ export default function TradePage() {
       });
       if (data.success) {
         const raw: RawMarketItem[] = data.data?.histories ?? data.data ?? [];
-        const ids = new Set<number>(
-          raw
-            .filter(item => (item.role ?? "").toUpperCase() === "SELLER")
-            .map(item => item.marketItemId ?? item.listingId ?? 0)
-            .filter(id => id !== 0)
-        );
-        setMyListedIds(ids);
+        const idsArray = raw
+          .filter(item => (item.role ?? "").toUpperCase() === "SELLER")
+          .map(item => item.userCardId ?? item.cardId ?? 0) // marketItemId가 아니라 실제 카드 ID(userCardId)를 저장해야 함
+          .filter(id => id !== 0);
+        
+        setListedCardIds(idsArray);
+        setMyListedIds(new Set(raw
+          .filter(item => (item.role ?? "").toUpperCase() === "SELLER")
+          .map(item => item.marketItemId ?? item.listingId ?? 0)
+          .filter(id => id !== 0)
+        ));
       }
     } catch {
       // 내 아이템 식별 실패 시 숨기기 없이 전체 표시
     }
-  }, [getToken]);
+  }, [getToken, setListedCardIds]);
 
   useEffect(() => {
     if (tab === "BUY") { fetchListings(); fetchMyListedIds(); }
-    else if (tab === "SELL") fetchMyCards();
-    else fetchHistory();
+    else if (tab === "SELL") { fetchMyCards(); fetchUsedCards(); }
+    else { fetchHistory(); fetchMyListedIds(); }
     setSelectedListing(null);
     setSelectedMyCard(null);
     setSelectedHistItem(null);
-  }, [tab, fetchListings, fetchMyCards, fetchHistory, fetchMyListedIds]);
+  }, [tab, fetchListings, fetchMyCards, fetchHistory, fetchMyListedIds, fetchUsedCards]);
 
   // SSE market 이벤트 수신 시 현재 탭 자동 새로고침
   useEffect(() => {
@@ -542,7 +560,7 @@ export default function TradePage() {
 
   // 구매 탭 클라이언트 필터링 (BE는 파라미터 미지원, 내가 등록한 카드 제외)
   const filteredListings = useMemo(() => {
-    return listings.filter(item => {
+    const list = listings.filter(item => {
       // 내가 판매 등록한 아이템은 구매 탭에서 숨김
       if (myListedIds.has(item.listingId)) return false;
       if (skillFilter !== "ALL") {
@@ -558,6 +576,18 @@ export default function TradePage() {
         if (maxStat && statVal > parseInt(maxStat, 10)) return false;
       }
       return true;
+    });
+
+    // 정렬 로직 고도화
+    // 1. 가격 (오름차순)
+    // 2. 능력치 총합 (내림차순)
+    // 3. 등록일시 (내림차순)
+    return list.sort((a, b) => {
+      if (a.price !== b.price) return a.price - b.price;
+      const sumA = a.skill1.value + a.skill2.value + a.skill3.value;
+      const sumB = b.skill1.value + b.skill2.value + b.skill3.value;
+      if (sumA !== sumB) return sumB - sumA;
+      return new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime();
     });
   }, [listings, myListedIds, skillFilter, minStat, maxStat]);
 
@@ -632,11 +662,6 @@ export default function TradePage() {
                   >
                     <div className="trade-item-thumb-wrap">
                       <img className="trade-item-thumb" src={item.imageUrl} alt={item.name} draggable={false} />
-                      {item.enhanceLevel > 0 && (
-                        <span className="card-enhance-badge trade-thumb-badge" data-level={String(item.enhanceLevel)} data-grade={item.grade}>
-                          <span className="badge-plus">+</span><span className="badge-num">{item.enhanceLevel}</span>
-                        </span>
-                      )}
                     </div>
                     <div className="trade-item-info">
                       <div className="trade-item-name">카드 이름 : {item.name}</div>
@@ -715,23 +740,34 @@ export default function TradePage() {
               ) : filteredMyCards.length === 0 ? (
                 <div style={{ gridColumn: "1/-1" }} className="trade-empty">카드가 없습니다</div>
               ) : (
-                filteredMyCards.map(card => (
-                  <div
-                    key={card.cardId}
-                    className={`trade-sell-card-item ${selectedMyCard?.cardId === card.cardId ? "selected" : ""}`}
-                    onClick={() => setSelectedMyCard(card)}
-                  >
-                    <img src={card.imageUrl} alt={card.name} draggable={false} />
-                    {card.enhanceLevel > 0 && (
-                      <span className="card-enhance-badge" data-level={String(card.enhanceLevel)} data-grade={card.grade}>
-                        <span className="badge-plus">+</span><span className="badge-num">{card.enhanceLevel}</span>
-                      </span>
-                    )}
-                    <span className="trade-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                    <span className="trade-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                    <span className="trade-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
-                  </div>
-                ))
+                  filteredMyCards.map(card => {
+                    const isSelected = selectedMyCard?.userCardId === card.userCardId;
+                    const isUsed = usedCardIds.includes(card.userCardId);
+                    return (
+                      <div
+                        key={card.userCardId}
+                        className={`trade-sell-card-item ${isSelected ? "selected" : ""} ${isUsed ? "used-disabled" : ""}`}
+                        onClick={() => {
+                          if (isUsed) return;
+                          setSelectedMyCard(card);
+                        }}
+                        style={isUsed ? { filter: 'brightness(0.5)', cursor: 'not-allowed' } : undefined}
+                      >
+                        <img src={card.imageUrl} alt={card.name} draggable={false} />
+                        {card.enhanceLevel > 0 && (
+                          <span className="card-enhance-badge" data-level={String(card.enhanceLevel)} data-grade={card.grade}>
+                            <span className="badge-plus">+</span><span className="badge-num">{card.enhanceLevel}</span>
+                          </span>
+                        )}
+                        {isUsed && (
+                          <span className="fire-check-overlay checked disabled">🔒</span>
+                        )}
+                        <span className="trade-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                        <span className="trade-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                        <span className="trade-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                      </div>
+                    );
+                  })
               )}
             </div>
           </div>
@@ -773,6 +809,7 @@ export default function TradePage() {
               <button
                 className="trade-sell-btn"
                 onClick={() => {
+                  if (usedCardIds.includes(selectedMyCard.userCardId)) return;
                   const price = parseInt(sellPrice, 10);
                   if (!sellPrice || isNaN(price) || price <= 0) {
                     useGameStore.getState().openComingSoonModal("올바른 가격을 입력해주세요.");
@@ -780,9 +817,9 @@ export default function TradePage() {
                   }
                   setShowSellConfirm(true);
                 }}
-                disabled={isSelling || !sellPrice}
+                disabled={isSelling || !sellPrice || usedCardIds.includes(selectedMyCard.userCardId)}
               >
-                {isSelling ? (sellStep || "등록 중...") : "판매 등록"}
+                {usedCardIds.includes(selectedMyCard.userCardId) ? "퀘스트 중" : isSelling ? (sellStep || "등록 중...") : "판매 등록"}
               </button>
             </div>
           </div>
@@ -807,12 +844,9 @@ export default function TradePage() {
             >
               <option value="ALL">전체</option>
               <option value="판매중">판매중</option>
-              <option value="처리중">처리중</option>
               <option value="판매완료">판매완료</option>
+              <option value="판매실패">판매실패</option>
               <option value="구매완료">구매완료</option>
-              <option value="기간종료">기간종료</option>
-              <option value="판매취소">판매취소</option>
-              <option value="블록체인오류">블록체인오류</option>
             </select>
           </div>
           <button className="trade-search-btn" onClick={fetchHistory}>검색</button>
@@ -830,11 +864,6 @@ export default function TradePage() {
                   <div key={h.historyId} className={`trade-item-row ${selectedHistItem?.historyId === h.historyId ? "selected" : ""}`} onClick={() => setSelectedHistItem(h)}>
                     <div className="trade-item-thumb-wrap">
                       <img className="trade-item-thumb" src={h.imageUrl} alt={h.cardName} draggable={false} />
-                      {h.enhanceLevel > 0 && (
-                        <span className="card-enhance-badge trade-thumb-badge" data-level={String(h.enhanceLevel)} data-grade={h.grade}>
-                          <span className="badge-plus">+</span><span className="badge-num">{h.enhanceLevel}</span>
-                        </span>
-                      )}
                     </div>
                     <div className="trade-item-info">
                       <div className="trade-history-status-badge" data-status={h.status}>{h.status}</div>
@@ -876,9 +905,32 @@ export default function TradePage() {
             </NineSliceBox>
             <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={12} borderScale={0.35} className="trade-right-info-box">
               <div className="trade-right-info-text trade-right-date-text">
-                판매/구매 완료 일자 : {formatDate(selectedHistItem.completedAt)}<br />
-                기간 만료일자 : {formatDate(selectedHistItem.expiresAt)}<br />
-                판매 등록일시 : {formatDate(selectedHistItem.registeredAt)}
+                {selectedHistItem.status === "판매중" && (
+                  <>
+                    판매 등록일시 : {formatDate(selectedHistItem.registeredAt)}<br />
+                    기간 만료일자 : {formatDate(selectedHistItem.expiresAt)}
+                  </>
+                )}
+                {selectedHistItem.status === "판매완료" && (
+                  <>
+                    판매 완료 일시 : {formatDate(selectedHistItem.completedAt)}
+                  </>
+                )}
+                {selectedHistItem.status === "판매실패" && (
+                  <>
+                    판매 등록일시 : {formatDate(selectedHistItem.registeredAt)}
+                  </>
+                )}
+                {selectedHistItem.status === "구매완료" && (
+                  <>
+                    구매 완료 일시 : {formatDate(selectedHistItem.completedAt)}
+                  </>
+                )}
+                {selectedHistItem.status === "처리중" && (
+                  <>
+                    처리 시작 일시 : {formatDate(selectedHistItem.registeredAt)}
+                  </>
+                )}
               </div>
             </NineSliceBox>
           </div>
@@ -937,13 +989,10 @@ export default function TradePage() {
               </div>
               <hr className="trade-modal-divider" />
               <div className="trade-modal-detail-row" style={{ flexDirection: "column", gap: "4px", alignItems: "flex-start" }}>
-                <span className="trade-modal-detail-value trade-modal-detail-warn" style={{ fontSize: "12px" }}>
-                  · 판매 수수료로 일정 금액이 차감됩니다.
-                </span>
-                <span className="trade-modal-detail-value" style={{ fontSize: "12px" }}>
+                <span className="trade-modal-notice-item">
                   · 판매 기간은 등록 후 24시간입니다.
                 </span>
-                <span className="trade-modal-detail-value" style={{ fontSize: "12px" }}>
+                <span className="trade-modal-notice-item">
                   · 미판매 시 카드 목록으로 자동 반환됩니다.
                 </span>
               </div>
@@ -976,10 +1025,6 @@ export default function TradePage() {
               <div className="trade-modal-detail-row">
                 <span className="trade-modal-detail-label">구매가</span>
                 <span className="trade-modal-detail-value">{selectedListing.price.toLocaleString()} 커피</span>
-              </div>
-              <div className="trade-modal-detail-row">
-                <span className="trade-modal-detail-label">수수료</span>
-                <span className="trade-modal-detail-value trade-modal-detail-free">없음 (구매자 부담 없음)</span>
               </div>
               <hr className="trade-modal-divider" />
               <div className="trade-modal-detail-row">

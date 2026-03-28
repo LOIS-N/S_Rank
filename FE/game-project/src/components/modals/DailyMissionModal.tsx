@@ -95,7 +95,7 @@ export default function DailyMissionModal({ onClose }: DailyMissionModalProps) {
 
       const rewardToken = data?.data?.rewardToken ?? mission.rewardToken;
       setResultMsg(
-        `${rewardToken} CFF 보상이 신청되었습니다.\n블록체인 처리 후 우편함으로 지급됩니다.`
+        `${rewardToken} 커피 보상이 신청되었습니다.\n블록체인 처리 후 우편함으로 지급됩니다.`
       );
       refetchCff();
     } catch (e: any) {
@@ -172,7 +172,7 @@ export default function DailyMissionModal({ onClose }: DailyMissionModalProps) {
                       {mission.rewardClaimed ? (
                         <span className="text-slate-500 text-sm">수령 완료</span>
                       ) : (
-                        <span className="text-sm text-blue-700 font-bold">보상: {mission.rewardToken} CFF</span>
+                        <span className="text-sm text-blue-700 font-bold">보상: {mission.rewardToken} 커피</span>
                       )}
                     </div>
                   </div>

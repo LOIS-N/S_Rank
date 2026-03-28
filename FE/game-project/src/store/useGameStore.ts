@@ -113,6 +113,11 @@ interface GameState {
   triggerMarketRefresh: () => void;
   pushNotification: (title: string, body: string) => void;
   markNotificationRead: (id: number) => void;
+  // --- 카드 상태 관리 ---
+  usedCardIds: number[];       // 퀘스트 진행 중인 카드 ID 목록
+  listedCardIds: number[];     // 상점에 판매 등록된 카드 ID 목록
+  setUsedCardIds: (ids: number[]) => void;
+  setListedCardIds: (ids: number[]) => void;
 }
 
 export const useGameStore = create<GameState>()(
@@ -288,6 +293,10 @@ export const useGameStore = create<GameState>()(
   setDailyMissionModalOpen: (v) => set({ dailyMissionModalOpen: v }),
   marketRefreshSignal: 0,
   triggerMarketRefresh: () => set((state) => ({ marketRefreshSignal: state.marketRefreshSignal + 1 })),
+  usedCardIds: [],
+  listedCardIds: [],
+  setUsedCardIds: (ids) => set({ usedCardIds: ids }),
+  setListedCardIds: (ids) => set({ listedCardIds: ids }),
   resetTutorialState: () => set({
     tutorialActive: false,
     tutorialQuestStep: null,

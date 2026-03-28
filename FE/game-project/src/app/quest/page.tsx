@@ -370,7 +370,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
 // --- Phase 2: 카드 배치 콘텐츠 ---
 function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () => void }) {
   const router = useRouter();
-  const { selectingDeskId, startQuest, quests: storeQuests, tutorialQuestStep: tStep, tutorialEnhanceCount, tutorialAccessPage: tAccessPage } = useGameStore();
+  const { selectingDeskId, startQuest, quests: storeQuests, tutorialQuestStep: tStep, tutorialEnhanceCount, tutorialAccessPage: tAccessPage, listedCardIds, setListedCardIds, setUsedCardIds, usedCardIds } = useGameStore();
   const isTutorialPhase2 = tStep !== null && [2, 32, 42].includes(tStep);
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -488,7 +488,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const gradeOrderedCards = useMemo(() => sortCardsByGradeAndStat(cards), [cards]);
 
   // --- 사용 중인 카드 ---
-  const [usedCardIds, setUsedCardIds] = useState<number[]>([]);
+  // 로컬 상태 제거: useGameStore에서 가져온 usedCardIds 사용
 
   useEffect(() => {
     const fetchUsedCards = async () => {
@@ -506,7 +506,28 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
         console.error("사용 중인 카드 조회 실패:", err);
       }
     };
+
+    const fetchMyListedIds = async () => {
+      // 튜토리얼 모드: 판매 중인 카드 없음
+      if (tStep !== null) return;
+      try {
+        const token = await getAuthToken();
+        const { data } = await api.get("/api/v1/market/my/histories", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data.success) {
+          const raw: any[] = data.data?.histories ?? data.data ?? [];
+          const idsArray = raw
+            .filter(item => (item.role ?? "").toUpperCase() === "SELLER")
+            .map(item => item.userCardId ?? item.cardId ?? 0)
+            .filter(id => id !== 0);
+          setListedCardIds(idsArray);
+        }
+      } catch { /* 무시 */ }
+    };
+
     fetchUsedCards();
+    fetchMyListedIds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -627,7 +648,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       return total;
     };
 
-    const available = gradeOrderedCards.filter(c => !usedCardIds.includes(c.cardId));
+    const available = gradeOrderedCards.filter(c => !usedCardIds.includes(c.cardId) && !listedCardIds.includes(c.cardId));
     const minCards = Math.min(3, quest.cardSlotCount);
     const maxCards = quest.cardSlotCount;
 
@@ -709,7 +730,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
   // --- 카드 선택 (cardSlotCount 제한) ---
   const handleCardClick = (id: number) => {
-    if (usedCardIds.includes(id)) {
+    if (usedCardIds.includes(id) || listedCardIds.includes(id)) {
       setUsedCardWarning(true);
       setTimeout(() => setUsedCardWarning(false), 2000);
       return;
@@ -1061,13 +1082,15 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
                 sortedCards.map((card) => {
                   const selected = selectedCards.includes(card.cardId);
                   const isUsed = usedCardIds.includes(card.cardId);
+                  const isListed = listedCardIds.includes(card.cardId);
+                  const isDisabled = isUsed || isListed;
                   return (
                     <div
                       key={card.cardId}
                       className={`phase2-card-item ${selected ? 'selected' : ''}`}
                       data-grade={card.grade}
                       onClick={() => handleCardClick(card.cardId)}
-                      style={{ filter: isUsed ? 'brightness(0.5)' : undefined, cursor: isUsed ? 'not-allowed' : undefined }}
+                      style={{ filter: isDisabled ? 'brightness(0.5)' : undefined, cursor: isDisabled ? 'not-allowed' : undefined }}
                     >
                       <img src={card.imageUrl} alt={card.name} draggable={false} />
                       {card.enhanceSuccessCount > 0 && (
@@ -1076,6 +1099,8 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
                         </span>
                       )}
                       {selected && <span className="card-check-overlay">✓</span>}
+                      {isUsed && <span className="card-lock-overlay">🔒</span>}
+                      {isListed && <span className="card-lock-overlay">💰</span>}
                       <span className="phase2-card-stat stat-1" style={{ color: reqTypes.has(normalizeSkillType(card.skill1.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                       <span className="phase2-card-stat stat-2" style={{ color: reqTypes.has(normalizeSkillType(card.skill2.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                       <span className="phase2-card-stat stat-3" style={{ color: reqTypes.has(normalizeSkillType(card.skill3.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>

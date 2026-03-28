@@ -99,7 +99,7 @@ export default function MailModal({ onClose }: MailModalProps) {
       ));
 
       // coin은 BE DB 값 → /me 재호출로 userStore.coin 동기화
-      // (refetchCff()는 블록체인 CFF — coin과 무관하므로 사용 금지)
+      // (refetchCff()는 블록체인 커피 — coin과 무관하므로 사용 금지)
       const meRes = await api.get("/api/v1/users/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
