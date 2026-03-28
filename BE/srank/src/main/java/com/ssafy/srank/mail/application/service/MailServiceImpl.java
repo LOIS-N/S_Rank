@@ -3,8 +3,10 @@ package com.ssafy.srank.mail.application.service;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.mail.application.dto.request.MailRequest;
+import com.ssafy.srank.mail.application.dto.request.SystemMailRequest;
 import com.ssafy.srank.mail.application.dto.response.MailResponse;
 import com.ssafy.srank.mail.domain.entity.MailBox;
+import com.ssafy.srank.mail.domain.enums.MailType;
 import com.ssafy.srank.mail.repository.MailBoxRepository;
 import com.ssafy.srank.user.application.service.UserService;
 import jakarta.transaction.Transactional;
@@ -56,7 +58,30 @@ public class MailServiceImpl implements MailService{
                         .message(request.message())
                         .isRead(false)
                         .isClaimed(false)
-                        .reward(request.reward())
+                        .reward(Long.valueOf(request.reward()))
                         .build());
+    }
+
+    @Override
+    public void postSystemMail(SystemMailRequest request) {
+        List<Long> userIds = userService.getUserIds();
+        Long reward;
+        if(request.reward() != 0)  reward = request.reward();
+        else {
+            reward = null;
+        }
+        List<MailBox> mails = userIds.stream()
+                .map(userId -> MailBox.builder()
+                        .userId(userId)
+                        .mailType(MailType.SYSTEM)
+                        .message(request.message())
+                        .isRead(false)
+                        .isClaimed(false)
+                        .reward(reward)
+                        .build()
+                )
+                .toList();
+
+        mailBoxRepository.saveAll(mails);
     }
 }
