@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useUserStore } from "@/store/useUserStore";
 import api from "@/lib/axios";
+import { useGameStore } from "@/store/useGameStore";
 import { sendGAEvent } from "@/lib/gtag";
 import "./card-list.css";
 
@@ -123,6 +124,7 @@ function sortCards(cards: CardListItem[], filter: string, order: 'desc' | 'asc')
 
 export default function CardListPage() {
   const { getAccessToken } = usePrivy();
+  const { listedCardIds, setListedCardIds } = useGameStore();
 
 
   // --- 카드 목록 상태 ---
@@ -168,7 +170,25 @@ export default function CardListPage() {
         console.error('사용 중인 카드 조회 실패:', err);
       }
     };
+    const fetchMyListedIds = async () => {
+      try {
+        const token = await getAuthToken();
+        const { data } = await api.get("/api/v1/market/my/histories", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data.success) {
+          const raw: any[] = data.data?.histories ?? data.data ?? [];
+          const idsArray = raw
+            .filter(item => (item.role ?? "").toUpperCase() === "SELLER")
+            .map(item => item.userCardId ?? item.cardId ?? 0)
+            .filter(id => id !== 0);
+          setListedCardIds(idsArray);
+        }
+      } catch { /* 무시 */ }
+    };
+
     fetchUsedCards();
+    fetchMyListedIds();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -225,7 +245,7 @@ export default function CardListPage() {
   // --- 카드 클릭 ---
   const handleCardClick = useCallback((cardId: number) => {
     if (isFireMode) {
-      if (usedCardIds.includes(cardId)) return; // 퀘스트 진행 중 카드는 선택 불가
+      if (usedCardIds.includes(cardId) || listedCardIds.includes(cardId)) return;
       setFireSelectedIds(prev => {
         const next = new Set(prev);
         if (next.has(cardId)) next.delete(cardId);
@@ -235,7 +255,7 @@ export default function CardListPage() {
     } else {
       setSelectedCardId(cardId);
     }
-  }, [isFireMode, usedCardIds]);
+  }, [isFireMode, usedCardIds, listedCardIds]);
 
   // --- 해고 모드 진입 / 취소 ---
   const enterFireMode = useCallback((preselectedId?: number) => {
@@ -527,12 +547,15 @@ export default function CardListPage() {
                     const isSelected = !isFireMode && card.cardId === selectedCardId;
                     const isFireSelected = isFireMode && fireSelectedIds.has(card.cardId);
                     const isUsedInQuest = usedCardIds.includes(card.cardId);
+                    const isListed = listedCardIds.includes(card.cardId);
+                    const isDisabled = isUsedInQuest || isListed;
                     return (
                       <div
                         key={card.cardId}
-                        className={`cardlist-card-item ${isSelected ? 'selected' : ''} ${isFireSelected ? 'fire-selected' : ''} ${isFireMode && isUsedInQuest ? 'fire-disabled' : ''}`}
+                        className={`cardlist-card-item ${isSelected ? 'selected' : ''} ${isFireSelected ? 'fire-selected' : ''} ${isFireMode && isDisabled ? 'fire-disabled' : ''}`}
                         data-grade={card.grade}
                         onClick={() => handleCardClick(card.cardId)}
+                        style={{ filter: (isFireMode && isDisabled) ? 'brightness(0.5)' : undefined }}
                       >
                         <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
                         {card.enhanceSuccessCount > 0 && (
@@ -542,8 +565,8 @@ export default function CardListPage() {
                         )}
                         {isSelected && <span className="card-check-overlay">✓</span>}
                         {isFireMode && (
-                          <span className={`fire-check-overlay${isFireSelected ? ' checked' : ''}${isUsedInQuest ? ' disabled' : ''}`}>
-                            {isUsedInQuest ? '🔒' : isFireSelected ? '✓' : ''}
+                          <span className={`fire-check-overlay${isFireSelected ? ' checked' : ''}${isDisabled ? ' disabled' : ''}`}>
+                            {isUsedInQuest ? '🔒' : isListed ? '💰' : isFireSelected ? '✓' : ''}
                           </span>
                         )}
                         <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
@@ -671,9 +694,9 @@ export default function CardListPage() {
             </div>
             {/* 해고하기 버튼 영역 */}
             <div className="cardlist-fire-area">
-              {selectedCardId && usedCardIds.includes(selectedCardId) ? (
+              {selectedCardId && (usedCardIds.includes(selectedCardId) || listedCardIds.includes(selectedCardId)) ? (
                 <button className="cardlist-fire-btn" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-                  퀘스트 진행 중
+                  {listedCardIds.includes(selectedCardId) ? "판매 진행 중" : "퀘스트 진행 중"}
                 </button>
               ) : (
                 <button className="cardlist-fire-btn" onClick={() => enterFireMode(selectedCardId ?? undefined)}>

@@ -11,14 +11,8 @@ const SSE_EVENT_MARKET_SELL_COMPLETED = "market.sell.completed";
 const SSE_EVENT_MARKET_BUY_COMPLETED = "market.buy.completed";
 const RECONNECT_DELAY_MS = 3000;
 
-/** BE SSE 페이로드 구조 */
-interface QuestCompletePayload {
-  questId?: number;
-  questType?: string;
-  message?: string;
-}
 
-function parseSSEPayload(raw: string): QuestCompletePayload {
+function parseSSEPayload(raw: string): any {
   try {
     return JSON.parse(raw);
   } catch {
@@ -141,8 +135,13 @@ export function useSSENotification(accessToken: string | null) {
               }
             } else if (eventName === SSE_EVENT_MARKET_SELL_COMPLETED) {
               useGameStore.getState().triggerMarketRefresh();
-              const title = "S급 개발자들이 나를 따르는 이유";
-              const body = "카드가 판매되었습니다. 우편함에서 보상을 확인하세요.";
+              const payload = parseSSEPayload(data);
+              const cardName = payload.cardName ? `[${payload.cardName}] ` : "";
+              const priceText = payload.price ? `${payload.price.toLocaleString()}잔의 ` : "";
+              
+              const title = "☕ 커피가 도착했습니다!";
+              const body = `${cardName}카드가 성공적으로 판매되어 ${priceText}커피를 받았습니다! 우편함에서 확인하세요.`;
+              
               if (Notification.permission === "granted") {
                 await showWebNotification(title, body);
               } else {

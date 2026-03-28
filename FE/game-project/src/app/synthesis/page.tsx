@@ -121,7 +121,7 @@ function sortCards(cards: CardListItem[], filter: string, order: 'desc' | 'asc')
 
 export default function SynthesisPage() {
   const { getAccessToken } = usePrivy();
-  const { accessToken, gold, increaseGold, tutorialQuestStep } = useGameStore();
+  const { accessToken, gold, increaseGold, tutorialQuestStep, listedCardIds, setListedCardIds } = useGameStore();
   const [synthArrowDismissed, setSynthArrowDismissed] = useState(false);
   useEffect(() => { setSynthArrowDismissed(false); }, [tutorialQuestStep]);
   const [showTutorialIntro, setShowTutorialIntro] = useState(() => tutorialQuestStep === 41);
@@ -192,7 +192,25 @@ export default function SynthesisPage() {
         console.error('사용 중인 카드 조회 실패:', err);
       }
     };
+    const fetchMyListedIds = async () => {
+      try {
+        const token = await getAuthToken();
+        const { data } = await api.get("/api/v1/market/my/histories", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data.success) {
+          const raw: any[] = data.data?.histories ?? data.data ?? [];
+          const idsArray = raw
+            .filter(item => (item.role ?? "").toUpperCase() === "SELLER")
+            .map(item => item.userCardId ?? item.cardId ?? 0)
+            .filter(id => id !== 0);
+          setListedCardIds(idsArray);
+        }
+      } catch { /* 무시 */ }
+    };
+
     fetchUsedCards();
+    fetchMyListedIds();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -268,8 +286,8 @@ export default function SynthesisPage() {
 
   // --- 카드 클릭 (합성 슬롯 토글 + 등급 검증) ---
   const handleCardClick = useCallback((cardId: number) => {
-    if (usedCardIds.includes(cardId)) {
-      showToast('현재 퀘스트를 진행 중입니다');
+    if (usedCardIds.includes(cardId) || listedCardIds.includes(cardId)) {
+      showToast(usedCardIds.includes(cardId) ? '현재 퀘스트를 진행 중입니다' : '현재 판매 중인 카드입니다');
       return;
     }
     setSynthesisResult(null);
@@ -384,7 +402,7 @@ export default function SynthesisPage() {
 
     const { min, max } = getRequiredCardCount(autoGrade);
     const clampedCount = Math.min(Math.max(autoCount, min), max);
-    const gradeCards = cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId));
+    const gradeCards = cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId) && !listedCardIds.includes(c.cardId));
 
     if (gradeCards.length < clampedCount) {
       alert(`${autoGrade}등급 카드가 ${clampedCount}장 이상 필요합니다. (현재 ${gradeCards.length}장)`);
@@ -425,7 +443,7 @@ export default function SynthesisPage() {
     } finally {
       setIsSynthesizing(false);
     }
-  }, [isSynthesizing, autoGrade, autoCount, cards, getAuthToken, showToast]);
+  }, [isSynthesizing, autoGrade, autoCount, cards, getAuthToken, showToast, usedCardIds, listedCardIds]);
 
   // --- 스크롤 관련 상태 ---
   const [scrollRatio, setScrollRatio] = useState(0);
@@ -699,8 +717,8 @@ export default function SynthesisPage() {
                         className={`cardlist-card-item ${isSelected ? 'selected' : ''} ${isDisabled ? 'synthesis-disabled' : ''}`}
                         data-grade={card.grade}
                         onClick={() => !isDisabled && handleCardClick(card.cardId)}
-                        style={isUsed ? { filter: 'brightness(0.5)', cursor: 'not-allowed' } : undefined}
-                        title={isUsed ? '퀘스트 진행 중인 카드입니다' : undefined}
+                        style={(isUsed || listedCardIds.includes(card.cardId)) ? { filter: 'brightness(0.5)', cursor: 'not-allowed' } : undefined}
+                        title={isUsed ? '퀘스트 진행 중인 카드입니다' : listedCardIds.includes(card.cardId) ? '판매 중인 카드입니다' : undefined}
                       >
                         <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
                         {card.enhanceSuccessCount > 0 && (
@@ -709,6 +727,8 @@ export default function SynthesisPage() {
                           </span>
                         )}
                         {isSelected && <span className="card-check-overlay">✓</span>}
+                        {isUsed && <span className="card-lock-overlay">🔒</span>}
+                        {listedCardIds.includes(card.cardId) && <span className="card-lock-overlay">💰</span>}
                         <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                         <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                         <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
@@ -877,7 +897,7 @@ export default function SynthesisPage() {
                     </div>
                     <div className="synthesis-drop-cards">
                       {(() => {
-                        const gradeCards = cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId));
+                        const gradeCards = cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId) && !listedCardIds.includes(c.cardId));
                         const total = getRequiredCardCount(autoGrade).max;
                         const cardWidth = total <= 2 ? 100 : total === 3 ? 130 : total === 4 ? 110 : 95;
                         const overlap = total <= 2 ? -10 : total === 3 ? -20 : total === 4 ? -25 : -30;
@@ -964,7 +984,7 @@ export default function SynthesisPage() {
                       slice={[200, 208, 200, 208]}
                       framePadding={14}
                       borderScale={0.4}
-                      className={`synthesis-btn-accept ${isSynthesizing || cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId)).length < autoCount ? 'disabled' : ''}`}
+                      className={`synthesis-btn-accept ${isSynthesizing || cards.filter(c => c.grade === autoGrade && !usedCardIds.includes(c.cardId) && !listedCardIds.includes(c.cardId)).length < autoCount ? 'disabled' : ''}`}
                       style={{ flex: 1 }}
                       onClick={handleAutoSynthesize}
                     >

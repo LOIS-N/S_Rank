@@ -107,9 +107,9 @@ export default function AchievementModal({ onClose }: AchievementModalProps) {
         ),
       } : prev);
 
-      setRewardMsg(`${rewardToken} CFF 보상이 신청되었습니다.\n블록체인 처리 후 우편함으로 지급됩니다.`);
+      setRewardMsg(`${rewardToken} 커피 보상이 신청되었습니다.\n블록체인 처리 후 우편함으로 지급됩니다.`);
 
-      // HUD CFF 잔액 갱신 시도 (비동기 처리라 즉시 반영 안 될 수 있음)
+      // HUD 커피 잔액 갱신 시도
       refetchCff();
     } catch (e: unknown) {
       const code = (e as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
@@ -189,7 +189,7 @@ export default function AchievementModal({ onClose }: AchievementModalProps) {
                       {mission.rewardClaimed ? (
                         <span className="text-slate-500 text-sm">수령 완료</span>
                       ) : (
-                        <span className="text-sm text-blue-700 font-bold">보상: {mission.rewardToken} CFF</span>
+                        <span className="text-sm text-blue-700 font-bold">보상: {mission.rewardToken} 커피</span>
                       )}
                     </div>
                   </div>
