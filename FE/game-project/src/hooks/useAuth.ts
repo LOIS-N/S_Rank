@@ -97,6 +97,9 @@ export const useAuth = () => {
                 const { gold, coin, nickname } = profileRes.data.data;
                 useGameStore.getState().setResources(gold, coin);
                 useGameStore.getState().setNickname(nickname);
+                
+                // 기존 유저 로그인 시, 로컬 스토리지에 찌꺼기처럼 남은 튜토리얼 진행 상태 강제 초기화
+                useGameStore.getState().resetTutorialState();
               }
 
               // /desks API 호출 → 책상 잠금 상태 동기화
@@ -144,6 +147,9 @@ export const useAuth = () => {
                 const { gold, coin, nickname } = profileRes.data.data;
                 useGameStore.getState().setResources(gold, coin);
                 useGameStore.getState().setNickname(nickname);
+
+                // 기존 유저 로그인 시, 튜토리얼 강제 진행 상태 초기화
+                useGameStore.getState().resetTutorialState();
 
                 // /desks API 호출 → 책상 잠금 상태 동기화
                 try {

@@ -533,7 +533,7 @@
   text-align: center;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: clamp(9px, 1.2cqw, 14px);
+  font-size: clamp(12px, calc(1.2cqw + 3px), 17px);
   color: #fff;
   text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
   z-index: 2;
@@ -553,7 +553,7 @@
   text-align: center;
   font-family: 'StardustS', 'Stardust', sans-serif;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 17px;
   color: #fff;
   text-shadow: 1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
   pointer-events: none;
