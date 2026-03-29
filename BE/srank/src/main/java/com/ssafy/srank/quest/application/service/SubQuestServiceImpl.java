@@ -2,6 +2,8 @@ package com.ssafy.srank.quest.application.service;
 
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
+import com.ssafy.srank.mission.application.service.MissionService;
+import com.ssafy.srank.mission.domain.enums.MissionCategory;
 import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
 import com.ssafy.srank.quest.application.dto.request.QuestDateTimeRequest;
 import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
@@ -31,6 +33,7 @@ public class SubQuestServiceImpl implements SubQuestService {
 
     private final SubQuestTemplateRepository subQuestTemplateRepository;
     private final UserSubQuestRepository userSubQuestRepository;
+    private final MissionService missionService;
 
 
     @Override
@@ -64,6 +67,7 @@ public class SubQuestServiceImpl implements SubQuestService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_IN_PROGRESS));
 
         subQuest.completeStatus();
+        missionService.recordActivity(userId, MissionCategory.QUEST, 1);
     }
 
     @Override

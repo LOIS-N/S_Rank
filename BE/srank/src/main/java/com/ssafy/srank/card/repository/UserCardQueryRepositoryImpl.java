@@ -57,7 +57,8 @@ public class UserCardQueryRepositoryImpl implements UserCardQueryRepository {
                         userCard.enhanceTryCount,
                         userCard.enhanceSuccessCount,
 
-                        specialSkill.id
+                        specialSkill.id,
+                        userCard.marketStatus
                 ))
                 .from(userCard)
                 .join(userCard.cardTemplate, cardTemplate)

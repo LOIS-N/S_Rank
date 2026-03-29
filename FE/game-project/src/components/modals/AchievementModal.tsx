@@ -4,35 +4,45 @@ import { useState, useEffect, useCallback } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useUserStore } from "@/store/useUserStore";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-// import api from "@/lib/axios"; // BE 연동 시 활성화
+import api from "@/lib/axios";
 
 interface AchievementModalProps {
   onClose: () => void;
 }
 
-interface Achievement {
-  id: number;
-  title: string;
-  condition: string;
-  status: string;
-  rewardCff: number;   // CFF 보상량
-  isCompleted: boolean;
-  isClaimed: boolean;
+type MissionCategory = "QUEST" | "DRAW" | "SYNTHESIS" | "ENHANCEMENT";
+
+interface MissionItem {
+  missionId: number;
+  name: string;
+  category: MissionCategory;
+  requiredCount: number;
+  rewardToken: number;
+  currentCount: number;
+  completed: boolean;
+  rewardClaimed: boolean;
 }
 
-// ── BE API 미구현 동안 사용할 Mock 데이터 ──
-// BE 연동 시 fetchAchievements()의 주석 해제 후 아래 상수 제거
-const MOCK_ACHIEVEMENTS: Achievement[] = [
-  { id: 1, title: "첫 걸음",       condition: "튜토리얼 완료하기",        status: "0/1",           rewardCff: 10,  isCompleted: false, isClaimed: false },
-  { id: 2, title: "면접관의 자질", condition: "개발자 면접 10회 진행",     status: "7/10",          rewardCff: 50,  isCompleted: false, isClaimed: false },
-  { id: 3, title: "자본주의의 노예", condition: "누적 골드 100,000G 달성", status: "100000/100000", rewardCff: 100, isCompleted: true,  isClaimed: false },
-  { id: 4, title: "스타트업 대표", condition: "회사 레벨 5 달성",          status: "5/5",           rewardCff: 200, isCompleted: true,  isClaimed: true  },
-];
+interface DailyMissionStatus {
+  missionDate: string;
+  missions: MissionItem[];
+}
 
-function sortAchievements(list: Achievement[]) {
+const CATEGORY_LABEL: Record<MissionCategory, string> = {
+  QUEST:       "퀘스트",
+  DRAW:        "뽑기",
+  SYNTHESIS:   "합성",
+  ENHANCEMENT: "강화",
+};
+
+function sortMissions(list: MissionItem[]): MissionItem[] {
   return [...list].sort((a, b) => {
-    if (a.isCompleted !== b.isCompleted) return a.isCompleted ? -1 : 1;
-    if (a.isClaimed   !== b.isClaimed)   return a.isClaimed   ?  1 : -1;
+    // 달성했고 미수령 → 맨 위
+    const aClaimable = a.completed && !a.rewardClaimed;
+    const bClaimable = b.completed && !b.rewardClaimed;
+    if (aClaimable !== bClaimable) return aClaimable ? -1 : 1;
+    // 수령 완료 → 맨 아래
+    if (a.rewardClaimed !== b.rewardClaimed) return a.rewardClaimed ? 1 : -1;
     return 0;
   });
 }
@@ -42,7 +52,7 @@ export default function AchievementModal({ onClose }: AchievementModalProps) {
   const { accessToken } = useUserStore();
   const { refetch: refetchCff } = useTokenBalance();
 
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [status, setStatus] = useState<DailyMissionStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [rewardMsg, setRewardMsg] = useState("");
 
@@ -51,140 +61,155 @@ export default function AchievementModal({ onClose }: AchievementModalProps) {
     [accessToken, getAccessToken],
   );
 
-  // ── 업적 목록 조회 ──
-  // BE API 구현 후: 주석 해제, MOCK_ACHIEVEMENTS 라인 제거
-  const fetchAchievements = useCallback(async () => {
+  // ── 미션(업적) 목록 조회 ──
+  const fetchMissions = useCallback(async () => {
     setIsLoading(true);
     try {
-      /* === BE 연동 시 활성화 ===
       const token = await getToken();
-      const { data } = await api.get("/api/v1/achievements", {
+      const { data } = await api.get("/api/v1/missions/daily", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (data.success) {
-        setAchievements(sortAchievements(data.data));
-        return;
+        setStatus({
+          ...data.data,
+          missions: sortMissions(data.data.missions ?? []),
+        });
       }
-      */
-      // Mock fallback
-      setAchievements(sortAchievements(MOCK_ACHIEVEMENTS));
     } catch {
-      setAchievements(sortAchievements(MOCK_ACHIEVEMENTS));
+      setStatus(null);
     } finally {
       setIsLoading(false);
     }
   }, [getToken]);
 
-  useEffect(() => { fetchAchievements(); }, [fetchAchievements]);
+  useEffect(() => { fetchMissions(); }, [fetchMissions]);
 
-  // ── 단건 수령 ──
-  const handleClaim = async (id: number) => {
-    const target = achievements.find(a => a.id === id);
-    if (!target || !target.isCompleted || target.isClaimed) return;
-
+  // ── 보상 수령 ──
+  const handleClaim = async (mission: MissionItem) => {
+    if (!mission.completed || mission.rewardClaimed) return;
     try {
-      /* === BE 연동 시 활성화 ===
       const token = await getToken();
-      await api.post(`/api/v1/achievements/${id}/claim`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      */
+      const { data } = await api.post(
+        `/api/v1/missions/daily/${mission.missionId}/claim`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
 
-      // 상태 낙관적 업데이트
-      setAchievements(prev => sortAchievements(
-        prev.map(a => a.id === id ? { ...a, isClaimed: true } : a)
-      ));
-      setRewardMsg(`${target.rewardCff} CFF를 획득했습니다!`);
+      const rewardToken = data?.data?.rewardToken ?? mission.rewardToken;
 
-      // HUD CFF 잔액 갱신
+      // 낙관적 UI 업데이트
+      setStatus(prev => prev ? {
+        ...prev,
+        missions: sortMissions(
+          prev.missions.map(m =>
+            m.missionId === mission.missionId ? { ...m, rewardClaimed: true } : m
+          )
+        ),
+      } : prev);
+
+      setRewardMsg(`${rewardToken} 커피 보상이 신청되었습니다.\n블록체인 처리 후 우편함으로 지급됩니다.`);
+
+      // HUD 커피 잔액 갱신 시도
       refetchCff();
-    } catch {
-      setRewardMsg("수령 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    } catch (e: unknown) {
+      const code = (e as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+      if (code === "DM002") {
+        setRewardMsg("아직 달성되지 않은 미션입니다.");
+      } else if (code === "DM003") {
+        setRewardMsg("이미 보상을 수령한 미션입니다.");
+        setStatus(prev => prev ? {
+          ...prev,
+          missions: sortMissions(
+            prev.missions.map(m =>
+              m.missionId === mission.missionId ? { ...m, rewardClaimed: true } : m
+            )
+          ),
+        } : prev);
+      } else {
+        setRewardMsg("수령 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      }
     }
   };
 
-  // ── 일괄 수령 ──
-  const handleClaimAll = async () => {
-    const claimable = achievements.filter(a => a.isCompleted && !a.isClaimed);
-    if (claimable.length === 0) { setRewardMsg("수령할 보상이 없습니다."); return; }
-
-    try {
-      /* === BE 연동 시 활성화 ===
-      const token = await getToken();
-      await api.post("/api/v1/achievements/claim-all", {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      */
-
-      const totalCff = claimable.reduce((sum, a) => sum + a.rewardCff, 0);
-      setAchievements(prev => sortAchievements(
-        prev.map(a => (a.isCompleted && !a.isClaimed) ? { ...a, isClaimed: true } : a)
-      ));
-      setRewardMsg(`총 ${totalCff} CFF를 획득했습니다!`);
-
-      // HUD CFF 잔액 갱신
-      refetchCff();
-    } catch {
-      setRewardMsg("수령 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-    }
-  };
+  const missions = status?.missions ?? [];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold pointer-events-auto pb-[calc(6cqw+10px)]" onClick={onClose} onPointerDown={e => e.stopPropagation()}>
-      <div className="bg-[#b0c4de] p-7 border-4 border-[#6b859e] w-[546px] max-w-[90%] h-[580px] max-h-[85%] flex flex-col shadow-[8px_8px_0px_#4a5d73] relative" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
-
-        <button onClick={onClose} className="absolute top-2 right-4 text-white hover:text-red-600 text-3xl drop-shadow-md">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#8ea4b8]/80 font-dot font-bold pointer-events-auto pb-[calc(6cqw+10px)]"
+      onClick={onClose}
+      onPointerDown={e => e.stopPropagation()}
+    >
+      <div
+        className="bg-[#b0c4de] p-7 border-4 border-[#6b859e] w-[546px] max-w-[90%] h-[580px] max-h-[85%] flex flex-col shadow-[8px_8px_0px_#4a5d73] relative"
+        onClick={e => e.stopPropagation()}
+        onPointerDown={e => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-4 text-white hover:text-red-600 text-3xl drop-shadow-md"
+        >
           &times;
         </button>
 
-        <h2 className="text-slate-900 font-bold text-3xl mb-7 text-center">업적</h2>
-
-        <div className="flex justify-end mb-3">
-          <button
-            onClick={handleClaimAll}
-            className="px-7 py-3 text-base bg-yellow-500 text-black border-b-4 border-r-4 border-yellow-800 active:border-0 active:translate-y-1 transition-all"
-          >
-            일괄 수령
-          </button>
-        </div>
+        <h2 className="text-slate-900 font-bold text-3xl mb-2 text-center">업적</h2>
+        {status?.missionDate && (
+          <p className="text-center text-slate-600 text-sm mb-4">{status.missionDate} 기준</p>
+        )}
 
         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">
           {isLoading ? (
             <div className="text-center text-slate-700 py-10">로딩 중...</div>
+          ) : missions.length === 0 ? (
+            <div className="text-center text-slate-600 py-10">업적이 없습니다.</div>
           ) : (
-            achievements.map((ach) => (
-              <div
-                key={ach.id}
-                className={`flex items-center justify-between p-5 border-2 shadow-[4px_4px_0px_rgba(74,93,115,0.5)]
-                  ${ach.isClaimed
-                    ? "bg-[#8ea4b8] border-[#6b859e] text-slate-700"
-                    : ach.isCompleted
-                      ? "bg-green-100 border-green-600 text-slate-900 cursor-pointer active:translate-y-1 active:shadow-none"
-                      : "bg-[#e2e8f0] border-slate-400 text-slate-800"
-                  }`}
-                onClick={() => { if (ach.isCompleted && !ach.isClaimed) handleClaim(ach.id); }}
-              >
-                <div className="flex items-center gap-5">
-                  <div className="text-3xl">🏆</div>
-                  <div>
-                    <div className="text-xl mb-0.5">{ach.title}</div>
-                    <div className={`text-sm ${ach.isClaimed ? "text-slate-500" : "text-slate-600"}`}>
-                      {ach.condition}
+            missions.map((mission) => {
+              const canClaim = mission.completed && !mission.rewardClaimed;
+              const progressPct = Math.min(100, Math.floor((mission.currentCount / mission.requiredCount) * 100));
+              return (
+                <div
+                  key={mission.missionId}
+                  className={`flex flex-col p-5 border-2 shadow-[4px_4px_0px_rgba(74,93,115,0.5)]
+                    ${mission.rewardClaimed
+                      ? "bg-[#8ea4b8] border-[#6b859e] text-slate-700"
+                      : canClaim
+                        ? "bg-green-100 border-green-600 text-slate-900 cursor-pointer active:translate-y-1 active:shadow-none"
+                        : "bg-[#e2e8f0] border-slate-400 text-slate-800"
+                    }`}
+                  onClick={() => canClaim && handleClaim(mission)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🏆</span>
+                      <span className="text-base font-bold">{mission.name}</span>
+                      <span className="text-xs bg-[#6b859e] text-white px-2 py-0.5 rounded">
+                        {CATEGORY_LABEL[mission.category]}
+                      </span>
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      {mission.rewardClaimed ? (
+                        <span className="text-slate-500 text-sm">수령 완료</span>
+                      ) : (
+                        <span className="text-sm text-blue-700 font-bold">보상: {mission.rewardToken} 커피</span>
+                      )}
                     </div>
                   </div>
+
+                  {/* 진행률 바 */}
+                  <div className="w-full bg-slate-300 rounded-full h-2 mb-1">
+                    <div
+                      className={`h-2 rounded-full transition-all ${mission.completed ? "bg-green-500" : "bg-blue-400"}`}
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-600">
+                    <span>{mission.currentCount} / {mission.requiredCount}</span>
+                    {canClaim && (
+                      <span className="text-green-600 font-bold animate-pulse">클릭하여 수령!</span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right flex flex-col items-end gap-3">
-                  <div className="bg-[#6b859e] text-white px-3 py-0.5 text-sm rounded shadow-sm">{ach.status}</div>
-                  {!ach.isClaimed && (
-                    <div className="text-sm text-blue-700 font-bold">보상: {ach.rewardCff} CFF</div>
-                  )}
-                  {ach.isClaimed && <div className="text-slate-600 text-sm">수령 완료</div>}
-                  {!ach.isClaimed && ach.isCompleted && (
-                    <div className="text-green-600 text-sm animate-pulse drop-shadow-sm">클릭하여 수령!</div>
-                  )}
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
@@ -193,7 +218,7 @@ export default function AchievementModal({ onClose }: AchievementModalProps) {
       {rewardMsg && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#8ea4b8]/80 font-dot">
           <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-8 text-center max-w-sm shadow-[8px_8px_0px_#4a5d73]">
-            <p className="text-2xl mb-8 leading-relaxed text-slate-900 font-bold">{rewardMsg}</p>
+            <p className="text-xl mb-8 leading-relaxed text-slate-900 font-bold whitespace-pre-line">{rewardMsg}</p>
             <button
               onClick={() => setRewardMsg("")}
               className="w-full py-4 bg-[#ffcc00] text-black border-b-4 border-r-4 border-[#cc9900] active:border-0 active:translate-y-1 transition-all"

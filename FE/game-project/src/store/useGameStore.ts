@@ -105,8 +105,19 @@ interface GameState {
   resetTutorialState: () => void;
   showTutorialGoldModal: boolean;
   setShowTutorialGoldModal: (v: boolean) => void;
+  mailModalOpen: boolean;
+  setMailModalOpen: (v: boolean) => void;
+  dailyMissionModalOpen: boolean;
+  setDailyMissionModalOpen: (v: boolean) => void;
+  marketRefreshSignal: number;
+  triggerMarketRefresh: () => void;
   pushNotification: (title: string, body: string) => void;
   markNotificationRead: (id: number) => void;
+  // --- 카드 상태 관리 ---
+  usedCardIds: number[];       // 퀘스트 진행 중인 카드 ID 목록
+  listedCardIds: number[];     // 상점에 판매 등록된 카드 ID 목록
+  setUsedCardIds: (ids: number[]) => void;
+  setListedCardIds: (ids: number[]) => void;
 }
 
 export const useGameStore = create<GameState>()(
@@ -193,7 +204,7 @@ export const useGameStore = create<GameState>()(
     const updated = state.quests.map(q => {
       if (q.id === id) {
         rewardAcc = q.reward;
-        return { ...q, status: 'IDLE' as QuestStatus, endTime: null, endAt: null, title: '' };
+        return { ...q, status: 'IDLE' as QuestStatus, endTime: null, endAt: null, title: '', questId: null, questType: null };
       }
       return q;
     });
@@ -213,7 +224,7 @@ export const useGameStore = create<GameState>()(
     const quest = state.quests.find(q => q.id === id);
     const rewardAcc = quest?.reward ?? 0;
     const updated = state.quests.map(q =>
-      q.id === id ? { ...q, status: 'IDLE' as QuestStatus, endTime: null, endAt: null, title: '' } : q
+      q.id === id ? { ...q, status: 'IDLE' as QuestStatus, endTime: null, endAt: null, title: '', questId: null, questType: null } : q
     );
     return {
       quests: updated,
@@ -276,6 +287,16 @@ export const useGameStore = create<GameState>()(
   stopTutorialQuestTimer: () => set({ tutorialQuestTimerActive: false, tutorialQuestTimerSec: 0, tutorialQuestTimerReward: 0 }),
   showTutorialGoldModal: false,
   setShowTutorialGoldModal: (v) => set({ showTutorialGoldModal: v }),
+  mailModalOpen: false,
+  setMailModalOpen: (v) => set({ mailModalOpen: v }),
+  dailyMissionModalOpen: false,
+  setDailyMissionModalOpen: (v) => set({ dailyMissionModalOpen: v }),
+  marketRefreshSignal: 0,
+  triggerMarketRefresh: () => set((state) => ({ marketRefreshSignal: state.marketRefreshSignal + 1 })),
+  usedCardIds: [],
+  listedCardIds: [],
+  setUsedCardIds: (ids) => set({ usedCardIds: ids }),
+  setListedCardIds: (ids) => set({ listedCardIds: ids }),
   resetTutorialState: () => set({
     tutorialActive: false,
     tutorialQuestStep: null,
@@ -377,6 +398,7 @@ export const useGameStore = create<GameState>()(
         questId: q.questId,
         questType: q.questType,
         requiredLevel: q.requiredLevel,
+      unlockCostGold: q.unlockCostGold,
       })),
       tutorialActive: state.tutorialActive,
       tutorialQuestStep: state.tutorialQuestStep,

@@ -43,6 +43,8 @@ public class CardMarket extends Contract {
 
     public static final String FUNC_BUYCARD = "buyCard";
 
+    public static final String FUNC_BUYCARDFOR = "buyCardFor";
+
     public static final String FUNC_LISTCARD = "listCard";
 
     public static final String FUNC_LISTINGS = "listings";
@@ -59,7 +61,7 @@ public class CardMarket extends Contract {
 
     public static final String FUNC_TRANSFEROWNERSHIP = "transferOwnership";
 
-    public static final Event CARDLISTED_EVENT = new Event("CardListed", 
+    public static final Event CARDLISTED_EVENT = new Event("CardListed",
             Arrays.<TypeReference<?>>asList(new TypeReference<Address>(true) {}, new TypeReference<Uint256>(true) {}, new TypeReference<Uint256>() {}, new TypeReference<Uint256>() {}));
     ;
 
@@ -237,6 +239,15 @@ public class CardMarket extends Contract {
         final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
                 FUNC_BUYCARD, 
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId)), 
+                Collections.<TypeReference<?>>emptyList());
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteFunctionCall<TransactionReceipt> buyCardFor(BigInteger tokenId, String buyer) {
+        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
+                FUNC_BUYCARDFOR,
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.generated.Uint256(tokenId),
+                new org.web3j.abi.datatypes.Address(160, buyer)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }

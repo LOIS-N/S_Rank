@@ -64,6 +64,8 @@ public class GameToken extends Contract {
 
     public static final String FUNC_TRANSFERFROM = "transferFrom";
 
+    public static final String FUNC_TRANSFERONBEHALF = "transferOnBehalf";
+
     public static final String FUNC_TRANSFEROWNERSHIP = "transferOwnership";
 
     public static final Event APPROVAL_EVENT = new Event("Approval", 
@@ -290,6 +292,16 @@ public class GameToken extends Contract {
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from), 
                 new org.web3j.abi.datatypes.Address(160, to), 
                 new org.web3j.abi.datatypes.generated.Uint256(value)), 
+                Collections.<TypeReference<?>>emptyList());
+        return executeRemoteCallTransaction(function);
+    }
+
+    public RemoteFunctionCall<TransactionReceipt> transferOnBehalf(String from, String to, BigInteger amount) {
+        final org.web3j.abi.datatypes.Function function = new org.web3j.abi.datatypes.Function(
+                FUNC_TRANSFERONBEHALF,
+                Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(160, from),
+                new org.web3j.abi.datatypes.Address(160, to),
+                new org.web3j.abi.datatypes.generated.Uint256(amount)),
                 Collections.<TypeReference<?>>emptyList());
         return executeRemoteCallTransaction(function);
     }

@@ -7,6 +7,7 @@ import com.ssafy.srank.card.domain.entity.SpecialSkillTemplate;
 import com.ssafy.srank.card.domain.entity.UserCard;
 import com.ssafy.srank.card.domain.enums.CardGrade;
 import com.ssafy.srank.card.domain.enums.ConditionType;
+import com.ssafy.srank.card.domain.enums.MarketStatus;
 import com.ssafy.srank.card.domain.enums.PositionType;
 import com.ssafy.srank.card.repository.CardTemplateRepository;
 import com.ssafy.srank.card.repository.SpecialSkillTemplateRepository;
@@ -53,6 +54,7 @@ public class CardCreationServiceImpl implements CardCreationService {
                 .stat3(new SkillStat(positions.get(2), nextStatValue(randomSource, 3, minStat, maxStat), 0))
                 .enhanceTryCount(0)
                 .enhanceSuccessCount(0)
+                .marketStatus(MarketStatus.OWNED)
                 .build();
 
         return new CreatedCardDraft(

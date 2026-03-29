@@ -153,7 +153,7 @@ interface LocalEnhanceState {
 
 export default function EnhancePage() {
   const { getAccessToken } = usePrivy();
-  const { accessToken, gold, increaseGold, tutorialQuestStep, tutorialEnhanceCount } = useGameStore();
+  const { accessToken, gold, increaseGold, tutorialQuestStep, tutorialEnhanceCount, listedCardIds, setListedCardIds } = useGameStore();
   const [enhanceArrowDismissed, setEnhanceArrowDismissed] = useState(false);
   useEffect(() => { setEnhanceArrowDismissed(false); }, [tutorialQuestStep]);
   const [showTutorialIntro, setShowTutorialIntro] = useState(() => tutorialQuestStep === 31);
@@ -212,7 +212,25 @@ export default function EnhancePage() {
         console.error('사용 중인 카드 조회 실패:', err);
       }
     };
+    const fetchMyListedIds = async () => {
+      try {
+        const token = await getAuthToken();
+        const { data } = await api.get("/api/v1/market/my/histories", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data.success) {
+          const raw: any[] = data.data?.histories ?? data.data ?? [];
+          const idsArray = raw
+            .filter(item => (item.role ?? "").toUpperCase() === "SELLER")
+            .map(item => item.userCardId ?? item.cardId ?? 0)
+            .filter(id => id !== 0);
+          setListedCardIds(idsArray);
+        }
+      } catch { /* 무시 */ }
+    };
+
     fetchUsedCards();
+    fetchMyListedIds();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -299,14 +317,14 @@ export default function EnhancePage() {
 
   // --- 카드 클릭 ---
   const handleCardClick = useCallback((cardId: number) => {
-    if (usedCardIds.includes(cardId)) {
+    if (usedCardIds.includes(cardId) || listedCardIds.includes(cardId)) {
       showUsedWarning();
       return;
     }
     setSelectedCardId(cardId);
     fetchCardDetail(cardId);
     setEnhanceResult(null);
-  }, [fetchCardDetail, usedCardIds, showUsedWarning]);
+  }, [fetchCardDetail, usedCardIds, listedCardIds, showUsedWarning]);
 
   // --- 클라이언트 사이드 정렬 ---
   const sortedCards = useMemo(() => sortCards(cards, capacitySort, sortOrder), [cards, capacitySort, sortOrder]);
@@ -692,8 +710,8 @@ export default function EnhancePage() {
                           className={`cardlist-card-item ${isSelected ? 'selected' : ''}`}
                           data-grade={card.grade}
                           onClick={() => handleCardClick(card.cardId)}
-                          style={isUsed ? { filter: 'brightness(0.5)', cursor: 'not-allowed' } : undefined}
-                          title={isUsed ? '퀘스트 진행 중인 카드입니다' : undefined}
+                          style={(isUsed || listedCardIds.includes(card.cardId)) ? { filter: 'brightness(0.5)', cursor: 'not-allowed' } : undefined}
+                          title={isUsed ? '퀘스트 진행 중인 카드입니다' : listedCardIds.includes(card.cardId) ? '판매 중인 카드입니다' : undefined}
                         >
                           <img src={card.imageUrl} alt={card.name} draggable={false} loading="lazy" decoding="async" />
                           {card.enhanceSuccessCount > 0 && (
@@ -702,6 +720,8 @@ export default function EnhancePage() {
                             </span>
                           )}
                           {isSelected && <span className="card-check-overlay">✓</span>}
+                          {isUsed && <span className="card-lock-overlay">🔒</span>}
+                          {listedCardIds.includes(card.cardId) && <span className="card-lock-overlay">💰</span>}
                           <span className="cardlist-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                           <span className="cardlist-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                           <span className="cardlist-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
@@ -824,6 +844,10 @@ export default function EnhancePage() {
                       {selectedListCard && usedCardIds.includes(selectedListCard.cardId) ? (
                         <button className="enhance-action-btn" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
                           퀘스트 진행 중
+                        </button>
+                      ) : selectedListCard && listedCardIds.includes(selectedListCard.cardId) ? (
+                        <button className="enhance-action-btn" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                          판매 진행 중
                         </button>
                       ) : (
                         <button

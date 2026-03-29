@@ -106,4 +106,19 @@ public class User extends BaseEntity {
     public void levelUp(){
         this.level ++;
     }
+
+    public void increaseCoin(Long coin){
+        if (coin == null || coin < 0) {
+            throw new BusinessException(ErrorCode.COIN_INVALID_AMOUNT);
+        }
+        this.coin += coin;
+    }
+
+    public void decreaseCoin(Long coin){
+        if (coin == null || coin < 0) {
+            throw new BusinessException(ErrorCode.COIN_INVALID_AMOUNT);
+        }
+        if(this.coin - coin < 0) throw new BusinessException(ErrorCode.COIN_INSUFFICIENT);
+        this.coin -= coin;
+    }
 }

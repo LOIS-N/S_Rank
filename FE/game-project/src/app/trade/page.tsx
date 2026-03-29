@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useUserStore } from "@/store/useUserStore";
 import { useGameStore } from "@/store/useGameStore";
 import api from "@/lib/axios";
-import { useTrade } from "@/hooks/useTrade";
-import { sendGAEvent } from "@/lib/gtag";
+// useTrade (직접 온체인 호출) 제거 — BE가 비동기로 블록체인 처리
 import "./trade.css";
 
 const ASSET_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -70,69 +69,49 @@ function formatDate(dateStr: string | null): string {
   return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-// ── 샘플 데이터 ──
-const SAMPLE_LISTINGS: TradeListing[] = [
-  {
-    // tokenId: BE API 연동 시 실제 온체인 tokenId가 채워짐. 현재는 테스트용 임시값.
-    listingId: 1, cardId: 1, grade: "S", name: "싸피생1", tokenId: undefined,
-    imageUrl: "/assets/008/SCardImage_000.webp",
-    skill1: { skillType: "BE", value: 99 }, skill2: { skillType: "FE", value: 99 }, skill3: { skillType: "AI", value: 80 },
-    price: 150000, sellerNickname: "판매자A", enhanceLevel: 2, remainEnhanceCount: 3,
-  },
-  {
-    listingId: 2, cardId: 2, grade: "A", name: "싸피생2", tokenId: undefined,
-    imageUrl: "/assets/008/SCardImage_001.webp",
-    skill1: { skillType: "BE", value: 99 }, skill2: { skillType: "FE", value: 80 }, skill3: { skillType: "AI", value: 99 },
-    price: 200000, sellerNickname: "판매자B", enhanceLevel: 0, remainEnhanceCount: 5,
-  },
-  {
-    listingId: 3, cardId: 3, grade: "A", name: "싸피생3", tokenId: undefined,
-    imageUrl: "/assets/008/SCardImage_002.webp",
-    skill1: { skillType: "BE", value: 80 }, skill2: { skillType: "FE", value: 99 }, skill3: { skillType: "AI", value: 99 },
-    price: 300000, sellerNickname: "판매자C", enhanceLevel: 1, remainEnhanceCount: 4,
-  },
-];
-
-const SAMPLE_HISTORY: HistoryItem[] = [
-  {
-    historyId: 1, status: "판매중",
-    cardName: "싸피생1", grade: "S", imageUrl: "/assets/008/SCardImage_000.webp",
-    skill1: { skillType: "BE", value: 99 }, skill2: { skillType: "FE", value: 99 }, skill3: { skillType: "AI", value: 80 },
-    enhanceLevel: 2, remainEnhanceCount: 3, price: 150000,
-    completedAt: null, expiresAt: "2026-04-01T00:00:00Z", registeredAt: "2026-03-20T10:00:00Z",
-  },
-  {
-    historyId: 2, status: "판매완료",
-    cardName: "싸피생2", grade: "A", imageUrl: "/assets/008/SCardImage_001.webp",
-    skill1: { skillType: "BE", value: 99 }, skill2: { skillType: "FE", value: 80 }, skill3: { skillType: "AI", value: 99 },
-    enhanceLevel: 0, remainEnhanceCount: 5, price: 200000,
-    completedAt: "2026-03-21T15:30:00Z", expiresAt: "2026-03-25T00:00:00Z", registeredAt: "2026-03-19T09:00:00Z",
-  },
-  {
-    historyId: 3, status: "구매완료",
-    cardName: "싸피생3", grade: "A", imageUrl: "/assets/008/SCardImage_002.webp",
-    skill1: { skillType: "BE", value: 80 }, skill2: { skillType: "FE", value: 99 }, skill3: { skillType: "AI", value: 99 },
-    enhanceLevel: 1, remainEnhanceCount: 4, price: 300000,
-    completedAt: "2026-03-20T12:00:00Z", expiresAt: null, registeredAt: "2026-03-18T08:00:00Z",
-  },
-];
-
 // ── 타입 정의 ──
+// BE SkillResponse: { skillType, value(기본), bonus(강화보너스) } — 표시값 = value + bonus
+interface RawSkill { skillType: string; value?: number; bonus?: number; }
+interface RawMarketItem {
+  marketItemId?: number; listingId?: number; userCardId?: number; cardId?: number; cardTemplateId?: number;
+  grade: string; cardName?: string; name?: string; imageUrl: string;
+  skill1?: RawSkill; skill2?: RawSkill; skill3?: RawSkill;
+  priceCoin?: number; price?: number;
+  enhanceSuccessCount?: number; enhanceTryCount?: number; enhanceLevel?: number; remainEnhanceCount?: number;
+  marketTradeHistoryId?: number; historyId?: number; status?: string; historyType?: string;
+  role?: string; // "SELLER" | "BUYER"
+  completedAt?: string; expiresAt?: string; eventAt?: string; createdAt?: string; registeredAt?: string;
+}
+
+
 interface TradeCardSkill { skillType: string; value: number; }
 interface TradeListing {
   listingId: number; cardId: number; grade: string; name: string; imageUrl: string;
   skill1: TradeCardSkill; skill2: TradeCardSkill; skill3: TradeCardSkill;
-  price: number; sellerNickname: string; enhanceLevel: number; remainEnhanceCount: number;
-  tokenId?: number; // BE mint 완료 후 채워짐
+  price: number; sellerNickname?: string; enhanceLevel: number; remainEnhanceCount: number;
+  tokenId?: number; registeredAt: string;
 }
 interface MyCardItem {
-  cardId: number; grade: string; name: string; imageUrl: string;
+  userCardId: number; cardId?: number; grade: string; name: string; imageUrl: string;
   skill1: TradeCardSkill; skill2: TradeCardSkill; skill3: TradeCardSkill;
   enhanceLevel: number; remainEnhanceCount: number;
 }
-type HistoryStatus = "판매중" | "판매완료" | "기간종료" | "구매완료";
+type HistoryStatus = "판매중" | "판매완료" | "판매실패" | "구매완료" | "처리중";
+
+// BE MarketItemStatus + role → FE 한글 상태
+// role: "SELLER" | "BUYER" (BE TradeHistoryResponse 필드)
+function mapHistoryStatus(beStatus: string, role?: string): HistoryStatus {
+  const s = (beStatus ?? "").toUpperCase();
+  if (s === "SALE_PENDING" || s === "ON_SALE" || s === "REGISTER") return "판매중";
+  if (s === "BUY_PENDING") return "처리중";
+  if (s === "SOLD" || s === "TRADE") return role === "BUYER" ? "구매완료" : "판매완료";
+  // 실패 관련 상태들을 모두 "판매실패"로 통합
+  if (s === "EXPIRED" || s === "EXPIRE" || s === "CANCELED" || s === "CANCEL" || s === "CANCELLED" || s === "FAILED") return "판매실패";
+  return "판매중";
+}
+
 interface HistoryItem {
-  historyId: number; status: HistoryStatus; cardName: string; grade: string; imageUrl: string;
+  historyId: number; status: HistoryStatus; role: string; cardName: string; grade: string; imageUrl: string;
   skill1: TradeCardSkill; skill2: TradeCardSkill; skill3: TradeCardSkill;
   enhanceLevel: number; remainEnhanceCount: number; price: number;
   completedAt: string | null; expiresAt: string | null; registeredAt: string;
@@ -255,7 +234,7 @@ function useCustomScroll(contentHeight: number, wrapperHeight: number) {
 export default function TradePage() {
   const { getAccessToken } = usePrivy();
   const { accessToken } = useUserStore();
-  const { coffee } = useGameStore();
+  const { coffee, usedCardIds, setUsedCardIds, setListedCardIds, marketRefreshSignal } = useGameStore();
   const [tab, setTab] = useState<TabType>("BUY");
 
   // ── 구매 탭 상태 ──
@@ -281,6 +260,7 @@ export default function TradePage() {
   const [isSellLoading, setIsSellLoading] = useState(false);
   const [isSelling, setIsSelling] = useState(false);
   const [sellStep, setSellStep] = useState("");
+  const [showSellConfirm, setShowSellConfirm] = useState(false);
   const [buyStep, setBuyStep] = useState("");
   const [sellGridHeight, setSellGridHeight] = useState(0);
   const [sellWrapHeight, setSellWrapHeight] = useState(0);
@@ -298,61 +278,66 @@ export default function TradePage() {
   const histScroll = useCustomScroll(histListHeight, histWrapHeight);
 
   const getToken = useCallback(async () => accessToken || await getAccessToken(), [accessToken, getAccessToken]);
-  const { listOnChain, buyOnChain, checkAndApproveAll } = useTrade();
 
-  // 샘플 데이터 클라이언트 필터링
-  const filterSampleListings = useCallback((items: TradeListing[]) => {
-    return items.filter(item => {
-      if (skillFilter === "ALL") return true;
-      const matchingSkill = [item.skill1, item.skill2, item.skill3].find(s =>
-        displaySkillType(s.skillType) === skillFilter || s.skillType.toUpperCase() === skillFilter
-      );
-      if (!matchingSkill) return false;
-      const min = minStat ? parseInt(minStat) : 0;
-      const max = maxStat ? parseInt(maxStat) : 9999;
-      return matchingSkill.value >= min && matchingSkill.value <= max;
-    });
-  }, [skillFilter, minStat, maxStat]);
-
-  // ── 구매 목록 fetch ──
+  // ── 구매 목록 fetch (BE는 파라미터 미지원 → 전체 조회 후 FE 클라이언트 필터링) ──
   const fetchListings = useCallback(async () => {
     setIsBuyLoading(true);
     try {
       const token = await getToken();
-      const params: Record<string, string> = {};
-      if (skillFilter !== "ALL") params.skillType = skillFilter === 'DEV' ? 'DEVOPS' : skillFilter;
-      if (minStat) params.minStat = minStat;
-      if (maxStat) params.maxStat = maxStat;
-      const { data } = await api.get("/api/v1/trade/listings", {
+      const { data } = await api.get("/api/v1/market/items", {
         headers: { Authorization: `Bearer ${token}` },
-        params,
       });
       if (data.success) {
-        const result: TradeListing[] = data.data ?? [];
-        const final = result.length > 0 ? result : filterSampleListings(SAMPLE_LISTINGS);
-        setListings(final);
-        setSelectedListing(prev => prev ?? (final[0] ?? null));
+        const raw: RawMarketItem[] = data.data?.items ?? data.data ?? [];
+        const result: TradeListing[] = raw.map(item => ({
+          listingId: item.marketItemId ?? item.listingId ?? 0,
+          cardId: item.userCardId ?? item.cardId ?? 0,
+          grade: item.grade,
+          name: item.cardName ?? item.name ?? "",
+          imageUrl: item.imageUrl,
+          // BE SkillResponse: value = getTotalValue() (base+bonus 이미 합산), bonus = getBonusValue() (강화분만)
+          // → value가 이미 최종 표시값이므로 bonus를 더하면 이중합산됨
+          skill1: { skillType: item.skill1?.skillType ?? "", value: item.skill1?.value ?? 0 },
+          skill2: { skillType: item.skill2?.skillType ?? "", value: item.skill2?.value ?? 0 },
+          skill3: { skillType: item.skill3?.skillType ?? "", value: item.skill3?.value ?? 0 },
+          price: item.priceCoin ?? item.price ?? 0,
+          enhanceLevel: item.enhanceSuccessCount ?? item.enhanceLevel ?? 0,
+          remainEnhanceCount: Math.max(0, 7 - (item.enhanceTryCount ?? 0)),
+          registeredAt: item.eventAt ?? item.createdAt ?? item.registeredAt ?? "",
+        }));
+        setListings(result);
+        setSelectedListing(prev => prev ?? (result[0] ?? null));
       }
     } catch {
-      const filtered = filterSampleListings(SAMPLE_LISTINGS);
-      setListings(filtered);
-      setSelectedListing(prev => prev ?? (filtered[0] ?? null));
+      setListings([]);
+      setSelectedListing(null);
     } finally {
       setIsBuyLoading(false);
     }
-  }, [getToken, skillFilter, minStat, maxStat, filterSampleListings]);
+  }, [getToken]);
 
   // ── 내 카드 목록 fetch ──
   const fetchMyCards = useCallback(async () => {
     setIsSellLoading(true);
     try {
       const token = await getToken();
-      const { data } = await api.get("/api/v1/cards", {
+      const { data } = await api.get("/api/v1/market/my/sellable-cards", {
         headers: { Authorization: `Bearer ${token}` },
-        params: { limit: "100" },
       });
       if (data.success) {
-        const cards: MyCardItem[] = data.data?.cards ?? [];
+        const raw: RawMarketItem[] = data.data?.items ?? data.data ?? [];
+        const cards: MyCardItem[] = raw.map(item => ({
+          userCardId: item.userCardId ?? 0,
+          cardId: item.cardTemplateId,
+          grade: item.grade,
+          name: item.cardName ?? item.name ?? "",
+          imageUrl: item.imageUrl,
+          skill1: { skillType: item.skill1?.skillType ?? "", value: item.skill1?.value ?? 0 },
+          skill2: { skillType: item.skill2?.skillType ?? "", value: item.skill2?.value ?? 0 },
+          skill3: { skillType: item.skill3?.skillType ?? "", value: item.skill3?.value ?? 0 },
+          enhanceLevel: item.enhanceSuccessCount ?? 0,
+          remainEnhanceCount: Math.max(0, 7 - (item.enhanceTryCount ?? 0)),
+        }));
         setMyCards(cards);
         setSelectedMyCard(cards[0] ?? null);
       }
@@ -363,39 +348,103 @@ export default function TradePage() {
     }
   }, [getToken]);
 
-  // ── 거래 내역 fetch ──
+  // ── 거래 내역 fetch (BE 파라미터 미지원 → 전체 조회 후 FE 필터) ──
   const fetchHistory = useCallback(async () => {
     setIsHistoryLoading(true);
     try {
       const token = await getToken();
-      const params: Record<string, string> = {};
-      if (histStatusFilter !== "ALL") params.status = histStatusFilter;
-      const { data } = await api.get("/api/v1/trade/history", {
+      const { data } = await api.get("/api/v1/market/my/histories", {
         headers: { Authorization: `Bearer ${token}` },
-        params,
       });
       if (data.success) {
-        const result: HistoryItem[] = data.data ?? [];
-        const final = result.length > 0 ? result : SAMPLE_HISTORY;
-        setHistory(final);
-        setSelectedHistItem(prev => prev ?? (final[0] ?? null));
+        const raw: RawMarketItem[] = data.data?.histories ?? data.data ?? [];
+        const result: HistoryItem[] = raw.map(item => ({
+          // BE: marketItemId (marketTradeHistoryId 아님)
+          historyId: item.marketItemId ?? item.marketTradeHistoryId ?? item.historyId ?? 0,
+          grade: item.grade,
+          cardName: item.cardName ?? "",
+          imageUrl: item.imageUrl,
+          skill1: { skillType: item.skill1?.skillType ?? "", value: item.skill1?.value ?? 0 },
+          skill2: { skillType: item.skill2?.skillType ?? "", value: item.skill2?.value ?? 0 },
+          skill3: { skillType: item.skill3?.skillType ?? "", value: item.skill3?.value ?? 0 },
+          price: item.priceCoin ?? item.price ?? 0,
+          role: item.role ?? "",
+          status: mapHistoryStatus(item.status ?? item.historyType ?? "", item.role),
+          enhanceLevel: item.enhanceSuccessCount ?? item.enhanceLevel ?? 0,
+          remainEnhanceCount: Math.max(0, 7 - (item.enhanceTryCount ?? 0)),
+          completedAt: item.eventAt ?? item.completedAt ?? null,
+          expiresAt: item.expiresAt ?? null,
+          registeredAt: item.eventAt ?? item.createdAt ?? item.registeredAt ?? "",
+        }));
+        setHistory(result);
+        setSelectedHistItem(prev => prev ?? (result[0] ?? null));
       }
-    } catch {
-      setHistory(SAMPLE_HISTORY);
-      setSelectedHistItem(prev => prev ?? (SAMPLE_HISTORY[0] ?? null));
+    } catch (e: unknown) {
+      console.error("[거래내역] fetch 실패:", e);
+      setHistory([]);
+      setSelectedHistItem(null);
     } finally {
       setIsHistoryLoading(false);
     }
-  }, [getToken, histStatusFilter]);
+  }, [getToken]);
+
+  // ── 내가 판매 등록한 marketItemId 세트 (구매 탭에서 자신의 카드 숨기기용) ──
+  const [myListedIds, setMyListedIds] = useState<Set<number>>(new Set());
+
+  const fetchUsedCards = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const { data } = await api.get("/api/v1/cards/used", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data.success && Array.isArray(data.data)) {
+        setUsedCardIds(data.data);
+      }
+    } catch (err) {
+      console.error("사용 중인 카드 조회 실패:", err);
+    }
+  }, [getToken, setUsedCardIds]);
+
+  const fetchMyListedIds = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const { data } = await api.get("/api/v1/market/my/histories", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data.success) {
+        const raw: RawMarketItem[] = data.data?.histories ?? data.data ?? [];
+        const idsArray = raw
+          .filter(item => (item.role ?? "").toUpperCase() === "SELLER")
+          .map(item => item.userCardId ?? item.cardId ?? 0) // marketItemId가 아니라 실제 카드 ID(userCardId)를 저장해야 함
+          .filter(id => id !== 0);
+        
+        setListedCardIds(idsArray);
+        setMyListedIds(new Set(raw
+          .filter(item => (item.role ?? "").toUpperCase() === "SELLER")
+          .map(item => item.marketItemId ?? item.listingId ?? 0)
+          .filter(id => id !== 0)
+        ));
+      }
+    } catch {
+      // 내 아이템 식별 실패 시 숨기기 없이 전체 표시
+    }
+  }, [getToken, setListedCardIds]);
 
   useEffect(() => {
-    if (tab === "BUY") fetchListings();
-    else if (tab === "SELL") fetchMyCards();
-    else fetchHistory();
+    if (tab === "BUY") { fetchListings(); fetchMyListedIds(); }
+    else if (tab === "SELL") { fetchMyCards(); fetchUsedCards(); }
+    else { fetchHistory(); fetchMyListedIds(); }
     setSelectedListing(null);
     setSelectedMyCard(null);
     setSelectedHistItem(null);
-  }, [tab]);
+  }, [tab, fetchListings, fetchMyCards, fetchHistory, fetchMyListedIds, fetchUsedCards]);
+
+  // SSE market 이벤트 수신 시 현재 탭 자동 새로고침
+  useEffect(() => {
+    if (marketRefreshSignal === 0) return;
+    if (tab === "BUY") { fetchListings(); fetchMyListedIds(); }
+    else fetchHistory();
+  }, [marketRefreshSignal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // DOM 높이 측정
   useEffect(() => {
@@ -429,6 +478,8 @@ export default function TradePage() {
     return () => clearTimeout(t);
   }, [history]);
 
+
+
   // ── 구매 클릭: 커피 잔액 확인 후 모달 ──
   const handleBuyClick = () => {
     if (!selectedListing) return;
@@ -445,21 +496,35 @@ export default function TradePage() {
     if (!selectedListing) return;
     setIsBuying(true);
     try {
-      // 1. 온체인 구매 (token.approve → market.buyCard)
-      if (selectedListing.tokenId != null) {
-        await buyOnChain(selectedListing.tokenId, selectedListing.price, setBuyStep);
-      }
-      // 2. BE에 구매 완료 기록
+      // BE API 호출 (BE가 비동기로 블록체인 처리)
       const token = await getToken();
-      await api.post(`/api/v1/trade/listings/${selectedListing.listingId}/buy`, {}, {
+      await api.post(`/api/v1/market/items/${selectedListing.listingId}/buy`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      // 코인 잔액 즉시 갱신 (/me 재호출)
+      try {
+        const meRes = await api.get("/api/v1/users/me", { headers: { Authorization: `Bearer ${token}` } });
+        const me = meRes.data?.data;
+        if (me) {
+          useUserStore.getState().setProfile({ nickname: me.nickname, level: me.level, gold: me.gold, coin: me.coin });
+          useGameStore.getState().setResources(me.gold, me.coin);
+        }
+      } catch { /* 잔액 갱신 실패는 무시 */ }
+
       setSelectedListing(null);
       setBuyStep("");
       fetchListings();
-    } catch (e: any) {
+      useGameStore.getState().openComingSoonModal(
+        "구매 요청이 접수되었습니다.\n\n" +
+        "블록체인 처리 완료(1~3분) 후\n" +
+        "카드 목록에서 확인하세요.\n\n" +
+        "※ 블록체인 오류 시 커피가\n자동 환불됩니다."
+      );
+    } catch (e: unknown) {
       setBuyStep("");
-      useGameStore.getState().openComingSoonModal((e as any)?.response?.data?.error?.message ?? "구매 중 오류가 발생했습니다.");
+      const errMsg = (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ?? "구매 중 오류가 발생했습니다.";
+      useGameStore.getState().openComingSoonModal(errMsg);
     } finally {
       setIsBuying(false);
     }
@@ -472,57 +537,71 @@ export default function TradePage() {
     if (isNaN(price) || price <= 0) { useGameStore.getState().openComingSoonModal("올바른 가격을 입력해주세요."); return; }
     setIsSelling(true);
     try {
-      // 0. setApprovalForAll 미승인 시 자동 처리 (최초 1회만 서명 발생)
-      setSellStep("거래 활성화 확인 중...");
-      await checkAndApproveAll(setSellStep);
-
-      // 1. BE에 민팅 요청 → tokenId 수령
-      setSellStep("");
+      // BE API 호출 (BE가 비동기로 블록체인 처리)
       const token = await getToken();
-      const { data } = await api.post("/api/v1/trade/listings", {
-        cardId: selectedMyCard.cardId, price,
+      await api.post("/api/v1/market/items", {
+        userCardId: selectedMyCard.userCardId,
+        priceCoin: price,
       }, { headers: { Authorization: `Bearer ${token}` } });
-      const tokenId: number | undefined = data?.data?.tokenId;
-
-      // 2. 온체인 판매 등록 (nft.approve → market.listCard)
-      if (tokenId != null) {
-        await listOnChain(tokenId, price, setSellStep);
-        // GA: NFT 민팅(온체인 등록) 완료
-        sendGAEvent("nft_mint", {
-          card_id: selectedMyCard.cardId,
-          card_name: selectedMyCard.name,
-          card_grade: selectedMyCard.grade,
-          token_id: tokenId,
-          price_cff: price,
-          success: true,
-        });
-      }
 
       setSellStep("");
       setSellPrice("");
       setSelectedMyCard(null);
       fetchMyCards();
-    } catch (e: any) {
+      useGameStore.getState().openComingSoonModal("판매 등록 중입니다. 처리 완료 후 목록에 표시됩니다.");
+    } catch (e: unknown) {
       setSellStep("");
-      useGameStore.getState().openComingSoonModal((e as any)?.response?.data?.error?.message ?? "판매 등록 중 오류가 발생했습니다.");
+      const errMsg = (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ?? "판매 등록 중 오류가 발생했습니다.";
+      useGameStore.getState().openComingSoonModal(errMsg);
     } finally {
       setIsSelling(false);
     }
   };
 
-  // 판매 탭 필터링된 카드 (A/S 등급만, 스킬 필터 추가)
-  const filteredMyCards = myCards.filter(card => {
-    if (card.grade !== "A" && card.grade !== "S") return false;
+  // 구매 탭 클라이언트 필터링 (BE는 파라미터 미지원, 내가 등록한 카드 제외)
+  const filteredListings = useMemo(() => {
+    const list = listings.filter(item => {
+      // 내가 판매 등록한 아이템은 구매 탭에서 숨김
+      if (myListedIds.has(item.listingId)) return false;
+      if (skillFilter !== "ALL") {
+        const norm = skillFilter === "DEV" ? "DEVOPS" : skillFilter;
+        if (![item.skill1, item.skill2, item.skill3].some(s => s.skillType.toUpperCase() === norm)) return false;
+      }
+      if (minStat || maxStat) {
+        const norm = skillFilter !== "ALL" ? (skillFilter === "DEV" ? "DEVOPS" : skillFilter) : null;
+        const statVal = norm
+          ? ([item.skill1, item.skill2, item.skill3].find(s => s.skillType.toUpperCase() === norm)?.value ?? 0)
+          : Math.max(item.skill1.value, item.skill2.value, item.skill3.value);
+        if (minStat && statVal < parseInt(minStat, 10)) return false;
+        if (maxStat && statVal > parseInt(maxStat, 10)) return false;
+      }
+      return true;
+    });
+
+    // 정렬 로직 고도화
+    // 1. 가격 (오름차순)
+    // 2. 능력치 총합 (내림차순)
+    // 3. 등록일시 (내림차순)
+    return list.sort((a, b) => {
+      if (a.price !== b.price) return a.price - b.price;
+      const sumA = a.skill1.value + a.skill2.value + a.skill3.value;
+      const sumB = b.skill1.value + b.skill2.value + b.skill3.value;
+      if (sumA !== sumB) return sumB - sumA;
+      return new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime();
+    });
+  }, [listings, myListedIds, skillFilter, minStat, maxStat]);
+
+  // 판매 탭 필터링된 카드 — BE가 /sellable-cards에서 이미 S등급 판매 가능 카드만 리턴
+  const filteredMyCards = useMemo(() => myCards.filter(card => {
     if (sellSkillFilter === "ALL") return true;
-    return [card.skill1, card.skill2, card.skill3].some(s =>
-      displaySkillType(s.skillType) === sellSkillFilter || s.skillType.toUpperCase() === sellSkillFilter
-    );
-  });
+    const norm = sellSkillFilter === "DEV" ? "DEVOPS" : sellSkillFilter;
+    return [card.skill1, card.skill2, card.skill3].some(s => s.skillType.toUpperCase() === norm);
+  }), [myCards, sellSkillFilter]);
 
   // 거래 내역 클라이언트 필터링
-  const displayedHistory = histStatusFilter === "ALL"
-    ? history
-    : history.filter(h => h.status === histStatusFilter);
+  const displayedHistory = useMemo(() =>
+    histStatusFilter === "ALL" ? history : history.filter(h => h.status === histStatusFilter),
+  [history, histStatusFilter]);
 
   // 우측 카드 이미지 + 능력치 오버레이 (카드목록 페이지 동일 방식)
   const renderCardWithStats = (
@@ -530,14 +609,21 @@ export default function TradePage() {
     name: string,
     skill1: TradeCardSkill,
     skill2: TradeCardSkill,
-    skill3: TradeCardSkill
+    skill3: TradeCardSkill,
+    enhanceLevel = 0,
+    grade = ""
   ) => (
     <div className="trade-right-card-area">
       <div className="trade-right-card-wrapper">
         <img className="trade-right-card-img" src={imageUrl} alt={name} draggable={false} />
-        <span className="trade-right-card-stat stat-1"><img src={getSkillIcon(skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill1.skillType)} {skill1.value}</span>
-        <span className="trade-right-card-stat stat-2"><img src={getSkillIcon(skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill2.skillType)} {skill2.value}</span>
-        <span className="trade-right-card-stat stat-3"><img src={getSkillIcon(skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill3.skillType)} {skill3.value}</span>
+        {enhanceLevel > 0 && (
+          <span className="card-enhance-badge" data-level={String(enhanceLevel)} data-grade={grade}>
+            <span className="badge-plus">+</span><span className="badge-num">{enhanceLevel}</span>
+          </span>
+        )}
+        <span className="trade-right-card-stat stat-1" style={{ fontSize: displaySkillType(skill1.skillType) === 'DESIGN' ? '12px' : undefined }}><img src={getSkillIcon(skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill1.skillType)} {skill1.value}</span>
+        <span className="trade-right-card-stat stat-2" style={{ fontSize: displaySkillType(skill2.skillType) === 'DESIGN' ? '12px' : undefined }}><img src={getSkillIcon(skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill2.skillType)} {skill2.value}</span>
+        <span className="trade-right-card-stat stat-3" style={{ fontSize: displaySkillType(skill3.skillType) === 'DESIGN' ? '12px' : undefined }}><img src={getSkillIcon(skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill3.skillType)} {skill3.value}</span>
       </div>
     </div>
   );
@@ -565,16 +651,18 @@ export default function TradePage() {
             <div className="trade-list-inner" ref={buyListRef} style={{ transform: `translateY(-${buyScroll.scrollOffset}px)` }}>
               {isBuyLoading ? (
                 <div className="trade-empty">불러오는 중...</div>
-              ) : listings.length === 0 ? (
-                <div className="trade-empty">거래 목록이 없습니다</div>
+              ) : filteredListings.length === 0 ? (
+                <div className="trade-empty">{listings.length > 0 ? "조건에 맞는 카드가 없습니다" : "거래 목록이 없습니다"}</div>
               ) : (
-                listings.map(item => (
+                filteredListings.map(item => (
                   <div
                     key={item.listingId}
                     className={`trade-item-row ${selectedListing?.listingId === item.listingId ? "selected" : ""}`}
                     onClick={() => setSelectedListing(item)}
                   >
-                    <img className="trade-item-thumb" src={item.imageUrl} alt={item.name} draggable={false} />
+                    <div className="trade-item-thumb-wrap">
+                      <img className="trade-item-thumb" src={item.imageUrl} alt={item.name} draggable={false} />
+                    </div>
                     <div className="trade-item-info">
                       <div className="trade-item-name">카드 이름 : {item.name}</div>
                       <div className="trade-item-stats">
@@ -608,7 +696,7 @@ export default function TradePage() {
 
         {selectedListing ? (
           <div className="trade-right-inner" style={{ marginTop: "20px" }}>
-            {renderCardWithStats(selectedListing.imageUrl, selectedListing.name, selectedListing.skill1, selectedListing.skill2, selectedListing.skill3)}
+            {renderCardWithStats(selectedListing.imageUrl, selectedListing.name, selectedListing.skill1, selectedListing.skill2, selectedListing.skill3, selectedListing.enhanceLevel, selectedListing.grade)}
             <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={12} borderScale={0.35} className="trade-right-info-box">
               <div className="trade-right-info-text">
                 {selectedListing.name}({selectedListing.grade}등급/+{selectedListing.enhanceLevel})<br />
@@ -652,18 +740,34 @@ export default function TradePage() {
               ) : filteredMyCards.length === 0 ? (
                 <div style={{ gridColumn: "1/-1" }} className="trade-empty">카드가 없습니다</div>
               ) : (
-                filteredMyCards.map(card => (
-                  <div
-                    key={card.cardId}
-                    className={`trade-sell-card-item ${selectedMyCard?.cardId === card.cardId ? "selected" : ""}`}
-                    onClick={() => setSelectedMyCard(card)}
-                  >
-                    <img src={card.imageUrl} alt={card.name} draggable={false} />
-                    <span className="trade-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
-                    <span className="trade-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
-                    <span className="trade-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
-                  </div>
-                ))
+                  filteredMyCards.map(card => {
+                    const isSelected = selectedMyCard?.userCardId === card.userCardId;
+                    const isUsed = usedCardIds.includes(card.userCardId);
+                    return (
+                      <div
+                        key={card.userCardId}
+                        className={`trade-sell-card-item ${isSelected ? "selected" : ""} ${isUsed ? "used-disabled" : ""}`}
+                        onClick={() => {
+                          if (isUsed) return;
+                          setSelectedMyCard(card);
+                        }}
+                        style={isUsed ? { filter: 'brightness(0.5)', cursor: 'not-allowed' } : undefined}
+                      >
+                        <img src={card.imageUrl} alt={card.name} draggable={false} />
+                        {card.enhanceLevel > 0 && (
+                          <span className="card-enhance-badge" data-level={String(card.enhanceLevel)} data-grade={card.grade}>
+                            <span className="badge-plus">+</span><span className="badge-num">{card.enhanceLevel}</span>
+                          </span>
+                        )}
+                        {isUsed && (
+                          <span className="fire-check-overlay checked disabled">🔒</span>
+                        )}
+                        <span className="trade-card-stat stat-1"><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
+                        <span className="trade-card-stat stat-2"><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
+                        <span className="trade-card-stat stat-3"><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
+                      </div>
+                    );
+                  })
               )}
             </div>
           </div>
@@ -685,7 +789,7 @@ export default function TradePage() {
 
         {selectedMyCard ? (
           <div className="trade-right-inner" style={{ marginTop: "20px" }}>
-            {renderCardWithStats(selectedMyCard.imageUrl, selectedMyCard.name, selectedMyCard.skill1, selectedMyCard.skill2, selectedMyCard.skill3)}
+            {renderCardWithStats(selectedMyCard.imageUrl, selectedMyCard.name, selectedMyCard.skill1, selectedMyCard.skill2, selectedMyCard.skill3, selectedMyCard.enhanceLevel, selectedMyCard.grade)}
             <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={12} borderScale={0.35} className="trade-right-info-box">
               <div className="trade-right-info-text">
                 {selectedMyCard.name}({selectedMyCard.grade}등급/+{selectedMyCard.enhanceLevel})<br />
@@ -694,7 +798,7 @@ export default function TradePage() {
             </NineSliceBox>
             <div className="trade-sell-bottom-row">
               <div className="trade-price-set-box">
-                <span className="trade-price-set-label">판매 가격 (골드)</span>
+                <span className="trade-price-set-label">판매 가격 (커피)</span>
                 <input
                   className="trade-price-set-input"
                   type="number" min="1" placeholder="가격 입력"
@@ -702,8 +806,20 @@ export default function TradePage() {
                   onChange={e => setSellPrice(e.target.value)}
                 />
               </div>
-              <button className="trade-sell-btn" onClick={handleSell} disabled={isSelling || !sellPrice}>
-                {isSelling ? (sellStep || "등록 중...") : "판매 등록"}
+              <button
+                className="trade-sell-btn"
+                onClick={() => {
+                  if (usedCardIds.includes(selectedMyCard.userCardId)) return;
+                  const price = parseInt(sellPrice, 10);
+                  if (!sellPrice || isNaN(price) || price <= 0) {
+                    useGameStore.getState().openComingSoonModal("올바른 가격을 입력해주세요.");
+                    return;
+                  }
+                  setShowSellConfirm(true);
+                }}
+                disabled={isSelling || !sellPrice || usedCardIds.includes(selectedMyCard.userCardId)}
+              >
+                {usedCardIds.includes(selectedMyCard.userCardId) ? "퀘스트 중" : isSelling ? (sellStep || "등록 중...") : "판매 등록"}
               </button>
             </div>
           </div>
@@ -729,7 +845,7 @@ export default function TradePage() {
               <option value="ALL">전체</option>
               <option value="판매중">판매중</option>
               <option value="판매완료">판매완료</option>
-              <option value="기간종료">기간종료</option>
+              <option value="판매실패">판매실패</option>
               <option value="구매완료">구매완료</option>
             </select>
           </div>
@@ -746,7 +862,9 @@ export default function TradePage() {
               ) : (
                 displayedHistory.map(h => (
                   <div key={h.historyId} className={`trade-item-row ${selectedHistItem?.historyId === h.historyId ? "selected" : ""}`} onClick={() => setSelectedHistItem(h)}>
-                    <img className="trade-item-thumb" src={h.imageUrl} alt={h.cardName} draggable={false} />
+                    <div className="trade-item-thumb-wrap">
+                      <img className="trade-item-thumb" src={h.imageUrl} alt={h.cardName} draggable={false} />
+                    </div>
                     <div className="trade-item-info">
                       <div className="trade-history-status-badge" data-status={h.status}>{h.status}</div>
                       <div className="trade-item-name">카드 이름 : {h.cardName}</div>
@@ -778,7 +896,7 @@ export default function TradePage() {
       <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_000.webp`} slice={[121, 248, 85, 248]} framePadding={16} borderScale={0.5} className="trade-right-box">
         {selectedHistItem ? (
           <div className="trade-right-inner" style={{ paddingTop: "30px" }}>
-            {renderCardWithStats(selectedHistItem.imageUrl, selectedHistItem.cardName, selectedHistItem.skill1, selectedHistItem.skill2, selectedHistItem.skill3)}
+            {renderCardWithStats(selectedHistItem.imageUrl, selectedHistItem.cardName, selectedHistItem.skill1, selectedHistItem.skill2, selectedHistItem.skill3, selectedHistItem.enhanceLevel, selectedHistItem.grade)}
             <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={12} borderScale={0.35} className="trade-right-info-box">
               <div className="trade-right-info-text">
                 {selectedHistItem.cardName}({selectedHistItem.grade}등급/+{selectedHistItem.enhanceLevel})<br />
@@ -787,9 +905,32 @@ export default function TradePage() {
             </NineSliceBox>
             <NineSliceBox src={`${ASSET_BASE}/assets/008/questInf_001.webp`} slice={[108, 260, 129, 340]} framePadding={12} borderScale={0.35} className="trade-right-info-box">
               <div className="trade-right-info-text trade-right-date-text">
-                판매/구매 완료 일자 : {formatDate(selectedHistItem.completedAt)}<br />
-                기간 만료일자 : {formatDate(selectedHistItem.expiresAt)}<br />
-                판매 등록일시 : {formatDate(selectedHistItem.registeredAt)}
+                {selectedHistItem.status === "판매중" && (
+                  <>
+                    판매 등록일시 : {formatDate(selectedHistItem.registeredAt)}<br />
+                    기간 만료일자 : {formatDate(selectedHistItem.expiresAt)}
+                  </>
+                )}
+                {selectedHistItem.status === "판매완료" && (
+                  <>
+                    판매 완료 일시 : {formatDate(selectedHistItem.completedAt)}
+                  </>
+                )}
+                {selectedHistItem.status === "판매실패" && (
+                  <>
+                    판매 등록일시 : {formatDate(selectedHistItem.registeredAt)}
+                  </>
+                )}
+                {selectedHistItem.status === "구매완료" && (
+                  <>
+                    구매 완료 일시 : {formatDate(selectedHistItem.completedAt)}
+                  </>
+                )}
+                {selectedHistItem.status === "처리중" && (
+                  <>
+                    처리 시작 일시 : {formatDate(selectedHistItem.registeredAt)}
+                  </>
+                )}
               </div>
             </NineSliceBox>
           </div>
@@ -832,12 +973,71 @@ export default function TradePage() {
       )}
 
 
+      {/* 판매 확인 모달 */}
+      {showSellConfirm && selectedMyCard && (
+        <div className="trade-modal-overlay">
+          <div className="trade-modal-box">
+            <p className="trade-modal-title">판매 안내</p>
+            <div className="trade-modal-detail">
+              <div className="trade-modal-detail-row">
+                <span className="trade-modal-detail-label">카드</span>
+                <span className="trade-modal-detail-value">{selectedMyCard.name} ({selectedMyCard.grade}등급)</span>
+              </div>
+              <div className="trade-modal-detail-row">
+                <span className="trade-modal-detail-label">판매가</span>
+                <span className="trade-modal-detail-value">{parseInt(sellPrice, 10).toLocaleString()} 커피</span>
+              </div>
+              <hr className="trade-modal-divider" />
+              <div className="trade-modal-detail-row" style={{ flexDirection: "column", gap: "4px", alignItems: "flex-start" }}>
+                <span className="trade-modal-notice-item">
+                  · 판매 기간은 등록 후 24시간입니다.
+                </span>
+                <span className="trade-modal-notice-item">
+                  · 미판매 시 카드 목록으로 자동 반환됩니다.
+                </span>
+              </div>
+            </div>
+            <div className="trade-modal-btns">
+              <button
+                className="trade-modal-btn-buy"
+                style={{ background: "#4aaa66", borderColor: "#2d7a44" }}
+                onClick={() => { setShowSellConfirm(false); handleSell(); }}
+                disabled={isSelling}
+              >
+                {isSelling ? (sellStep || "등록 중...") : "판매 등록"}
+              </button>
+              <button className="trade-modal-btn-cancel" onClick={() => setShowSellConfirm(false)}>돌아가기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 구매 확인 모달 */}
       {showBuyConfirm && selectedListing && (
         <div className="trade-modal-overlay">
           <div className="trade-modal-box">
-            <p className="trade-modal-title">구매하시겠습니까?</p>
-            <p className="trade-modal-sub">현재 소지한 커피는 {(coffee ?? 0).toLocaleString()}잔입니다.</p>
+            <p className="trade-modal-title">구매 확인</p>
+            <div className="trade-modal-detail">
+              <div className="trade-modal-detail-row">
+                <span className="trade-modal-detail-label">카드</span>
+                <span className="trade-modal-detail-value">{selectedListing.name} ({selectedListing.grade}등급)</span>
+              </div>
+              <div className="trade-modal-detail-row">
+                <span className="trade-modal-detail-label">구매가</span>
+                <span className="trade-modal-detail-value">{selectedListing.price.toLocaleString()} 커피</span>
+              </div>
+              <hr className="trade-modal-divider" />
+              <div className="trade-modal-detail-row">
+                <span className="trade-modal-detail-label">현재 보유</span>
+                <span className="trade-modal-detail-value">{(coffee ?? 0).toLocaleString()} 커피</span>
+              </div>
+              <div className="trade-modal-detail-row">
+                <span className="trade-modal-detail-label">구매 후 잔액</span>
+                <span className={`trade-modal-detail-value ${(coffee ?? 0) - selectedListing.price < 0 ? "trade-modal-detail-warn" : "trade-modal-detail-after"}`}>
+                  {((coffee ?? 0) - selectedListing.price).toLocaleString()} 커피
+                </span>
+              </div>
+            </div>
             <div className="trade-modal-btns">
               <button className="trade-modal-btn-buy" onClick={handleBuyConfirm} disabled={isBuying}>
                 {isBuying ? (buyStep || "구매 중...") : "구매하기"}

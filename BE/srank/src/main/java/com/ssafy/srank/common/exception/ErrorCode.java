@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
  *   G  : Global / 공통
  *   AU : Auth (인증/인가)
  *   U  : User (유저)
+ *   DM : Daily Mission (데일리 미션)
  *   D  : Desk (책상)
  *   C  : Card (카드)
  *   Q  : Quest (퀘스트)
@@ -22,6 +23,8 @@ import org.springframework.http.HttpStatus;
  *   RK : Ranking (랭킹)
  *   AC : Achievement (업적)
  *   GD : GOLD (골드 재화)
+ *   CN : COIN (코인 재화)
+ *   M : MAIL (우편)
  */
 @Getter
 @RequiredArgsConstructor
@@ -53,6 +56,11 @@ public enum ErrorCode {
     INSUFFICIENT_TOKEN(HttpStatus.BAD_REQUEST,          "U004", "토큰이 부족합니다."),
     WALLET_NOT_FOUND(HttpStatus.NOT_FOUND,              "U005", "지갑 정보를 찾을 수 없습니다."),
     WALLET_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "U006", "지갑 생성에 실패했습니다."),
+
+    // ======================== DM : Daily Mission ========================
+    MISSION_NOT_FOUND(HttpStatus.NOT_FOUND,             "DM001", "미션을 찾을 수 없습니다."),
+    MISSION_NOT_COMPLETED(HttpStatus.BAD_REQUEST,       "DM002", "아직 달성되지 않은 미션입니다."),
+    MISSION_REWARD_ALREADY_CLAIMED(HttpStatus.CONFLICT, "DM003", "이미 보상을 수령한 미션입니다."),
 
     // ======================== D : Desk (책상) ========================
     DESK_NOT_FOUND(HttpStatus.NOT_FOUND,                "D001", "책상을 찾을 수 없습니다."),
@@ -128,7 +136,17 @@ public enum ErrorCode {
 
     // ======================== GD : Gold (골드-재화) ========================
     GOLD_INVALID_AMOUNT(HttpStatus.BAD_REQUEST,      "GD001", "잘못된 골드(재화) 입니다."),
-    GOLD_INSUFFICIENT(HttpStatus.BAD_REQUEST,      "GD002", "보유 골드가 부족합니다.");
+    GOLD_INSUFFICIENT(HttpStatus.BAD_REQUEST,      "GD002", "보유 골드가 부족합니다."),
+
+    // ======================== CN : COIN (코인 재화) ========================
+    COIN_INVALID_AMOUNT(HttpStatus.BAD_REQUEST,      "CN001", "잘못된 코인(재화) 입니다."),
+    COIN_INSUFFICIENT(HttpStatus.BAD_REQUEST,      "CN002", "보유 코인이 부족합니다."),
+
+
+    // ======================== M : MAIL (우편함) ========================
+    MAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "존재하지 않는 우편입니다."),
+    MAIL_REWARD_ALREADY_CLAIMED(HttpStatus.BAD_REQUEST, "M002", "이미 보상을 수령한 우편입니다.");
+
 
     private final HttpStatus httpStatus;
     private final String code;

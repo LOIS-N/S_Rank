@@ -370,7 +370,7 @@ function QuestDetail({ quest, isAccepting, isInProgress = false, isAllBusy = fal
 // --- Phase 2: 카드 배치 콘텐츠 ---
 function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () => void }) {
   const router = useRouter();
-  const { selectingDeskId, startQuest, quests: storeQuests, tutorialQuestStep: tStep, tutorialEnhanceCount, tutorialAccessPage: tAccessPage } = useGameStore();
+  const { selectingDeskId, startQuest, quests: storeQuests, tutorialQuestStep: tStep, tutorialEnhanceCount, tutorialAccessPage: tAccessPage, listedCardIds, setListedCardIds, setUsedCardIds, usedCardIds } = useGameStore();
   const isTutorialPhase2 = tStep !== null && [2, 32, 42].includes(tStep);
   const { getAccessToken } = usePrivy();
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -488,7 +488,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
   const gradeOrderedCards = useMemo(() => sortCardsByGradeAndStat(cards), [cards]);
 
   // --- 사용 중인 카드 ---
-  const [usedCardIds, setUsedCardIds] = useState<number[]>([]);
+  // 로컬 상태 제거: useGameStore에서 가져온 usedCardIds 사용
 
   useEffect(() => {
     const fetchUsedCards = async () => {
@@ -506,7 +506,28 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
         console.error("사용 중인 카드 조회 실패:", err);
       }
     };
+
+    const fetchMyListedIds = async () => {
+      // 튜토리얼 모드: 판매 중인 카드 없음
+      if (tStep !== null) return;
+      try {
+        const token = await getAuthToken();
+        const { data } = await api.get("/api/v1/market/my/histories", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data.success) {
+          const raw: any[] = data.data?.histories ?? data.data ?? [];
+          const idsArray = raw
+            .filter(item => (item.role ?? "").toUpperCase() === "SELLER")
+            .map(item => item.userCardId ?? item.cardId ?? 0)
+            .filter(id => id !== 0);
+          setListedCardIds(idsArray);
+        }
+      } catch { /* 무시 */ }
+    };
+
     fetchUsedCards();
+    fetchMyListedIds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -627,7 +648,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       return total;
     };
 
-    const available = gradeOrderedCards.filter(c => !usedCardIds.includes(c.cardId));
+    const available = gradeOrderedCards.filter(c => !usedCardIds.includes(c.cardId) && !listedCardIds.includes(c.cardId));
     const minCards = Math.min(3, quest.cardSlotCount);
     const maxCards = quest.cardSlotCount;
 
@@ -709,7 +730,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
 
   // --- 카드 선택 (cardSlotCount 제한) ---
   const handleCardClick = (id: number) => {
-    if (usedCardIds.includes(id)) {
+    if (usedCardIds.includes(id) || listedCardIds.includes(id)) {
       setUsedCardWarning(true);
       setTimeout(() => setUsedCardWarning(false), 2000);
       return;
@@ -758,7 +779,13 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     }
 
     // 책상(부서) 사용 가능 여부 사전 검증
-    const deskIndex = selectingDeskId ?? 0;
+    const deskIndex = selectingDeskId !== null
+      ? selectingDeskId
+      : storeQuests.findIndex(q => !q.isLocked && q.status === 'IDLE');
+    if (deskIndex === -1) {
+      setWarningMessage('프로젝트를 시작할 수 있는 부서가 없습니다.');
+      return;
+    }
     const deskStatus = storeQuests[deskIndex]?.status;
     if (deskStatus === 'IN_PROGRESS') {
       setWarningMessage('프로젝트를 시작할 수 있는 부서가 없습니다.');
@@ -769,7 +796,10 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     try {
       const token = await getAuthToken();
       const type = quest.isMain ? 'main' : 'sub';
-      const targetDeskId = beDeskTemplateId ?? (selectingDeskId !== null ? selectingDeskId + 1 : 1);
+      // selectingDeskId가 null(퀘스트 탭 직접 진입)이면 beDeskTemplateId는 desk 0 기준으로 조회된 값이므로 신뢰하지 않음
+      const targetDeskId = selectingDeskId !== null
+        ? (beDeskTemplateId ?? (deskIndex + 1))
+        : (deskIndex + 1);
       const durationSeconds = Math.min(estimatedTime ?? quest.durationMinutes, quest.durationMinutes);
 
       const res = await api.post(`/api/v1/quests/${type}/${quest.questId}/start`, {
@@ -794,7 +824,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
       });
 
       // FE 인덱스(0~4)로 store 업데이트, BE 템플릿 ID(1~5)와 혼용 방지
-      const feDeskIndex = selectingDeskId ?? 0;
+      const feDeskIndex = deskIndex;
       const userQuestId = res.data.data as number;
       startQuest(feDeskIndex, durationSeconds, rewardInfo.reward, quest.title, userQuestId, type as 'main' | 'sub');
       router.push('/');
@@ -819,7 +849,7 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     } finally {
       setIsStarting(false);
     }
-  }, [quest, isStarting, selectedCards, requirements, getEffectiveStatTotal, getAuthToken, estimatedTime, selectingDeskId, startQuest, rewardInfo.reward, router]);
+  }, [quest, isStarting, selectedCards, requirements, getEffectiveStatTotal, getAuthToken, estimatedTime, selectingDeskId, beDeskTemplateId, storeQuests, startQuest, rewardInfo.reward, router]);
 
   const [p2ScrollRatio, setP2ScrollRatio] = useState(0);
   const [p2TrackHeight, setP2TrackHeight] = useState(0);
@@ -1052,13 +1082,15 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
                 sortedCards.map((card) => {
                   const selected = selectedCards.includes(card.cardId);
                   const isUsed = usedCardIds.includes(card.cardId);
+                  const isListed = listedCardIds.includes(card.cardId);
+                  const isDisabled = isUsed || isListed;
                   return (
                     <div
                       key={card.cardId}
                       className={`phase2-card-item ${selected ? 'selected' : ''}`}
                       data-grade={card.grade}
                       onClick={() => handleCardClick(card.cardId)}
-                      style={{ filter: isUsed ? 'brightness(0.5)' : undefined, cursor: isUsed ? 'not-allowed' : undefined }}
+                      style={{ filter: isDisabled ? 'brightness(0.5)' : undefined, cursor: isDisabled ? 'not-allowed' : undefined }}
                     >
                       <img src={card.imageUrl} alt={card.name} draggable={false} />
                       {card.enhanceSuccessCount > 0 && (
@@ -1067,6 +1099,8 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
                         </span>
                       )}
                       {selected && <span className="card-check-overlay">✓</span>}
+                      {isUsed && <span className="card-lock-overlay">🔒</span>}
+                      {isListed && <span className="card-lock-overlay">💰</span>}
                       <span className="phase2-card-stat stat-1" style={{ color: reqTypes.has(normalizeSkillType(card.skill1.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill1.skillType)} {card.skill1.value}</span>
                       <span className="phase2-card-stat stat-2" style={{ color: reqTypes.has(normalizeSkillType(card.skill2.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill2.skillType)} {card.skill2.value}</span>
                       <span className="phase2-card-stat stat-3" style={{ color: reqTypes.has(normalizeSkillType(card.skill3.skillType)) ? '#ffcc00' : undefined }}><img src={getSkillIcon(card.skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(card.skill3.skillType)} {card.skill3.value}</span>
@@ -1287,7 +1321,7 @@ export default function QuestPage() {
   const [subQuests, setSubQuests] = useState<Quest[]>([]);
   const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [chapterNumber, setChapterNumber] = useState(1);
+  const [chapterNumber, setChapterNumber] = useState(1); // BE 응답에서 갱신되는 표시용 챕터 번호 (요청 파라미터로는 사용하지 않음)
   const [isLoading, setIsLoading] = useState(true);
   const [showInProgressModal, setShowInProgressModal] = useState(false);
   const [showAllBusyModal, setShowAllBusyModal] = useState(false);
@@ -1299,11 +1333,11 @@ export default function QuestPage() {
   }, [getAccessToken]);
 
   // --- 메인 퀘스트 조회 ---
-  const fetchMainQuest = useCallback(async (chapter: number) => {
+  // chapterNumber 파라미터 제거: BE는 user.level로 챕터를 결정하므로 FE에서 전송 불필요
+  const fetchMainQuest = useCallback(async () => {
     try {
       const token = await getAuthToken();
       const { data: json } = await api.get('/api/v1/quests/main', {
-        params: { chapterNumber: chapter },
         headers: { Authorization: `Bearer ${token}` },
       });
       if (json.success && json.data && Array.isArray(json.data) && json.data.length > 0) {
@@ -1329,7 +1363,7 @@ export default function QuestPage() {
         };
         setMainQuest(quest);
         setSelectedQuest(quest);
-        setChapterNumber(current.chapterNo);
+        setChapterNumber(current.chapterNo); // 표시용으로만 사용
       }
     } catch (err) {
       console.error("메인 퀘스트 조회 실패:", err);
@@ -1384,7 +1418,7 @@ export default function QuestPage() {
       // Zustand persist 수화가 effect 실행보다 늦을 수 있으므로 최신 상태로 재확인
       if (useGameStore.getState().tutorialQuestStep !== null) return;
       setIsLoading(true);
-      await Promise.all([fetchMainQuest(chapterNumber), fetchSubQuests()]);
+      await Promise.all([fetchMainQuest(), fetchSubQuests()]);
       setIsLoading(false);
     };
     init();

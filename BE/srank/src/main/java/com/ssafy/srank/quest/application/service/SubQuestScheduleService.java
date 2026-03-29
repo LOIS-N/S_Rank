@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class SubQuestScheduleService {
     private final ObjectMapper objectMapper;
     private final QuestMetrics questMetrics;
 
-    public void generateAndSave(int difficulty) throws JsonProcessingException {
+    public void generateAndSave(int difficulty, LocalDateTime questDate) throws JsonProcessingException {
         log.info("[SubQuestSchedule] OpenAI 서브 퀘스트 생성 시작 - difficulty={}", difficulty);
 
         long openAiStartNanos = System.nanoTime();
@@ -58,7 +59,7 @@ public class SubQuestScheduleService {
             throw e;
         }
 
-        listContent.getQuests().forEach(quest -> subQuestRepository.save(quest.toEntity()));
+        listContent.getQuests().forEach(quest -> subQuestRepository.save(quest.toEntity(questDate)));
         questMetrics.recordSavedSubquests(MetricTagValues.number(difficulty), listContent.getQuests().size());
 
         log.info("[SubQuestSchedule] 서브 퀘스트 생성 완료 - difficulty={}, savedCount={}", difficulty, listContent.getQuests().size());
@@ -100,6 +101,7 @@ public class SubQuestScheduleService {
                   "difficulty": 난이도(1~6),
                   "durationMinutes": 기준시간(초),
                   "rewardGold": 보상골드,
+                  "card_slot_count" : 카드슬롯
                   "requiredSkills": [
                     {"skillType": "BE", "skillValue": 숫자},
                     {"skillType": "FE", "skillValue": 숫자},
