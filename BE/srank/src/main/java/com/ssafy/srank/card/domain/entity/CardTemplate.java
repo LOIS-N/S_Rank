@@ -58,6 +58,9 @@ public class CardTemplate {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "ipfs_link")
+    private String ipfsLink;
+
     public CardTemplate(
             CardGrade grade,
             String characterName,
