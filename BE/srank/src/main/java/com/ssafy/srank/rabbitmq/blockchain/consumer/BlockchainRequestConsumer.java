@@ -141,7 +141,7 @@ public class BlockchainRequestConsumer {
         String sellerWallet = userService.getWalletAddress(sellerUserId);
 
         String cardName = item.getUserCard().getCardTemplate().getCharacterName();
-        String imageCid = item.getUserCard().getCardTemplate().getFrameImageUrl();
+        String imageCid = item.getUserCard().getCardTemplate().getIpfsLink();
 
         String tokenUri = pinataService.uploadMetadataToIPFS(cardName, imageCid);
 
