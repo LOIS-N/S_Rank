@@ -621,9 +621,9 @@ export default function TradePage() {
             <span className="badge-plus">+</span><span className="badge-num">{enhanceLevel}</span>
           </span>
         )}
-        <span className="trade-right-card-stat stat-1"><img src={getSkillIcon(skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill1.skillType)} {skill1.value}</span>
-        <span className="trade-right-card-stat stat-2"><img src={getSkillIcon(skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill2.skillType)} {skill2.value}</span>
-        <span className="trade-right-card-stat stat-3"><img src={getSkillIcon(skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill3.skillType)} {skill3.value}</span>
+        <span className="trade-right-card-stat stat-1" style={{ fontSize: displaySkillType(skill1.skillType) === 'DESIGN' ? '12px' : undefined }}><img src={getSkillIcon(skill1.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill1.skillType)} {skill1.value}</span>
+        <span className="trade-right-card-stat stat-2" style={{ fontSize: displaySkillType(skill2.skillType) === 'DESIGN' ? '12px' : undefined }}><img src={getSkillIcon(skill2.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill2.skillType)} {skill2.value}</span>
+        <span className="trade-right-card-stat stat-3" style={{ fontSize: displaySkillType(skill3.skillType) === 'DESIGN' ? '12px' : undefined }}><img src={getSkillIcon(skill3.skillType)} alt="" style={SKILL_ICON_STYLE} /> {displaySkillType(skill3.skillType)} {skill3.value}</span>
       </div>
     </div>
   );
