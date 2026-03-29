@@ -41,7 +41,7 @@ public class PinataService {
             throw new RuntimeException("Pinata 응답에 IpfsHash 없음");
         }
 
-        return "ipfs://" + ipfsHash;
+        return "https://amber-wrong-duck-152.mypinata.cloud/ipfs/" + ipfsHash;
     }
 
     private static @NonNull HttpEntity<Map<String, Object>> getMapHttpEntity(String cardName, String imageCid, HttpHeaders headers) {
