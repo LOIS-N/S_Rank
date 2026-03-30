@@ -364,11 +364,15 @@ export const useGameStore = create<GameState>()(
         const endAt = new Date(endTime).toISOString();
         const apiStatus = active.status?.toUpperCase();
         const newStatus: QuestStatus = apiStatus === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS';
+        // 같은 퀘스트이고 로컬에 저장된 reward가 더 높으면 유지 (완벽주의자 보너스 보존)
+        const reward = (q.questId === active.questId && q.reward > active.rewardGold)
+          ? q.reward
+          : active.rewardGold;
         return {
           ...q,
           status: newStatus,
           title: active.title,
-          reward: active.rewardGold,
+          reward,
           questId: active.questId,
           questType: active.questType,
           endAt,
