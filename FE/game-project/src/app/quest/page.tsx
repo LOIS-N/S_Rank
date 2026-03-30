@@ -652,14 +652,25 @@ function Phase2Content({ quest, onCancel }: { quest: Quest | null, onCancel: () 
     const minCards = Math.min(3, quest.cardSlotCount);
     const maxCards = quest.cardSlotCount;
 
-    // 1. 후보 집합: 요구 스탯에 기여하는 모든 카드, 기여도 합산 오름차순 정렬
-    //    (약한 카드도 포함해야 "B급 1장 + 보조 2장" 같은 최적 조합을 찾을 수 있음)
     const getRelevantScore = (card: CardListItem) =>
       requirements.reduce((s, r) => s + getCardStat(card, r.type), 0);
 
-    const candidates = available
-      .filter(c => getRelevantScore(c) > 0)
-      .sort((a, b) => getRelevantScore(a) - getRelevantScore(b)); // 오름차순: 약한 카드 우선
+    // 1. 후보 집합: 각 요구 스탯별 상위 N장만 추려서 후보 풀 제한 (완전탐색 폭발 방지)
+    const TOP_PER_STAT = Math.max(15, maxCards * 3);
+    const candidateSet = new Set<number>();
+    for (const req of requirements) {
+      available
+        .filter(c => getCardStat(c, req.type) > 0)
+        .sort((a, b) => getCardStat(b, req.type) - getCardStat(a, req.type))
+        .slice(0, TOP_PER_STAT)
+        .forEach(c => candidateSet.add(c.cardId));
+    }
+    // 후보가 없으면 전체 available 사용
+    const candidatePool = candidateSet.size > 0
+      ? available.filter(c => candidateSet.has(c.cardId))
+      : available.filter(c => getRelevantScore(c) > 0);
+
+    const candidates = candidatePool.sort((a, b) => getRelevantScore(a) - getRelevantScore(b)); // 오름차순: pruning용
 
     // 2. k장 조합 완전 탐색 + 가지치기
     //    오름차순 정렬 덕분에 bestScore 확정 후 부분합 >= bestScore 즉시 pruning
