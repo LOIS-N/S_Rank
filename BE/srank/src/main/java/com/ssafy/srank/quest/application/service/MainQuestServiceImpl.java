@@ -1,5 +1,9 @@
 package com.ssafy.srank.quest.application.service;
 
+import com.ssafy.srank.card.domain.entity.UserCard;
+import com.ssafy.srank.card.domain.enums.EffectOperator;
+import com.ssafy.srank.card.domain.enums.EffectType;
+import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.mission.application.service.MissionService;
@@ -12,7 +16,9 @@ import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.domain.entity.MainQuestTemplate;
 import com.ssafy.srank.quest.domain.entity.QuestStatus;
 import com.ssafy.srank.quest.domain.entity.UserMainQuest;
+import com.ssafy.srank.quest.domain.entity.UserMainQuestCard;
 import com.ssafy.srank.quest.repository.MainQuestTemplateRepository;
+import com.ssafy.srank.quest.repository.UserMainQuestCardRepository;
 import com.ssafy.srank.quest.repository.UserMainQuestRepository;
 import com.ssafy.srank.user.application.dto.response.MyInfoResponse;
 import com.ssafy.srank.user.application.service.UserService;
@@ -35,18 +41,73 @@ public class MainQuestServiceImpl implements MainQuestService {
 
     private final MainQuestTemplateRepository mainQuestTemplateRepository;
     private final UserMainQuestRepository userMainQuestRepository;
+    private final UserMainQuestCardRepository userMainQuestCardRepository;
+    private final UserCardRepository userCardRepository;
     private final UserService userService;
     private final MissionService missionService;
 
+    /** 퀘스트에 배정된 카드들의 완벽주의자(QUEST_REWARD_GOLD PERCENT) 보너스 합산 → multiplier(100 기준) 반환 */
+    private int calcRewardMultiplier(Long userId, Long questId) {
+        List<UserMainQuestCard> questCards = userMainQuestCardRepository
+                .findByUserIdAndUserMainQuest_Id(userId, questId);
+        if (questCards.isEmpty()) return 100;
+
+        List<Long> cardIds = questCards.stream().map(UserMainQuestCard::getUserCardId).toList();
+        List<UserCard> cards = userCardRepository.findAllActiveByUserIdAndIdIn(userId, cardIds);
+
+        int bonus = 0;
+        for (UserCard card : cards) {
+            if (card.getSpecialSkillTemplate() == null) continue;
+            for (var effect : card.getSpecialSkillTemplate().getEffects()) {
+                if (effect.getEffectType() == EffectType.QUEST_REWARD_GOLD
+                        && effect.getEffectOperator() == EffectOperator.PERCENT
+                        && effect.getEffectAmount() != null) {
+                    bonus += effect.getEffectAmount();
+                }
+            }
+        }
+        return 100 + bonus;
+    }
 
     @Override
     public List<InProcessQuestResponse> getUserMainQuestList(Long userId, LocalDateTime now) {
-        return userMainQuestRepository.findByUserIdAndStatusNot(userId, QuestStatus.CLAIMED).stream()
-                .map((quest) -> {
-                    Long second = quest.getStatus() == QuestStatus.COMPLETED
-                            ? 0 : Duration.between(now, quest.getEndAt()).getSeconds();
-                    return InProcessQuestResponse.fromUserMainQuest(quest, second);
-                }).toList();
+        List<UserMainQuest> quests = userMainQuestRepository.findByUserIdAndStatusNot(userId, QuestStatus.CLAIMED);
+        if (quests.isEmpty()) return List.of();
+
+        // 퀘스트별 카드 한 번에 조회
+        List<UserMainQuestCard> allCards = userMainQuestCardRepository
+                .findByUserIdAndUserMainQuestIn(userId, quests);
+        List<Long> allCardIds = allCards.stream().map(UserMainQuestCard::getUserCardId).distinct().toList();
+        List<UserCard> userCards = userCardRepository.findAllActiveByUserIdAndIdIn(userId, allCardIds);
+        Map<Long, UserCard> cardMap = userCards.stream()
+                .collect(Collectors.toMap(UserCard::getId, c -> c));
+
+        // 퀘스트 ID → multiplier 맵
+        Map<Long, Integer> multiplierMap = quests.stream().collect(Collectors.toMap(
+                UserMainQuest::getId,
+                quest -> {
+                    int bonus = allCards.stream()
+                            .filter(qc -> qc.getUserMainQuest().getId().equals(quest.getId()))
+                            .mapToInt(qc -> {
+                                UserCard card = cardMap.get(qc.getUserCardId());
+                                if (card == null || card.getSpecialSkillTemplate() == null) return 0;
+                                return card.getSpecialSkillTemplate().getEffects().stream()
+                                        .filter(e -> e.getEffectType() == EffectType.QUEST_REWARD_GOLD
+                                                && e.getEffectOperator() == EffectOperator.PERCENT
+                                                && e.getEffectAmount() != null)
+                                        .mapToInt(e -> e.getEffectAmount())
+                                        .sum();
+                            }).sum();
+                    return 100 + bonus;
+                }
+        ));
+
+        return quests.stream().map((quest) -> {
+            Long second = quest.getStatus() == QuestStatus.COMPLETED
+                    ? 0 : Duration.between(now, quest.getEndAt()).getSeconds();
+            int multiplier = multiplierMap.getOrDefault(quest.getId(), 100);
+            return InProcessQuestResponse.fromUserMainQuest(quest, second, multiplier);
+        }).toList();
     }
 
     @Override
@@ -78,7 +139,9 @@ public class MainQuestServiceImpl implements MainQuestService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.QUEST_NOT_COMPLETED));
         mainQuest.claimRewardStatus();
         UserClearMainChapter(userId);
-        return (long) mainQuest.getMainQuestTemplate().getRewardGold();
+        int multiplier = calcRewardMultiplier(userId, questId);
+        long baseReward = mainQuest.getMainQuestTemplate().getRewardGold();
+        return Math.round(baseReward * multiplier / 100.0);
     }
 
     public List<MainQuestResponse> getMainQuestList(Long userId) {
