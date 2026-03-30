@@ -181,10 +181,10 @@ export default function GlobalModals() {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (profileRes.data.success) {
-          useGameStore.getState().setResources(
-            profileRes.data.data.gold,
-            profileRes.data.data.coin,
-          );
+          const me = profileRes.data.data;
+          const s = useUserStore.getState();
+          s.setProfile({ nickname: s.nickname ?? '', level: me.level, gold: me.gold, coin: me.coin });
+          useGameStore.getState().setResources(me.gold, me.coin);
         }
       } catch (e) {
         console.error('[CompleteQuest] profile fetch error:', e);
@@ -379,7 +379,7 @@ export default function GlobalModals() {
           >
             <div style={{ fontSize: '2rem', marginBottom: '1rem', color: '#7a5a00' }}>🎉 지급 완료</div>
             <p style={{ fontSize: '1.1rem', lineHeight: 1.8, color: '#3a2a00', fontWeight: 'bold', marginBottom: '1.5rem' }}>
-              300,000골드가 지급되었습니다.<br />
+              500,000골드가 지급되었습니다.<br />
               뽑기 탭에서 새로운 직원들을 고용하고,<br />
               퀘스트를 시작해보세요!
             </p>
