@@ -29,6 +29,11 @@ public class InProcessQuestResponse {
 
 
     public static InProcessQuestResponse fromUserMainQuest(UserMainQuest quest, Long duration){
+        return fromUserMainQuest(quest, duration, 100);
+    }
+
+    public static InProcessQuestResponse fromUserMainQuest(UserMainQuest quest, Long duration, int multiplier){
+        int rewardGold = Math.round(quest.getMainQuestTemplate().getRewardGold() * multiplier / 100.0f);
         return InProcessQuestResponse.builder()
                 .deskId(quest.getUserDeskId())
                 .title(quest.getMainQuestTemplate().getTitle())
@@ -36,7 +41,7 @@ public class InProcessQuestResponse {
                 .questType(QuestType.MAIN)
                 .status(quest.getStatus())
                 .difficulty(quest.getMainQuestTemplate().getDifficulty())
-                .rewardGold(quest.getMainQuestTemplate().getRewardGold())
+                .rewardGold(rewardGold)
                 .startedAt(quest.getStartedAt())
                 .endAt(quest.getEndAt())
                 .baseDurationSeconds(duration)
@@ -44,6 +49,11 @@ public class InProcessQuestResponse {
     }
 
     public static InProcessQuestResponse fromUserSubQuest(UserSubQuest quest, Long duration){
+        return fromUserSubQuest(quest, duration, 100);
+    }
+
+    public static InProcessQuestResponse fromUserSubQuest(UserSubQuest quest, Long duration, int multiplier){
+        int rewardGold = Math.round(quest.getSubQuestTemplate().getRewardGold() * multiplier / 100.0f);
         return InProcessQuestResponse.builder()
                 .deskId(quest.getUserDeskId())
                 .title(quest.getSubQuestTemplate().getTitle())
@@ -51,7 +61,7 @@ public class InProcessQuestResponse {
                 .questType(QuestType.SUB)
                 .status(quest.getStatus())
                 .difficulty(quest.getSubQuestTemplate().getDifficulty())
-                .rewardGold(quest.getSubQuestTemplate().getRewardGold())
+                .rewardGold(rewardGold)
                 .startedAt(quest.getStartedAt())
                 .endAt(quest.getEndAt())
                 .baseDurationSeconds(duration)
