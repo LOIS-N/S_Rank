@@ -1,10 +1,13 @@
 package com.ssafy.srank.quest.application.service;
 
+import com.ssafy.srank.card.domain.entity.UserCard;
+import com.ssafy.srank.card.domain.enums.EffectOperator;
+import com.ssafy.srank.card.domain.enums.EffectType;
+import com.ssafy.srank.card.repository.UserCardRepository;
 import com.ssafy.srank.common.exception.BusinessException;
 import com.ssafy.srank.common.exception.ErrorCode;
 import com.ssafy.srank.mission.application.service.MissionService;
 import com.ssafy.srank.mission.domain.enums.MissionCategory;
-import com.ssafy.srank.quest.application.dto.request.MainQuestRequest;
 import com.ssafy.srank.quest.application.dto.request.QuestDateTimeRequest;
 import com.ssafy.srank.quest.application.dto.request.SubQuestRequest;
 import com.ssafy.srank.quest.application.dto.response.InProcessQuestResponse;
@@ -12,6 +15,7 @@ import com.ssafy.srank.quest.application.dto.response.QuestDetailResponse;
 import com.ssafy.srank.quest.application.dto.response.SubQuestResponse;
 import com.ssafy.srank.quest.domain.entity.*;
 import com.ssafy.srank.quest.repository.SubQuestTemplateRepository;
+import com.ssafy.srank.quest.repository.UserSubQuestCardRepository;
 import com.ssafy.srank.quest.repository.UserSubQuestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,17 +37,72 @@ public class SubQuestServiceImpl implements SubQuestService {
 
     private final SubQuestTemplateRepository subQuestTemplateRepository;
     private final UserSubQuestRepository userSubQuestRepository;
+    private final UserSubQuestCardRepository userSubQuestCardRepository;
+    private final UserCardRepository userCardRepository;
     private final MissionService missionService;
 
+    /** 퀘스트에 배정된 카드들의 완벽주의자(QUEST_REWARD_GOLD PERCENT) 보너스 합산 → multiplier(100 기준) 반환 */
+    private int calcRewardMultiplier(Long userId, Long questId) {
+        List<UserSubQuestCard> questCards = userSubQuestCardRepository
+                .findByUserIdAndUserSubQuest_Id(userId, questId);
+        if (questCards.isEmpty()) return 100;
+
+        List<Long> cardIds = questCards.stream().map(UserSubQuestCard::getUserCardId).toList();
+        List<UserCard> cards = userCardRepository.findAllActiveByUserIdAndIdIn(userId, cardIds);
+
+        int bonus = 0;
+        for (UserCard card : cards) {
+            if (card.getSpecialSkillTemplate() == null) continue;
+            for (var effect : card.getSpecialSkillTemplate().getEffects()) {
+                if (effect.getEffectType() == EffectType.QUEST_REWARD_GOLD
+                        && effect.getEffectOperator() == EffectOperator.PERCENT
+                        && effect.getEffectAmount() != null) {
+                    bonus += effect.getEffectAmount();
+                }
+            }
+        }
+        return 100 + bonus;
+    }
 
     @Override
     public List<InProcessQuestResponse> getUserSubQuestList(Long userId, LocalDateTime now) {
-        return userSubQuestRepository.findByUserId(userId).stream()
-                .map((quest)->{
-                    Long second = quest.getStatus() == QuestStatus.COMPLETED
-                            ? 0 : Duration.between(now, quest.getEndAt()).getSeconds();
-                    return InProcessQuestResponse.fromUserSubQuest(quest, second);
-                }).toList();
+        List<UserSubQuest> quests = userSubQuestRepository.findByUserId(userId);
+        if (quests.isEmpty()) return List.of();
+
+        // 퀘스트별 카드 한 번에 조회
+        List<UserSubQuestCard> allCards = userSubQuestCardRepository
+                .findByUserIdAndUserSubQuestIn(userId, quests);
+        List<Long> allCardIds = allCards.stream().map(UserSubQuestCard::getUserCardId).distinct().toList();
+        List<UserCard> userCards = userCardRepository.findAllActiveByUserIdAndIdIn(userId, allCardIds);
+        Map<Long, UserCard> cardMap = userCards.stream()
+                .collect(Collectors.toMap(UserCard::getId, c -> c));
+
+        // 퀘스트 ID → multiplier 맵
+        Map<Long, Integer> multiplierMap = quests.stream().collect(Collectors.toMap(
+                UserSubQuest::getId,
+                quest -> {
+                    int bonus = allCards.stream()
+                            .filter(qc -> qc.getUserSubQuest().getId().equals(quest.getId()))
+                            .mapToInt(qc -> {
+                                UserCard card = cardMap.get(qc.getUserCardId());
+                                if (card == null || card.getSpecialSkillTemplate() == null) return 0;
+                                return card.getSpecialSkillTemplate().getEffects().stream()
+                                        .filter(e -> e.getEffectType() == EffectType.QUEST_REWARD_GOLD
+                                                && e.getEffectOperator() == EffectOperator.PERCENT
+                                                && e.getEffectAmount() != null)
+                                        .mapToInt(e -> e.getEffectAmount())
+                                        .sum();
+                            }).sum();
+                    return 100 + bonus;
+                }
+        ));
+
+        return quests.stream().map((quest) -> {
+            Long second = quest.getStatus() == QuestStatus.COMPLETED
+                    ? 0 : Duration.between(now, quest.getEndAt()).getSeconds();
+            int multiplier = multiplierMap.getOrDefault(quest.getId(), 100);
+            return InProcessQuestResponse.fromUserSubQuest(quest, second, multiplier);
+        }).toList();
     }
 
 
@@ -74,8 +133,10 @@ public class SubQuestServiceImpl implements SubQuestService {
     public Long claimRewardSubQuest(Long userId, Long questId) {
         UserSubQuest subQuest = userSubQuestRepository.findByIdAndUserIdAndStatus(questId, userId, QuestStatus.COMPLETED)
                 .orElseThrow(()-> new BusinessException(ErrorCode.QUEST_NOT_COMPLETED));
+        int multiplier = calcRewardMultiplier(userId, questId);
         userSubQuestRepository.delete(subQuest);
-        return (long) subQuest.getSubQuestTemplate().getRewardGold();
+        long baseReward = subQuest.getSubQuestTemplate().getRewardGold();
+        return Math.round(baseReward * multiplier / 100.0);
     }
 
     public List<SubQuestResponse> getSubQuests(Long userId) {

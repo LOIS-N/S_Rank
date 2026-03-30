@@ -13,4 +13,5 @@ public interface UserSubQuestCardRepository extends JpaRepository<UserSubQuestCa
     void deleteByUserIdAndUserSubQuest_Id(Long userId, Long userSubQuestId);
     List<UserSubQuestCard> findByUserIdAndUserSubQuestIn(Long userId, List<UserSubQuest> inProcessQuestList);
     List<UserSubQuestCard> findByUserId(Long userId);
+    List<UserSubQuestCard> findByUserIdAndUserSubQuest_Id(Long userId, Long questId);
 }

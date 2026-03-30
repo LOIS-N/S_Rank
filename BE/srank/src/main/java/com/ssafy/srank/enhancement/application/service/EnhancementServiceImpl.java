@@ -18,6 +18,8 @@ import com.ssafy.srank.enhancement.application.dto.request.EnhancementRequest;
 import com.ssafy.srank.enhancement.application.dto.response.EnhanceResultResponse;
 import com.ssafy.srank.enhancement.domain.policy.EnhancePolicy;
 import com.ssafy.srank.log.domain.enums.GoldLogReason;
+import com.ssafy.srank.mission.application.service.MissionService;
+import com.ssafy.srank.mission.domain.enums.MissionCategory;
 import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.rabbitmq.log.message.EnhanceLogMessage;
 import com.ssafy.srank.rabbitmq.log.producer.EnhanceLogProducer;
@@ -40,6 +42,7 @@ public class EnhancementServiceImpl implements EnhancementService {
 
     private final UserCardService userCardService;
     private final UserService userService;
+    private final MissionService missionService;
     private final ProbablyFairService probablyFairService;
     private final EnhancementMetrics enhancementMetrics;
     private final BusinessExceptionMetrics businessExceptionMetrics;
@@ -118,6 +121,7 @@ public class EnhancementServiceImpl implements EnhancementService {
                     List.of(request.getCardId())
             ));
 
+            missionService.recordActivity(userId, MissionCategory.ENHANCEMENT, 1);
             enhancementMetrics.recordGoldSpent(grade, policy.costGold);
             return response;
         } catch (BusinessException e) {

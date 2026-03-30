@@ -43,6 +43,15 @@ export default function NicknameModal({ onComplete }: NicknameModalProps) {
       );
 
       if (response.data.success) {
+        // 신규 유저 레벨업: 회원가입 직후 levelup API 호출 (튜토리얼 중간 이탈 시 레벨 0 방지)
+        try {
+          await client.put('/api/v1/users/levelup', {}, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          });
+        } catch (e) {
+          console.error('[Onboarding] levelup API error:', e);
+        }
+
         const profileRes = await client.get('/api/v1/users/me', {
           headers: { 'Authorization': `Bearer ${accessToken}` }
         });

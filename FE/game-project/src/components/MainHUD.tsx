@@ -9,6 +9,7 @@ import RankingModal from "./modals/RankingModal";
 import DiscordModal from "./modals/DiscordModal";
 import NotificationModal from "./modals/NotificationModal";
 import AchievementModal from "./modals/AchievementModal";
+import MailModal from "./modals/MailModal";
 import { toggleBgm, isBgmMuted, playQuestTutorialBgm } from "./BgmPlayer";
 import TutorialStory from "./TutorialStory";
 
@@ -50,7 +51,6 @@ export default function MainHUD() {
     tutorialQuestStep, setTutorialQuestStep,
     setTutorialGachaCount, setTutorialScriptId,
     quests,
-    setMailModalOpen,
     setDailyMissionModalOpen,
   } = useGameStore();
   const { accessToken, level: userLevel } = useUserStore();
@@ -229,8 +229,8 @@ export default function MainHUD() {
                   key={item.id}
                   onClick={isTutorialDisabled
                     ? () => openComingSoonModal("튜토리얼 진행 후 이용 가능합니다.")
-                    : item.id === "mail" ? () => setMailModalOpen(true)
-                    : item.id === "achievement" ? () => setDailyMissionModalOpen(true)
+                    : item.id === "mail" ? () => openModal('mail')
+                    : item.id === "achievement" ? () => openModal('achievement')
                     : item.comingSoon ? () => openComingSoonModal() : () => openModal(item.id)
                   }
                   className="relative flex items-center justify-center transition-all"
@@ -324,6 +324,7 @@ export default function MainHUD() {
           {activeModal === "discord" && <DiscordModal onClose={closeModal} />}
           {activeModal === "notification" && <NotificationModal onClose={closeModal} />}
           {activeModal === "achievement" && <AchievementModal onClose={closeModal} />}
+          {activeModal === "mail" && <MailModal onClose={closeModal} />}
           {activeModal === "guide" && (
             <div
               className="fixed inset-0 z-[100] flex items-center justify-center font-dot pointer-events-auto pb-[calc(6cqw+10px)]"
