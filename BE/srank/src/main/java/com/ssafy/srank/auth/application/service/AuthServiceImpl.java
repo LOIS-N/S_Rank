@@ -32,7 +32,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private static final long SIGNUP_BONUS_GOLD = 300_000L;
+    private static final long SIGNUP_BONUS_GOLD = 500_000L;
 
     private final PrivyTokenService privyTokenService;
     private final UserRepository userRepository;
