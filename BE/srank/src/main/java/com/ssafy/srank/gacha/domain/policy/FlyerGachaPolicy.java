@@ -13,7 +13,7 @@ public class FlyerGachaPolicy {
 
     // 10회는 10% 할인된 가격을 그대로 고정값으로 둔다.
     private static final long SINGLE_DRAW_COST = 10_000L;
-    private static final long TEN_DRAW_COST = 90_000L;
+    private static final long TEN_DRAW_COST = 70_000L;
 
     public long calculateCost(int count) {
         return switch (count) {

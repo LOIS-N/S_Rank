@@ -23,7 +23,7 @@ public class GachaPolicyRegistry {
         policies.put(GachaType.FLYER, new GachaPolicy(
                 1,
                 10_000L,
-                90_000L,
+                70_000L,
                 List.of(
                         new GradeWeight(CardGrade.B, 10 * PERCENT_SCALE),
                         new GradeWeight(CardGrade.C, 30 * PERCENT_SCALE),
