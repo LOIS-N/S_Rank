@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useUserStore } from "@/store/useUserStore";
+import { useGameStore } from "@/store/useGameStore";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import api from "@/lib/axios";
 
@@ -50,6 +51,7 @@ function sortMissions(list: MissionItem[]): MissionItem[] {
 export default function AchievementModal({ onClose }: AchievementModalProps) {
   const { getAccessToken } = usePrivy();
   const { accessToken } = useUserStore();
+  const { setClaimableAchievementCount } = useGameStore();
   const { refetch: refetchCff } = useTokenBalance();
 
   const [status, setStatus] = useState<DailyMissionStatus | null>(null);
@@ -70,17 +72,17 @@ export default function AchievementModal({ onClose }: AchievementModalProps) {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (data.success) {
-        setStatus({
-          ...data.data,
-          missions: sortMissions(data.data.missions ?? []),
-        });
+        const sorted = sortMissions(data.data.missions ?? []);
+        setStatus({ ...data.data, missions: sorted });
+        const claimable = sorted.filter(m => m.completed && !m.rewardClaimed).length;
+        setClaimableAchievementCount(claimable);
       }
     } catch {
       setStatus(null);
     } finally {
       setIsLoading(false);
     }
-  }, [getToken]);
+  }, [getToken, setClaimableAchievementCount]);
 
   useEffect(() => { fetchMissions(); }, [fetchMissions]);
 
@@ -98,14 +100,17 @@ export default function AchievementModal({ onClose }: AchievementModalProps) {
       const rewardToken = data?.data?.rewardToken ?? mission.rewardToken;
 
       // 낙관적 UI 업데이트
-      setStatus(prev => prev ? {
-        ...prev,
-        missions: sortMissions(
+      setStatus(prev => {
+        if (!prev) return prev;
+        const updated = sortMissions(
           prev.missions.map(m =>
             m.missionId === mission.missionId ? { ...m, rewardClaimed: true } : m
           )
-        ),
-      } : prev);
+        );
+        const claimable = updated.filter(m => m.completed && !m.rewardClaimed).length;
+        setClaimableAchievementCount(claimable);
+        return { ...prev, missions: updated };
+      });
 
       setRewardMsg(`${rewardToken} 커피 보상이 신청되었습니다.\n블록체인 처리 후 우편함으로 지급됩니다.`);
 
@@ -216,7 +221,11 @@ export default function AchievementModal({ onClose }: AchievementModalProps) {
 
       {/* 수령 결과 모달 */}
       {rewardMsg && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#8ea4b8]/80 font-dot">
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-[#8ea4b8]/80 font-dot"
+          onClick={e => e.stopPropagation()}
+          onPointerDown={e => e.stopPropagation()}
+        >
           <div className="bg-[#FFFCE4] border-4 border-[#6b859e] p-8 text-center max-w-sm shadow-[8px_8px_0px_#4a5d73]">
             <p className="text-xl mb-8 leading-relaxed text-slate-900 font-bold whitespace-pre-line">{rewardMsg}</p>
             <button

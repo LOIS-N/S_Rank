@@ -118,6 +118,9 @@ interface GameState {
   listedCardIds: number[];     // 상점에 판매 등록된 카드 ID 목록
   setUsedCardIds: (ids: number[]) => void;
   setListedCardIds: (ids: number[]) => void;
+  // --- 업적 뱃지 ---
+  claimableAchievementCount: number;
+  setClaimableAchievementCount: (n: number) => void;
 }
 
 export const useGameStore = create<GameState>()(
@@ -161,6 +164,7 @@ export const useGameStore = create<GameState>()(
   tutorialQuestTimerSec: 0,
   tutorialQuestTimerReward: 0,
   tutorialIsNewUser: false,
+  claimableAchievementCount: 0,
 
   setAuth: (token) => set({ accessToken: token }),
   increaseScore: (by) => set((state) => ({ score: state.score + by })),
@@ -387,6 +391,7 @@ export const useGameStore = create<GameState>()(
     });
     return { quests: updated };
   }),
+  setClaimableAchievementCount: (n) => set({ claimableAchievementCount: n }),
   }),
   {
     name: 'game-storage',
