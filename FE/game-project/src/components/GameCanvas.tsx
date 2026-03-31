@@ -482,10 +482,20 @@ export default function GameCanvas() {
                       if (isAnyModalOpen()) return;
                       const state = useGameStore.getState();
                       const q = state.quests[index];
-                      if (q && (q.status === 'IN_PROGRESS' || q.status === 'COMPLETED')) {
+                      if (q && q.status === 'COMPLETED') {
+                        // 완료된 퀘스트는 책상 클릭으로 바로 완료 처리
+                        if (q.questId && q.questType) {
+                          state.setCompleteQuestTrigger({
+                            deskId: index,
+                            questId: q.questId,
+                            questType: q.questType.toUpperCase() as 'MAIN' | 'SUB',
+                          });
+                        } else {
+                          state.completeQuest(index);
+                        }
+                      } else if (q && q.status === 'IN_PROGRESS') {
                         const endTime = q.endAt ? new Date(q.endAt).getTime() : (q.endTime || Date.now());
                         const remainMs = Math.max(0, endTime - Date.now());
-                        // store에 이미 syncActiveQuests로 title이 저장돼 있으므로 직접 사용
                         state.setQuestInfoModal({
                           questTitle: q.title || `퀘스트 #${index + 1}`,
                           rewardGold: q.reward,

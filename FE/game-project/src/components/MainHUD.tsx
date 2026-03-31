@@ -52,6 +52,7 @@ export default function MainHUD() {
     setTutorialGachaCount, setTutorialScriptId,
     quests,
     setDailyMissionModalOpen,
+    claimableAchievementCount,
   } = useGameStore();
   const { accessToken, level: userLevel } = useUserStore();
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -248,6 +249,11 @@ export default function MainHUD() {
                     src={item.icon} alt={item.label}
                     style={{ width: "2.48cqw", height: "2.48cqw", imageRendering: "pixelated" }}
                   />
+                  {item.id === "achievement" && claimableAchievementCount > 0 && (
+                    <span className="absolute top-0 right-0 flex items-center justify-center bg-red-500 text-white font-bold rounded-sm border border-white" style={{ width: "1.2cqw", height: "1.2cqw", fontSize: "0.7cqw", lineHeight: 1 }}>
+                      !
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -371,7 +377,7 @@ export default function MainHUD() {
                   ))}
                   <div style={{ marginTop: '1.2cqw', paddingTop: '0.8cqw', borderTop: '1px solid #8ea4b8', fontSize: '1.3cqw', color: '#0a1e38' }}>
                     문의사항, 에러가 있을 경우 아래 디스코드 채널의 문의사항 게시판을 이용해주세요.<br />
-                    <a href="https://discord.com/invite/vVtweyat" target="_blank" rel="noopener noreferrer" style={{ color: '#2a5ab8', textDecoration: 'underline', wordBreak: 'break-all' }}>https://discord.com/invite/vVtweyat</a>
+                    <a href="https://discord.gg/F2xpCsZgZG" target="_blank" rel="noopener noreferrer" style={{ color: '#2a5ab8', textDecoration: 'underline', wordBreak: 'break-all' }}>https://discord.gg/F2xpCsZgZG</a>
                   </div>
                 </div>
               </div>

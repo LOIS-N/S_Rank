@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useGameStore } from "@/store/useGameStore";
+import { useUserStore } from "@/store/useUserStore";
 import { GachaRevealCard } from "./GachaRevealCard";
 import { GachaAnimationOverlay } from "./GachaAnimationOverlay";
 import { sendGAEvent } from "@/lib/gtag";
@@ -28,6 +29,12 @@ const GACHA_COSTS: Record<TabType, { single: number; ten: number }> = {
   flyer: { single: 10000, ten: 70000 },
   fair: { single: 15000, ten: 135000 },
   public: { single: 40000, ten: 360000 },
+};
+
+const GACHA_LEVEL_REQS: Record<TabType, number> = {
+  flyer: 1,
+  fair: 3,
+  public: 5,
 };
 
 interface CardSkill {
@@ -168,10 +175,11 @@ export default function GachaPage() {
     tutorialQuestStep, tutorialGachaCount, setTutorialGachaCount,
     setTutorialQuestStep, setTutorialScriptId, setTutorialAccessPage,
   } = useGameStore();
+  const { level: userLevel } = useUserStore();
+  const { getAccessToken } = usePrivy();
   const [gachaArrowDismissed, setGachaArrowDismissed] = useState(false);
   // tutorialQuestStep 변경 시 화살표 재표시
   useEffect(() => { setGachaArrowDismissed(false); }, [tutorialQuestStep, tutorialGachaCount]);
-  const { getAccessToken } = usePrivy();
   const [drawnCards, setDrawnCards] = useState<GachaCardResult[]>([]);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
   const [isPulling, setIsPulling] = useState(false);
