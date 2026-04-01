@@ -1,0 +1,153 @@
+version: '3.8'
+
+services:
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: postgres-dev
+    restart: unless-stopped
+    ports:
+      - "8433:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DEV_DB}
+      POSTGRES_USER: ${POSTGRES_DEV_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_DEV_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    networks:
+      - infra-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_DEV_USER} -d ${POSTGRES_DEV_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-prod:
+    image: postgres:15-alpine
+    container_name: postgres-prod
+    restart: unless-stopped
+    ports:
+      - "8647:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_PROD_DB}
+      POSTGRES_USER: ${POSTGRES_PROD_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PROD_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    networks:
+      - infra-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_PROD_USER} -d ${POSTGRES_PROD_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-hotfix:
+    image: postgres:15-alpine
+    container_name: postgres-hotfix
+    restart: unless-stopped
+    ports:
+      - "8648:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_HOTFIX_DB}
+      POSTGRES_USER: ${POSTGRES_HOTFIX_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_HOTFIX_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-hotfix-data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    networks:
+      - infra-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_HOTFIX_USER} -d ${POSTGRES_HOTFIX_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-dev:
+    image: redis:7-alpine
+    container_name: redis-dev
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_DEV_PASSWORD} --notify-keyspace-events Ex
+    volumes:
+      - redis-dev-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    networks:
+      - infra-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_DEV_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-prod:
+    image: redis:7-alpine
+    container_name: redis-prod
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PROD_PASSWORD} --notify-keyspace-events Ex
+    volumes:
+      - redis-prod-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    networks:
+      - infra-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PROD_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-hotfix:
+    image: redis:7-alpine
+    container_name: redis-hotfix
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_HOTFIX_PASSWORD} --notify-keyspace-events Ex
+    volumes:
+      - redis-hotfix-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    networks:
+      - infra-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_HOTFIX_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-dev-data:
+    name: postgres-dev-data
+  postgres-prod-data:
+    name: postgres-prod-data
+  postgres-hotfix-data:
+    name: postgres-hotfix-data
+  redis-dev-data:
+    name: redis-dev-data
+  redis-prod-data:
+    name: redis-prod-data
+  redis-hotfix-data:
+    name: redis-hotfix-data
+
+networks:
+  infra-net:
+    name: infra-net
+    external: true

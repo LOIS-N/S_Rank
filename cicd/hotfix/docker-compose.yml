@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  hotfix-be:
+    build:
+      context: /var/jenkins_home/workspace/deploy-hotfix/BE/srank
+      dockerfile: Dockerfile
+    container_name: hotfix-be
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    env_file:
+      - .env
+    networks:
+      - gateway-net
+      - infra-net
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  hotfix-fe:
+    build:
+      context: /var/jenkins_home/workspace/deploy-hotfix/FE/game-project
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_PRIVY_APP_ID=${NEXT_PUBLIC_PRIVY_APP_ID}
+        - NEXT_PUBLIC_GA_MEASUREMENT_ID=${NEXT_PUBLIC_GA_MEASUREMENT_ID}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        - NEXT_PUBLIC_SENTRY_ENVIRONMENT=${NEXT_PUBLIC_SENTRY_ENVIRONMENT}
+    container_name: hotfix-fe
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - gateway-net
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  hotfix-rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: hotfix-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "8674:15672"
+    networks:
+      - infra-net
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+networks:
+  gateway-net:
+    name: gateway-net
+    external: true
+  infra-net:
+    name: infra-net
+    external: true

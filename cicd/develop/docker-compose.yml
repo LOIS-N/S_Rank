@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  dev-be:
+    build:
+      context: /var/jenkins_home/workspace/deploy-dev/BE/srank
+      dockerfile: Dockerfile
+    container_name: dev-be
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    env_file:
+      - .env
+    networks:
+      - gateway-net
+      - infra-net
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  dev-fe:
+    build:
+      context: /var/jenkins_home/workspace/deploy-dev/FE/game-project
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_PRIVY_APP_ID=${NEXT_PUBLIC_PRIVY_APP_ID}
+        - NEXT_PUBLIC_GA_MEASUREMENT_ID=${NEXT_PUBLIC_GA_MEASUREMENT_ID}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        - NEXT_PUBLIC_SENTRY_ENVIRONMENT=${NEXT_PUBLIC_SENTRY_ENVIRONMENT}
+    container_name: dev-fe
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - gateway-net
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  dev-rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: dev-rabbitmq
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8672:15672"
+    networks:
+      - infra-net
+
+networks:
+  gateway-net:
+    external: true
+  infra-net:
+    external: true
