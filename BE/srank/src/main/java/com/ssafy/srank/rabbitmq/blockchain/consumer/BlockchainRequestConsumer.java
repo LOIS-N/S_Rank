@@ -21,6 +21,7 @@ import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainEventType;
 import com.ssafy.srank.rabbitmq.blockchain.message.BlockchainRequestMessage;
 import com.ssafy.srank.rabbitmq.blockchain.producer.BlockchainRequestProducer;
 import com.ssafy.srank.rabbitmq.config.RabbitMqConfig;
+import com.ssafy.srank.sse.application.event.RewardCompleteResponse;
 import com.ssafy.srank.sse.application.service.SseService;
 import com.ssafy.srank.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigInteger;
 
@@ -104,6 +104,15 @@ public class BlockchainRequestConsumer {
                             "업적 보상이 도착했습니다.",
                             message.priceCoin()
                     ));
+
+                    sseService.sendToUser(
+                            message.userId(),
+                            "reward-complete",
+                            new RewardCompleteResponse(
+                                    message.priceCoin(),
+                                    "업적 보상을 획득했습니다."
+                            )
+                    );
 
                     yield missionTxHash;  // ← txHash → missionTxHash
                 }
